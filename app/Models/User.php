@@ -4,7 +4,6 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\PermissionFlag;
-use App\Enums\UserStatusType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -30,7 +29,6 @@ class User extends Authenticatable
         'avatar_path',
         'nickname',
         'about_me',
-        'status',
         'custom_status',
         'last_seen_at',
     ];
@@ -58,7 +56,6 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
-            'status' => UserStatusType::class,
             'last_seen_at' => 'datetime',
         ];
     }

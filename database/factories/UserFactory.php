@@ -32,7 +32,6 @@ class UserFactory extends Factory
             'avatar_path' => null,
             'nickname' => null,
             'about_me' => null,
-            'status' => 'offline',
             'custom_status' => null,
             'last_seen_at' => null,
             'remember_token' => Str::random(10),
@@ -70,7 +69,6 @@ class UserFactory extends Factory
     public function online(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'online',
             'last_seen_at' => now(),
         ]);
     }

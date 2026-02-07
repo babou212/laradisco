@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('channel_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('message_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('message_id'); // FK added in later migration
             $table->string('name');
             $table->boolean('is_archived')->default(false);
             $table->boolean('is_locked')->default(false);

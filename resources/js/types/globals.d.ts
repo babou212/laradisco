@@ -1,9 +1,21 @@
+import type Pusher from 'pusher-js';
 import type { AppPageProps } from './index';
+
+// Make Pusher available globally
+declare global {
+    interface Window {
+        Pusher: typeof Pusher;
+    }
+}
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
     interface ImportMetaEnv {
         readonly VITE_APP_NAME: string;
+        readonly VITE_REVERB_APP_KEY: string;
+        readonly VITE_REVERB_HOST: string;
+        readonly VITE_REVERB_PORT: string;
+        readonly VITE_REVERB_SCHEME: string;
         [key: string]: string | boolean | undefined;
     }
 

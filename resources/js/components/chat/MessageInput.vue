@@ -1,19 +1,22 @@
 <script setup lang="ts">
-import { Image, Send, Smile } from 'lucide-vue-next';
+import { CornerDownRight, Image, Send, Smile, X } from 'lucide-vue-next';
 import { onMounted, onUnmounted, ref } from 'vue';
+import type { MessageData } from './Message.vue';
 import EmojiPicker from './EmojiPicker.vue';
 import GifPicker from './GifPicker.vue';
 
 interface Props {
     channelName?: string;
+    replyingTo?: MessageData | null;
 }
 
 interface Emits {
     (e: 'send', content: string): void;
     (e: 'typing'): void;
+    (e: 'cancelReply'): void;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const messageInput = ref('');
@@ -87,24 +90,47 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="relative border-t border-border p-4">
-        <!-- Emoji Picker Popup -->
+    <div class="border-t border-border">
+        <!-- Reply Preview -->
         <div
-            v-if="showEmojiPicker"
-            ref="emojiPickerRef"
-            class="absolute bottom-full left-4 mb-2 z-10"
+            v-if="replyingTo"
+            class="flex items-start gap-2 bg-accent/30 px-4 py-2 border-b border-border"
         >
-            <EmojiPicker @select="onSelectEmoji" />
+            <CornerDownRight :size="16" class="mt-1 shrink-0 text-muted-foreground" />
+            <div class="flex-1 min-w-0">
+                <div class="text-xs font-medium text-primary">
+                    Replying to {{ replyingTo.user.username }}
+                </div>
+                <div class="text-xs text-muted-foreground truncate">
+                    {{ replyingTo.content.substring(0, 100) }}{{ replyingTo.content.length > 100 ? '...' : '' }}
+                </div>
+            </div>
+            <button
+                class="shrink-0 rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                @click="emit('cancelReply')"
+            >
+                <X :size="16" />
+            </button>
         </div>
 
-        <!-- GIF Picker Popup -->
-        <div
-            v-if="showGifPicker"
-            ref="gifPickerRef"
-            class="absolute bottom-full left-4 mb-2 z-10"
-        >
-            <GifPicker @select="onSelectGif" />
-        </div>
+        <div class="relative p-4">
+            <!-- Emoji Picker Popup -->
+            <div
+                v-if="showEmojiPicker"
+                ref="emojiPickerRef"
+                class="absolute bottom-full left-4 mb-2 z-10"
+            >
+                <EmojiPicker @select="onSelectEmoji" />
+            </div>
+
+            <!-- GIF Picker Popup -->
+            <div
+                v-if="showGifPicker"
+                ref="gifPickerRef"
+                class="absolute bottom-full left-4 mb-2 z-10"
+            >
+                <GifPicker @select="onSelectGif" />
+            </div>
 
         <div
             class="flex items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 focus-within:ring-2 focus-within:ring-ring"
@@ -144,6 +170,7 @@ onUnmounted(() => {
             >
                 <Send :size="18" />
             </button>
+        </div>
         </div>
     </div>
 </template>

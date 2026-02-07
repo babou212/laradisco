@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\UserStatusType;
 use App\Events\UserPresenceUpdated;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -12,7 +13,7 @@ class PresenceController extends Controller
     /**
      * Update the authenticated user's presence status.
      */
-    public function update(Request $request)
+    public function update(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'status' => ['required', Rule::enum(UserStatusType::class)],
@@ -22,8 +23,9 @@ class PresenceController extends Controller
         $user = $request->user();
         $status = UserStatusType::from($validated['status']);
 
-        // Only update custom_status in database - status is managed by WebSocket presence
+        // Update both status and custom_status in database
         $user->update([
+            'status' => $status->value,
             'custom_status' => $validated['custom_status'] ?? null,
         ]);
 
@@ -34,9 +36,6 @@ class PresenceController extends Controller
             $validated['custom_status'] ?? null
         ));
 
-        return response()->json([
-            'status' => $status->value,
-            'custom_status' => $user->custom_status,
-        ]);
+        return back();
     }
 }

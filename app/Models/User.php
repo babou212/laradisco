@@ -30,6 +30,7 @@ class User extends Authenticatable
         'nickname',
         'about_me',
         'custom_status',
+        'status',
         'last_seen_at',
     ];
 

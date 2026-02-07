@@ -52,5 +52,6 @@ Broadcast::channel('online', function (User $user) {
         'display_name' => $user->display_name,
         'avatar_path' => $user->avatar_path,
         'custom_status' => $user->custom_status,
+        'status' => $user->status ?? 'online',
     ];
 });

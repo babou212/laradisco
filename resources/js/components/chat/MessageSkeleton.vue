@@ -10,11 +10,7 @@ withDefaults(defineProps<Props>(), {
 
 <template>
     <div class="space-y-4">
-        <div
-            v-for="i in count"
-            :key="i"
-            class="flex gap-3 p-2"
-        >
+        <div v-for="i in count" :key="i" class="flex gap-3 p-2">
             <!-- Avatar skeleton -->
             <div class="size-10 shrink-0 animate-pulse rounded-full bg-muted" />
 

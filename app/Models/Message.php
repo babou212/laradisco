@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\ClearsCaches;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Message extends Model
 {
     /** @use HasFactory<\Database\Factories\MessageFactory> */
-    use HasFactory, SoftDeletes;
+    use ClearsCaches, HasFactory, SoftDeletes;
 
     /**
      * @var list<string>
@@ -85,5 +86,16 @@ class Message extends Model
     public function reactions(): HasMany
     {
         return $this->hasMany(MessageReaction::class);
+    }
+
+    /**
+     * Clear caches related to this message.
+     */
+    public function clearCaches(): void
+    {
+        // Clear channel metadata cache
+        if ($this->channel_id) {
+            cache()->forget("channel.{$this->channel_id}.metadata");
+        }
     }
 }

@@ -17,7 +17,6 @@ type Props = {
             type: string;
         }>;
     }>;
-    directMessages: Array<any>;
     currentChannel?: {
         id: number;
         name: string;
@@ -28,30 +27,42 @@ type Props = {
 
 const props = defineProps<Props>();
 
-const selectedChannelId = ref(props.currentChannel?.id || props.categories[0]?.channels[0]?.id);
+const selectedChannelId = ref(
+    props.currentChannel?.id || props.categories[0]?.channels[0]?.id,
+);
 
 const selectedChannel = computed(() => {
     // If we have currentChannel with the matching ID, use it (it has messages)
     if (props.currentChannel?.id === selectedChannelId.value) {
         return props.currentChannel;
     }
-    
+
     // Otherwise look in categories (won't have messages)
     for (const category of props.categories) {
-        const channel = category.channels.find(c => c.id === selectedChannelId.value);
+        const channel = category.channels.find(
+            (c) => c.id === selectedChannelId.value,
+        );
         if (channel) return channel;
     }
-    
+
     return props.currentChannel;
 });
 
 const handleSelectChannel = (channelId: number) => {
     selectedChannelId.value = channelId;
     // Fetch the channel messages
-    router.get(`/?channel=${channelId}`, {}, {
-        preserveState: true,
-        preserveScroll: true,
-    });
+    router.get(
+        `/?channel=${channelId}`,
+        {},
+        {
+            preserveState: true,
+            preserveScroll: true,
+        },
+    );
+};
+
+const switchToDms = () => {
+    router.visit('/direct-message');
 };
 </script>
 
@@ -62,13 +73,15 @@ const handleSelectChannel = (channelId: number) => {
         <!-- Left Sidebar: Channels -->
         <ChannelSidebar
             :categories="categories"
-            :direct-messages="directMessages"
+            :direct-messages="[]"
             :selected-channel-id="selectedChannelId"
             @select-channel="handleSelectChannel"
+            @switch-to-dms="switchToDms"
         />
 
         <!-- Middle: Messages Panel -->
         <MessagesPanel
+            v-if="selectedChannel"
             :channel="selectedChannel"
             :channel-id="selectedChannelId"
         />

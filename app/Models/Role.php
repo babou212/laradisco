@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\ClearsCaches;
 use App\Enums\PermissionFlag;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Role extends Model
 {
     /** @use HasFactory<\Database\Factories\RoleFactory> */
-    use HasFactory;
+    use ClearsCaches, HasFactory;
 
     /**
      * @var list<string>
@@ -81,5 +82,16 @@ class Role extends Model
         $permissions = array_values(array_filter($permissions, fn (string $p) => $p !== $permission->value));
         $this->permissions = $permissions;
         $this->save();
+    }
+
+    /**
+     * Clear caches related to this role.
+     */
+    public function clearCaches(): void
+    {
+        // Clear permission caches for all users with this role
+        foreach ($this->users as $user) {
+            cache()->forget("user.{$user->id}.permissions");
+        }
     }
 }

@@ -31,7 +31,7 @@ const fetchGifs = async (query?: string) => {
         const endpoint = query
             ? `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=${TENOR_API_KEY}&limit=20`
             : `https://tenor.googleapis.com/v2/featured?key=${TENOR_API_KEY}&limit=20`;
-        
+
         const response = await fetch(endpoint);
         const data = await response.json();
         gifs.value = data.results || [];
@@ -61,7 +61,8 @@ const selectCategory = (categoryId: string) => {
 };
 
 const selectGif = (gif: any) => {
-    const gifUrl = gif.media_formats?.gif?.url || gif.media_formats?.tinygif?.url;
+    const gifUrl =
+        gif.media_formats?.gif?.url || gif.media_formats?.tinygif?.url;
     if (gifUrl) {
         emit('select', gifUrl);
     }
@@ -73,30 +74,39 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="w-[400px] h-[450px] rounded-lg border border-border bg-background shadow-lg flex flex-col">
+    <div
+        class="flex h-[450px] w-[400px] flex-col rounded-lg border border-border bg-background shadow-lg"
+    >
         <!-- Search -->
-        <div class="p-3 border-b border-border">
+        <div class="border-b border-border p-3">
             <div class="relative">
-                <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Search
+                    :size="16"
+                    class="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+                />
                 <input
                     v-model="searchQuery"
                     type="text"
                     placeholder="Search for GIFs"
-                    class="w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    class="w-full rounded-md border border-input bg-background py-2 pr-3 pl-9 text-sm outline-none focus:ring-2 focus:ring-ring"
                     @keydown.enter="searchGifs"
                 />
             </div>
         </div>
 
         <!-- Categories -->
-        <div class="flex gap-2 overflow-x-auto p-3 border-b border-border scrollbar-thin">
+        <div
+            class="scrollbar-thin flex gap-2 overflow-x-auto border-b border-border p-3"
+        >
             <button
                 v-for="category in categories"
                 :key="category.id"
                 class="shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors"
-                :class="selectedCategory === category.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-accent text-accent-foreground hover:bg-accent/80'"
+                :class="
+                    selectedCategory === category.id
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-accent text-accent-foreground hover:bg-accent/80'
+                "
                 @click="selectCategory(category.id)"
             >
                 {{ category.label }}
@@ -105,23 +115,29 @@ onMounted(() => {
 
         <!-- GIF Grid -->
         <div class="flex-1 overflow-y-auto p-3">
-            <div v-if="loading" class="flex items-center justify-center h-full">
+            <div v-if="loading" class="flex h-full items-center justify-center">
                 <div class="text-sm text-muted-foreground">Loading...</div>
             </div>
-            <div v-else-if="gifs.length === 0" class="flex items-center justify-center h-full">
+            <div
+                v-else-if="gifs.length === 0"
+                class="flex h-full items-center justify-center"
+            >
                 <div class="text-sm text-muted-foreground">No GIFs found</div>
             </div>
             <div v-else class="grid grid-cols-2 gap-2">
                 <button
                     v-for="gif in gifs"
                     :key="gif.id"
-                    class="relative aspect-square overflow-hidden rounded-lg bg-accent hover:ring-2 hover:ring-primary transition-all"
+                    class="relative aspect-square overflow-hidden rounded-lg bg-accent transition-all hover:ring-2 hover:ring-primary"
                     @click="selectGif(gif)"
                 >
                     <img
-                        :src="gif.media_formats?.tinygif?.url || gif.media_formats?.gif?.url"
+                        :src="
+                            gif.media_formats?.tinygif?.url ||
+                            gif.media_formats?.gif?.url
+                        "
                         :alt="gif.content_description"
-                        class="w-full h-full object-cover"
+                        class="h-full w-full object-cover"
                         loading="lazy"
                     />
                 </button>

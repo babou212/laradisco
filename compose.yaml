@@ -27,6 +27,25 @@ services:
             - reverb
             - selenium
             - mailpit
+    queue:
+        build:
+            context: ./vendor/laravel/sail/runtimes/8.5
+            dockerfile: Dockerfile
+            args:
+                WWWGROUP: '${WWWGROUP}'
+        image: sail-8.5/app
+        environment:
+            WWWUSER: '${WWWUSER}'
+            LARAVEL_SAIL: 1
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            - pgsql
+            - redis
+        command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+        restart: unless-stopped
     reverb:
         build:
             context: ./vendor/laravel/sail/runtimes/8.5

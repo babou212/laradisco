@@ -18,12 +18,16 @@ class MessageController extends Controller
     {
         $validated = $request->validate([
             'content' => 'required|string|max:2000',
+            'reply_to_id' => 'nullable|exists:messages,id',
         ]);
 
         $message = $channel->messages()->create([
             'user_id' => $request->user()->id,
             'content' => $validated['content'],
+            'reply_to_id' => $validated['reply_to_id'] ?? null,
         ]);
+
+        $message->load(['user', 'replyTo.user']);
 
         broadcast(new MessageSent($message))->toOthers();
 

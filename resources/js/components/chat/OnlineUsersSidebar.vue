@@ -9,8 +9,6 @@ onMounted(() => {
     presenceStore.connect();
 });
 
-const onlineUsers = computed(() => presenceStore.onlineUsers);
-
 const usersByStatus = computed(() => {
     const online = presenceStore.onlineUsers.filter((u) => u.status === 'online');
     const idle = presenceStore.onlineUsers.filter((u) => u.status === 'idle');
@@ -31,20 +29,6 @@ const getStatusColor = (status?: UserStatusType) => {
         case 'offline':
         default:
             return 'bg-gray-400';
-    }
-};
-
-const getStatusLabel = (status?: UserStatusType) => {
-    switch (status) {
-        case 'online':
-            return 'Online';
-        case 'idle':
-            return 'Idle';
-        case 'dnd':
-            return 'Do Not Disturb';
-        case 'offline':
-        default:
-            return 'Offline';
     }
 };
 </script>

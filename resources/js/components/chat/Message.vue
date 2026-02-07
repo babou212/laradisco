@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { usePage } from '@inertiajs/vue3';
-import { Pencil, SmilePlus, Trash2 } from 'lucide-vue-next';
+import { CornerDownRight, Pencil, SmilePlus, Trash2 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import EmojiPicker from './EmojiPicker.vue';
 
@@ -17,6 +17,16 @@ export interface MessageData {
     is_edited: boolean;
     edited_at: string | null;
     deleted_at: string | null;
+    reply_to_id: number | null;
+    reply_to?: {
+        id: number;
+        content: string;
+        user: {
+            id: number;
+            username: string;
+            avatar_path: string | null;
+        };
+    } | null;
     user: {
         id: number;
         username: string;
@@ -38,6 +48,7 @@ interface Emits {
     (e: 'cancelEdit'): void;
     (e: 'saveEdit'): void;
     (e: 'delete'): void;
+    (e: 'reply'): void;
     (e: 'toggleReaction', emoji: string): void;
     (e: 'toggleEmojiPicker'): void;
     (e: 'updateEditContent', content: string): void;
@@ -135,6 +146,22 @@ const isGifUrl = computed(() => {
                 </span>
             </div>
 
+            <!-- Reply reference -->
+            <div
+                v-if="message.reply_to"
+                class="mt-1 flex items-start gap-1.5 rounded bg-accent/30 px-2 py-1.5 text-xs border-l-2 border-primary/50"
+            >
+                <CornerDownRight :size="14" class="mt-0.5 shrink-0 text-muted-foreground" />
+                <div class="flex-1 min-w-0">
+                    <span class="font-medium text-primary">
+                        {{ message.reply_to.user.username }}
+                    </span>
+                    <span class="text-muted-foreground truncate block">
+                        {{ message.reply_to.content.substring(0, 100) }}{{ message.reply_to.content.length > 100 ? '...' : '' }}
+                    </span>
+                </div>
+            </div>
+
             <!-- Edit mode -->
             <div v-if="isEditing" class="mt-1">
                 <textarea
@@ -163,12 +190,12 @@ const isGifUrl = computed(() => {
                 </div>
                 
                 <!-- Text content -->
-                <div v-else-if="messageWithoutYoutubeUrl && !youtubeVideoId" class="whitespace-pre-wrap break-words text-sm">
+                <div v-else-if="messageWithoutYoutubeUrl && !youtubeVideoId" class="whitespace-pre-wrap wrap-break-word text-sm">
                     {{ messageWithoutYoutubeUrl }}
                 </div>
                 
                 <template v-else-if="youtubeVideoId">
-                    <div v-if="messageWithoutYoutubeUrl" class="whitespace-pre-wrap break-words text-sm mb-2">
+                    <div v-if="messageWithoutYoutubeUrl" class="whitespace-pre-wrap wrap-break-word text-sm mb-2">
                         {{ messageWithoutYoutubeUrl }}
                     </div>
                     
@@ -214,6 +241,13 @@ const isGifUrl = computed(() => {
                 @click.stop="emit('toggleEmojiPicker')"
             >
                 <SmilePlus :size="16" />
+            </button>
+            <button
+                class="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                title="Reply"
+                @click="emit('reply')"
+            >
+                <CornerDownRight :size="16" />
             </button>
             <template v-if="message.user.id === currentUser.id">
                 <button

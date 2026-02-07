@@ -10,7 +10,7 @@ class ChannelController extends Controller
     public function show(Channel $channel): JsonResponse
     {
         $messages = $channel->messages()
-            ->with(['user', 'attachments', 'reactions'])
+            ->with(['user', 'attachments', 'reactions', 'replyTo.user'])
             ->orderBy('created_at', 'asc')
             ->limit(50)
             ->get();

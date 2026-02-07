@@ -39,6 +39,9 @@ const editContent = ref('');
 // Emoji picker state
 const emojiPickerMessageId = ref<number | null>(null);
 
+// Reply state
+const replyingToMessage = ref<MessageData | null>(null);
+
 // Typing indicator state
 const typingUsers = ref<Map<number, { username: string; timeout: ReturnType<typeof setTimeout> }>>(new Map());
 let typingDebounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -157,13 +160,19 @@ onUnmounted(() => {
 const sendMessage = (content: string) => {
     if (!props.channelId) return;
 
+    const data: { content: string; reply_to_id?: number } = { content };
+    if (replyingToMessage.value) {
+        data.reply_to_id = replyingToMessage.value.id;
+    }
+
     router.post(
         `/channels/${props.channelId}/messages`,
-        { content },
+        data,
         {
             preserveState: true,
             preserveScroll: true,
             onSuccess: () => {
+                replyingToMessage.value = null;
                 // Fetch updated channel messages
                 fetch(`/channels/${props.channelId}`, {
                     headers: {
@@ -178,6 +187,10 @@ const sendMessage = (content: string) => {
             },
         },
     );
+};
+
+const startReply = (message: MessageData) => {
+    replyingToMessage.value = message;
 };
 
 const startEdit = (message: MessageData) => {
@@ -324,6 +337,7 @@ const emitTyping = () => {
                     @cancel-edit="cancelEdit"
                     @save-edit="saveEdit(message)"
                     @delete="deleteMessage(message)"
+                    @reply="startReply(message)"
                     @toggle-reaction="emoji => toggleReaction(message, emoji)"
                     @toggle-emoji-picker="emojiPickerMessageId = emojiPickerMessageId === message.id ? null : message.id"
                     @update-edit-content="editContent = $event"
@@ -335,8 +349,10 @@ const emitTyping = () => {
 
         <MessageInput
             :channel-name="channel?.name"
+            :replying-to="replyingToMessage"
             @send="sendMessage"
             @typing="emitTyping"
+            @cancel-reply="replyingToMessage = null"
         />
     </div>
 </template>

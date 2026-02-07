@@ -3,7 +3,11 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\PermissionFlag;
+use App\Enums\UserStatusType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -20,8 +24,15 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
+        'avatar_path',
+        'nickname',
+        'about_me',
+        'status',
+        'custom_status',
+        'last_seen_at',
     ];
 
     /**
@@ -47,6 +58,74 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'status' => UserStatusType::class,
+            'last_seen_at' => 'datetime',
         ];
+    }
+
+    /**
+     * @return BelongsToMany<Role, $this>
+     */
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class)->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<Message, $this>
+     */
+    public function messages(): HasMany
+    {
+        return $this->hasMany(Message::class);
+    }
+
+    /**
+     * @return HasMany<DirectMessage, $this>
+     */
+    public function directMessages(): HasMany
+    {
+        return $this->hasMany(DirectMessage::class);
+    }
+
+    /**
+     * @return BelongsToMany<DirectMessageGroup, $this>
+     */
+    public function directMessageGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(DirectMessageGroup::class)
+            ->withPivot('last_read_at')
+            ->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<MessageReaction, $this>
+     */
+    public function reactions(): HasMany
+    {
+        return $this->hasMany(MessageReaction::class);
+    }
+
+    /**
+     * Check if the user has a specific permission through any of their roles.
+     */
+    public function hasPermission(PermissionFlag $permission): bool
+    {
+        return $this->roles->contains(fn (Role $role) => $role->hasPermission($permission));
+    }
+
+    /**
+     * Check if the user has the Administrator permission.
+     */
+    public function isAdministrator(): bool
+    {
+        return $this->hasPermission(PermissionFlag::Administrator);
+    }
+
+    /**
+     * Get the user's display name (nickname or name).
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->nickname ?? $this->name;
     }
 }

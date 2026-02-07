@@ -25,9 +25,16 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
+            'username' => fake()->unique()->userName(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'avatar_path' => null,
+            'nickname' => null,
+            'about_me' => null,
+            'status' => 'offline',
+            'custom_status' => null,
+            'last_seen_at' => null,
             'remember_token' => Str::random(10),
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
@@ -54,6 +61,29 @@ class UserFactory extends Factory
             'two_factor_secret' => encrypt('secret'),
             'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1'])),
             'two_factor_confirmed_at' => now(),
+        ]);
+    }
+
+    /**
+     * Indicate that the user is currently online.
+     */
+    public function online(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'online',
+            'last_seen_at' => now(),
+        ]);
+    }
+
+    /**
+     * Indicate that the user has a profile set up.
+     */
+    public function withProfile(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'nickname' => fake()->firstName(),
+            'about_me' => fake()->sentence(),
+            'custom_status' => fake()->emoji().' '.fake()->words(3, true),
         ]);
     }
 }

@@ -21,13 +21,11 @@ return new class extends Migration
             $table->string('avatar_path')->nullable();
             $table->string('nickname')->nullable();
             $table->text('about_me')->nullable();
-            $table->string('status', 10)->default('offline');
             $table->string('custom_status')->nullable();
             $table->timestamp('last_seen_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
 
-            $table->index('status');
             $table->index('last_seen_at');
         });
 

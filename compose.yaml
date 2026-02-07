@@ -24,8 +24,28 @@ services:
         depends_on:
             - pgsql
             - redis
+            - reverb
             - selenium
             - mailpit
+    reverb:
+        build:
+            context: ./vendor/laravel/sail/runtimes/8.5
+            dockerfile: Dockerfile
+            args:
+                WWWGROUP: '${WWWGROUP}'
+        image: sail-8.5/app
+        ports:
+            - '${FORWARD_REVERB_PORT:-8080}:8080'
+        environment:
+            WWWUSER: '${WWWUSER}'
+            LARAVEL_SAIL: 1
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            - redis
+        command: php artisan reverb:start --host=0.0.0.0 --port=8080
     redis:
         image: 'redis:alpine'
         ports:

@@ -33,12 +33,12 @@ class UserModelTest extends TestCase
         $this->assertSame('johndoe', $user->username);
     }
 
-    public function test_user_status_is_cast_to_enum(): void
+    public function test_user_online_state_updates_last_seen(): void
     {
         $user = User::factory()->online()->create();
 
-        $this->assertInstanceOf(UserStatusType::class, $user->status);
-        $this->assertSame(UserStatusType::Online, $user->status);
+        $this->assertNotNull($user->last_seen_at);
+        $this->assertTrue($user->last_seen_at->isToday());
     }
 
     public function test_user_display_name_returns_nickname_when_set(): void

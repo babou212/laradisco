@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('channel_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('thread_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('thread_id')->nullable(); // FK added in later migration
             $table->foreignId('reply_to_id')->nullable()->constrained('messages')->nullOnDelete();
             $table->text('content');
             $table->boolean('is_pinned')->default(false);

@@ -2,16 +2,12 @@
 import { Form, Head, Link, usePage } from '@inertiajs/vue3';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/DeleteUser.vue';
-import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
-import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
-import { type BreadcrumbItem } from '@/types';
 
 type Props = {
     mustVerifyEmail: boolean;
@@ -20,34 +16,30 @@ type Props = {
 
 defineProps<Props>();
 
-const breadcrumbItems: BreadcrumbItem[] = [
-    {
-        title: 'Profile settings',
-        href: edit().url,
-    },
-];
 
 const page = usePage();
 const user = page.props.auth.user;
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbItems">
+    <SettingsLayout>
         <Head title="Profile settings" />
 
         <h1 class="sr-only">Profile Settings</h1>
 
-        <SettingsLayout>
-            <div class="flex flex-col space-y-6">
-                <Heading
-                    variant="small"
-                    title="Profile information"
-                    description="Update your name and email address"
-                />
+        <!-- Profile Information Card -->
+        <div class="rounded-lg border bg-card">
+            <div class="border-b bg-muted/50 px-6 py-4">
+                <h2 class="text-lg font-semibold">Profile information</h2>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    Update your name and email address
+                </p>
+            </div>
 
+            <div class="p-6">
                 <Form
                     v-bind="ProfileController.update.form()"
-                    class="space-y-6"
+                    class="space-y-5"
                     v-slot="{ errors, processing, recentlySuccessful }"
                 >
                     <div class="grid gap-2">
@@ -100,11 +92,11 @@ const user = page.props.auth.user;
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-4 pt-2">
                         <Button
                             :disabled="processing"
                             data-test="update-profile-button"
-                            >Save</Button
+                            >Save changes</Button
                         >
 
                         <Transition
@@ -115,16 +107,17 @@ const user = page.props.auth.user;
                         >
                             <p
                                 v-show="recentlySuccessful"
-                                class="text-sm text-neutral-600"
+                                class="text-sm font-medium text-green-600 dark:text-green-500"
                             >
-                                Saved.
+                                Saved successfully
                             </p>
                         </Transition>
                     </div>
                 </Form>
             </div>
+        </div>
 
-            <DeleteUser />
-        </SettingsLayout>
-    </AppLayout>
+        <!-- Delete Account Card -->
+        <DeleteUser />
+    </SettingsLayout>
 </template>

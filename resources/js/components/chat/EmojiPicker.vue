@@ -8,13 +8,21 @@ interface Emits {
 
 const emit = defineEmits<Emits>();
 
-const onSelectEmoji = (emoji: { i: string; n: string[]; r: string; t: string; u: string }) => {
+const onSelectEmoji = (emoji: {
+    i: string;
+    n: string[];
+    r: string;
+    t: string;
+    u: string;
+}) => {
     emit('select', emoji.i);
 };
 </script>
 
 <template>
-    <div class="rounded-lg border border-border bg-background shadow-lg overflow-hidden">
+    <div
+        class="overflow-hidden rounded-lg border border-border bg-background shadow-lg"
+    >
         <EmojiPicker
             :native="true"
             theme="dark"

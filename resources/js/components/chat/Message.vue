@@ -61,7 +61,10 @@ const page = usePage();
 const currentUser = computed(() => page.props.auth.user);
 
 const groupedReactions = computed(() => {
-    const map = new Map<string, { emoji: string; count: number; userReacted: boolean }>();
+    const map = new Map<
+        string,
+        { emoji: string; count: number; userReacted: boolean }
+    >();
     for (const r of props.message.reactions) {
         const existing = map.get(r.emoji);
         if (existing) {
@@ -93,7 +96,7 @@ const extractYouTubeId = (url: string): string | null => {
         /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s?]+)/,
         /youtube\.com\/watch\?.*v=([^&\s?]+)/,
     ];
-    
+
     for (const pattern of patterns) {
         const match = url.match(pattern);
         if (match) return match[1];
@@ -102,7 +105,8 @@ const extractYouTubeId = (url: string): string | null => {
 };
 
 const youtubeVideoId = computed(() => {
-    const urlPattern = /(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s]+)/;
+    const urlPattern =
+        /(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s]+)/;
     const match = props.message.content.match(urlPattern);
     if (match) {
         return extractYouTubeId(match[1]);
@@ -112,19 +116,22 @@ const youtubeVideoId = computed(() => {
 
 const messageWithoutYoutubeUrl = computed(() => {
     if (!youtubeVideoId.value) return props.message.content;
-    const urlPattern = /(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s]+)/g;
+    const urlPattern =
+        /(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s]+)/g;
     return props.message.content.replace(urlPattern, '').trim();
 });
 
 const isGifUrl = computed(() => {
-    return props.message.content.match(/^https?:\/\/.*\.gif$/i) || 
-           props.message.content.includes('tenor.com') ||
-           props.message.content.includes('media.tenor.com');
+    return (
+        props.message.content.match(/^https?:\/\/.*\.gif$/i) ||
+        props.message.content.includes('tenor.com') ||
+        props.message.content.includes('media.tenor.com')
+    );
 });
 </script>
 
 <template>
-    <div class="group relative flex gap-3 rounded p-2 -mx-2 hover:bg-accent/50">
+    <div class="group relative -mx-2 flex gap-3 rounded p-2 hover:bg-accent/50">
         <!-- Avatar -->
         <div
             class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
@@ -133,15 +140,18 @@ const isGifUrl = computed(() => {
         </div>
 
         <!-- Message Content -->
-        <div class="flex-1 min-w-0">
+        <div class="min-w-0 flex-1">
             <div class="flex items-baseline gap-2">
-                <span class="font-semibold text-sm">
+                <span class="text-sm font-semibold">
                     {{ message.user.username }}
                 </span>
                 <span class="text-xs text-muted-foreground">
                     {{ new Date(message.created_at).toLocaleString() }}
                 </span>
-                <span v-if="message.is_edited" class="text-xs text-muted-foreground italic">
+                <span
+                    v-if="message.is_edited"
+                    class="text-xs text-muted-foreground italic"
+                >
                     (edited)
                 </span>
             </div>
@@ -149,15 +159,21 @@ const isGifUrl = computed(() => {
             <!-- Reply reference -->
             <div
                 v-if="message.reply_to"
-                class="mt-1 flex items-start gap-1.5 rounded bg-accent/30 px-2 py-1.5 text-xs border-l-2 border-primary/50"
+                class="mt-1 flex items-start gap-1.5 rounded border-l-2 border-primary/50 bg-accent/30 px-2 py-1.5 text-xs"
             >
-                <CornerDownRight :size="14" class="mt-0.5 shrink-0 text-muted-foreground" />
-                <div class="flex-1 min-w-0">
+                <CornerDownRight
+                    :size="14"
+                    class="mt-0.5 shrink-0 text-muted-foreground"
+                />
+                <div class="min-w-0 flex-1">
                     <span class="font-medium text-primary">
                         {{ message.reply_to.user.username }}
                     </span>
-                    <span class="text-muted-foreground truncate block">
-                        {{ message.reply_to.content.substring(0, 100) }}{{ message.reply_to.content.length > 100 ? '...' : '' }}
+                    <span class="block truncate text-muted-foreground">
+                        {{ message.reply_to.content.substring(0, 100)
+                        }}{{
+                            message.reply_to.content.length > 100 ? '...' : ''
+                        }}
                     </span>
                 </div>
             </div>
@@ -168,44 +184,83 @@ const isGifUrl = computed(() => {
                     :value="editContent"
                     rows="2"
                     class="w-full resize-none rounded border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                    @input="emit('updateEditContent', ($event.target as HTMLTextAreaElement).value)"
+                    @input="
+                        emit(
+                            'updateEditContent',
+                            ($event.target as HTMLTextAreaElement).value,
+                        )
+                    "
                     @keydown="handleEditKeydown"
                 />
-                <div class="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>escape to <button class="text-primary hover:underline" @click="emit('cancelEdit')">cancel</button></span>
-                    <span>• enter to <button class="text-primary hover:underline" @click="emit('saveEdit')">save</button></span>
+                <div
+                    class="mt-1 flex items-center gap-2 text-xs text-muted-foreground"
+                >
+                    <span
+                        >escape to
+                        <button
+                            class="text-primary hover:underline"
+                            @click="emit('cancelEdit')"
+                        >
+                            cancel
+                        </button></span
+                    >
+                    <span
+                        >• enter to
+                        <button
+                            class="text-primary hover:underline"
+                            @click="emit('saveEdit')"
+                        >
+                            save
+                        </button></span
+                    >
                 </div>
             </div>
 
             <!-- Normal display -->
             <div v-else class="mt-1">
                 <!-- GIF display -->
-                <div v-if="isGifUrl" class="rounded-lg overflow-hidden max-w-sm">
+                <div
+                    v-if="isGifUrl"
+                    class="max-w-sm overflow-hidden rounded-lg"
+                >
                     <img
                         :src="message.content"
                         alt="GIF"
-                        class="w-full h-auto"
+                        class="h-auto w-full"
                         loading="lazy"
                     />
                 </div>
-                
+
                 <!-- Text content -->
-                <div v-else-if="messageWithoutYoutubeUrl && !youtubeVideoId" class="whitespace-pre-wrap wrap-break-word text-sm">
+                <div
+                    v-else-if="messageWithoutYoutubeUrl && !youtubeVideoId"
+                    class="text-sm wrap-break-word whitespace-pre-wrap"
+                >
                     {{ messageWithoutYoutubeUrl }}
                 </div>
-                
+
                 <template v-else-if="youtubeVideoId">
-                    <div v-if="messageWithoutYoutubeUrl" class="whitespace-pre-wrap wrap-break-word text-sm mb-2">
+                    <div
+                        v-if="messageWithoutYoutubeUrl"
+                        class="mb-2 text-sm wrap-break-word whitespace-pre-wrap"
+                    >
                         {{ messageWithoutYoutubeUrl }}
                     </div>
-                    
+
                     <!-- YouTube embed -->
-                    <div class="mt-2 rounded-lg overflow-hidden max-w-md">
+                    <div class="mt-2 max-w-md overflow-hidden rounded-lg">
                         <iframe
                             :src="`https://www.youtube.com/embed/${youtubeVideoId}`"
-                            class="w-full aspect-video"
+                            class="aspect-video w-full"
                             frameborder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allow="
+                                accelerometer;
+                                autoplay;
+                                clipboard-write;
+                                encrypted-media;
+                                gyroscope;
+                                picture-in-picture;
+                            "
                             allowfullscreen
                         />
                     </div>
@@ -213,14 +268,19 @@ const isGifUrl = computed(() => {
             </div>
 
             <!-- Reactions display -->
-            <div v-if="message.reactions?.length" class="mt-1.5 flex flex-wrap gap-1">
+            <div
+                v-if="message.reactions?.length"
+                class="mt-1.5 flex flex-wrap gap-1"
+            >
                 <button
                     v-for="group in groupedReactions"
                     :key="group.emoji"
                     class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors"
-                    :class="group.userReacted
-                        ? 'border-primary/50 bg-primary/10 text-primary'
-                        : 'border-border bg-accent/50 text-muted-foreground hover:bg-accent'"
+                    :class="
+                        group.userReacted
+                            ? 'border-primary/50 bg-primary/10 text-primary'
+                            : 'border-border bg-accent/50 text-muted-foreground hover:bg-accent'
+                    "
                     @click="emit('toggleReaction', group.emoji)"
                 >
                     <span>{{ group.emoji }}</span>

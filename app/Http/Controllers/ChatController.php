@@ -19,27 +19,13 @@ class ChatController extends Controller
             ->orderBy('position')
             ->get();
 
-        $directMessages = $request->user()
-            ->directMessageGroups()
-            ->with(['participants' => function ($query) use ($request) {
-                $query->where('users.id', '!=', $request->user()->id);
-            }])
-            ->orderByDesc('last_message_at')
-            ->get()
-            ->map(function ($group) {
-                return [
-                    'id' => $group->id,
-                    'name' => $group->name ?? $group->participants->pluck('name')->join(', '),
-                ];
-            });
-
-        // Get the channel to display (from query param or first available)
+        // Check if viewing specific channel
         $channelId = $request->query('channel');
         $channel = null;
 
         if ($channelId) {
             $channel = Channel::with(['messages' => function ($query) {
-                $query->with(['user', 'attachments', 'reactions'])
+                $query->with(['user', 'attachments', 'reactions', 'replyTo.user'])
                     ->orderBy('created_at', 'asc')
                     ->limit(50);
             }])->find($channelId);
@@ -47,7 +33,7 @@ class ChatController extends Controller
 
         if (! $channel) {
             $channel = Channel::with(['messages' => function ($query) {
-                $query->with(['user', 'attachments', 'reactions'])
+                $query->with(['user', 'attachments', 'reactions', 'replyTo.user'])
                     ->orderBy('created_at', 'asc')
                     ->limit(50);
             }])
@@ -56,15 +42,18 @@ class ChatController extends Controller
                 ->first();
         }
 
-        return Inertia::render('Chat', [
-            'categories' => $categories,
-            'directMessages' => $directMessages,
-            'currentChannel' => $channel ? [
+        if ($channel) {
+            $channel = [
                 'id' => $channel->id,
                 'name' => $channel->name,
                 'topic' => $channel->topic,
                 'messages' => $channel->messages,
-            ] : null,
+            ];
+        }
+
+        return Inertia::render('Chat', [
+            'categories' => $categories,
+            'currentChannel' => $channel,
         ]);
     }
 }

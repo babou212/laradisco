@@ -106,9 +106,19 @@ class User extends Authenticatable
     /**
      * Check if the user has a specific permission through any of their roles.
      */
-    public function hasPermission(PermissionFlag $permission): bool
+    public function hasPermission(PermissionFlag $permission, $resource = null): bool
     {
-        return $this->roles->contains(fn (Role $role) => $role->hasPermission($permission));
+        $cacheKey = "user.{$this->id}.permissions";
+
+        $permissions = cache()->remember($cacheKey, now()->addMinutes(30), function () {
+            return $this->roles()
+                ->get()
+                ->flatMap(fn (Role $role) => $role->permissions ?? [])
+                ->unique()
+                ->values();
+        });
+
+        return $permissions->contains($permission->value);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\ClearsCaches;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class DirectMessage extends Model
 {
     /** @use HasFactory<\Database\Factories\DirectMessageFactory> */
-    use HasFactory, SoftDeletes;
+    use ClearsCaches, HasFactory, SoftDeletes;
 
     /**
      * @var list<string>
@@ -48,5 +49,18 @@ class DirectMessage extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Clear caches related to this message.
+     */
+    public function clearCaches(): void
+    {
+        // Clear DM groups cache for all participants
+        if ($this->directMessageGroup) {
+            foreach ($this->directMessageGroup->participants as $participant) {
+                cache()->forget("user.{$participant->id}.dm_groups");
+            }
+        }
     }
 }

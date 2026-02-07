@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\PermissionFlag;
 use App\Models\Channel;
 use App\Models\DirectMessageGroup;
 use App\Models\User;
@@ -14,7 +15,7 @@ Broadcast::channel('App.Models.User.{id}', function (User $user, int $id) {
 Broadcast::channel('channel.{channelId}', function (User $user, int $channelId) {
     $channel = Channel::find($channelId);
 
-    if (! $channel || ! $user->hasPermission('ViewChannel', $channel)) {
+    if (! $channel || ! $user->hasPermission(PermissionFlag::ViewChannels, $channel)) {
         return false;
     }
 
@@ -28,7 +29,7 @@ Broadcast::channel('channel.{channelId}', function (User $user, int $channelId) 
 });
 
 // Direct message group presence
-Broadcast::channel('dm.{groupId}', function (User $user, int $groupId) {
+Broadcast::channel('direct-message.{groupId}', function (User $user, int $groupId) {
     $group = DirectMessageGroup::find($groupId);
 
     if (! $group || ! $group->participants->contains($user->id)) {

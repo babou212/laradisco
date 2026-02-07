@@ -19,9 +19,9 @@ export const usePresenceStore = defineStore('presence', () => {
         presenceChannel
             .here((users: OnlineUser[]) => {
                 // Preserve existing status or default to 'online'
-                onlineUsers.value = users.map((u) => ({ 
-                    ...u, 
-                    status: u.status || 'online' 
+                onlineUsers.value = users.map((u) => ({
+                    ...u,
+                    status: u.status || 'online',
                 }));
                 isConnected.value = true;
             })
@@ -29,9 +29,9 @@ export const usePresenceStore = defineStore('presence', () => {
                 // Add user if not already in the list
                 const exists = onlineUsers.value.find((u) => u.id === user.id);
                 if (!exists) {
-                    onlineUsers.value.push({ 
-                        ...user, 
-                        status: user.status || 'online' 
+                    onlineUsers.value.push({
+                        ...user,
+                        status: user.status || 'online',
                     });
                 }
             })
@@ -70,7 +70,11 @@ export const usePresenceStore = defineStore('presence', () => {
         return onlineUsers.value.find((u) => u.id === userId);
     };
 
-    const updateUserStatus = (userId: number, status: UserStatusType, customStatus: string | null = null) => {
+    const updateUserStatus = (
+        userId: number,
+        status: UserStatusType,
+        customStatus: string | null = null,
+    ) => {
         const user = onlineUsers.value.find((u) => u.id === userId);
         if (user) {
             user.status = status;

@@ -1,38 +1,29 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
 import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
-import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
-import { edit } from '@/routes/user-password';
-import { type BreadcrumbItem } from '@/types';
 
-const breadcrumbItems: BreadcrumbItem[] = [
-    {
-        title: 'Password settings',
-        href: edit().url,
-    },
-];
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbItems">
+    <SettingsLayout>
         <Head title="Password settings" />
 
         <h1 class="sr-only">Password Settings</h1>
 
-        <SettingsLayout>
-            <div class="space-y-6">
-                <Heading
-                    variant="small"
-                    title="Update password"
-                    description="Ensure your account is using a long, random password to stay secure"
-                />
+        <div class="rounded-lg border bg-card">
+            <div class="border-b bg-muted/50 px-6 py-4">
+                <h2 class="text-lg font-semibold">Update password</h2>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    Ensure your account is using a long, random password to stay secure
+                </p>
+            </div>
 
+            <div class="p-6">
                 <Form
                     v-bind="PasswordController.update.form()"
                     :options="{
@@ -44,7 +35,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         'password_confirmation',
                         'current_password',
                     ]"
-                    class="space-y-6"
+                    class="space-y-5"
                     v-slot="{ errors, processing, recentlySuccessful }"
                 >
                     <div class="grid gap-2">
@@ -88,7 +79,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         <InputError :message="errors.password_confirmation" />
                     </div>
 
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-4 pt-2">
                         <Button
                             :disabled="processing"
                             data-test="update-password-button"
@@ -103,14 +94,14 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         >
                             <p
                                 v-show="recentlySuccessful"
-                                class="text-sm text-neutral-600"
+                                class="text-sm font-medium text-green-600 dark:text-green-500"
                             >
-                                Saved.
+                                Saved successfully
                             </p>
                         </Transition>
                     </div>
                 </Form>
             </div>
-        </SettingsLayout>
-    </AppLayout>
+        </div>
+    </SettingsLayout>
 </template>

@@ -29,8 +29,22 @@ class DatabaseSeeder extends Seeder
         ]);
         $admin->roles()->attach([$everyoneRole->id, $adminRole->id]);
 
-        // Create test users
-        $users = User::factory(10)->create();
+        // Create specific test users
+        $testUsers = [
+            ['name' => 'John Doe', 'username' => 'johndoe', 'email' => 'john@example.com'],
+            ['name' => 'Jane Smith', 'username' => 'janesmith', 'email' => 'jane@example.com'],
+            ['name' => 'Bob Johnson', 'username' => 'bobjohnson', 'email' => 'bob@example.com'],
+            ['name' => 'Alice Williams', 'username' => 'alicew', 'email' => 'alice@example.com'],
+            ['name' => 'Charlie Brown', 'username' => 'charlieb', 'email' => 'charlie@example.com'],
+        ];
+
+        foreach ($testUsers as $userData) {
+            $user = User::factory()->create($userData);
+            $user->roles()->attach($everyoneRole->id);
+        }
+
+        // Create random test users
+        $users = User::factory(20)->create();
         foreach ($users as $user) {
             $user->roles()->attach($everyoneRole->id);
         }

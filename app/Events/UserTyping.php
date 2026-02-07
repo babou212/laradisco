@@ -5,11 +5,11 @@ namespace App\Events;
 use App\Models\User;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class UserTyping implements ShouldBroadcast
+class UserTyping implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -19,6 +19,7 @@ class UserTyping implements ShouldBroadcast
     public function __construct(
         public User $user,
         public int $channelId,
+        public bool $isDm = false,
         public bool $isTyping = true
     ) {}
 
@@ -29,8 +30,10 @@ class UserTyping implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
+        $channelName = $this->isDm ? 'direct-message.'.$this->channelId : 'channel.'.$this->channelId;
+
         return [
-            new PresenceChannel('channel.'.$this->channelId),
+            new PresenceChannel($channelName),
         ];
     }
 

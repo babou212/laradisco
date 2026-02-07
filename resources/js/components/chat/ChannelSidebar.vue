@@ -1,6 +1,14 @@
 <script setup lang="ts">
-import { usePage, router, Link } from '@inertiajs/vue3';
-import { Hash, ChevronDown, ChevronRight, MessageSquare, Settings, LogOut, MoreVertical } from 'lucide-vue-next';
+import { usePage, router } from '@inertiajs/vue3';
+import {
+    Hash,
+    ChevronDown,
+    ChevronRight,
+    MessageSquare,
+    Settings,
+    LogOut,
+    MoreVertical,
+} from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { usePresenceStore } from '@/stores/presence';
 import type { User, UserStatusType } from '@/types';
@@ -24,6 +32,7 @@ type Props = {
 defineProps<Props>();
 const emit = defineEmits<{
     selectChannel: [channelId: number];
+    switchToDms: [];
 }>();
 
 const page = usePage();
@@ -32,7 +41,9 @@ const user = computed(() => page.props.auth.user as User);
 const collapsedCategories = ref<Set<number>>(new Set());
 const showUserPopup = ref(false);
 const currentStatus = ref<UserStatusType>('online');
-const currentCustomStatus = ref<string | null>((user.value?.custom_status as string) ?? null);
+const currentCustomStatus = ref<string | null>(
+    (user.value?.custom_status as string) ?? null,
+);
 
 // Use the Pinia presence store
 const presenceStore = usePresenceStore();
@@ -46,7 +57,7 @@ watch(
             currentCustomStatus.value = userStatus.custom_status || null;
         }
     },
-    { deep: true }
+    { deep: true },
 );
 
 const toggleCategory = (categoryId: number) => {
@@ -64,19 +75,27 @@ const selectChannel = (channelId: number) => {
 const setStatus = (status: UserStatusType) => {
     // Optimistically update local state
     currentStatus.value = status;
-    
+
     // Also update the store immediately for optimistic UI
     if (user.value?.id) {
-        presenceStore.updateUserStatus(user.value.id, status, currentCustomStatus.value);
+        presenceStore.updateUserStatus(
+            user.value.id,
+            status,
+            currentCustomStatus.value,
+        );
     }
-    
-    router.post('/presence', {
-        status: status,
-        custom_status: currentCustomStatus.value,
-    }, {
-        preserveState: true,
-        preserveScroll: true,
-    });
+
+    router.post(
+        '/presence',
+        {
+            status: status,
+            custom_status: currentCustomStatus.value,
+        },
+        {
+            preserveState: true,
+            preserveScroll: true,
+        },
+    );
     showUserPopup.value = false;
 };
 
@@ -85,9 +104,21 @@ const logout = () => {
 };
 
 const statusOptions = [
-    { value: 'online' as UserStatusType, label: 'Online', color: 'bg-green-500' },
-    { value: 'dnd' as UserStatusType, label: 'Do Not Disturb', color: 'bg-red-500' },
-    { value: 'offline' as UserStatusType, label: 'Invisible', color: 'bg-gray-500' },
+    {
+        value: 'online' as UserStatusType,
+        label: 'Online',
+        color: 'bg-green-500',
+    },
+    {
+        value: 'dnd' as UserStatusType,
+        label: 'Do Not Disturb',
+        color: 'bg-red-500',
+    },
+    {
+        value: 'offline' as UserStatusType,
+        label: 'Invisible',
+        color: 'bg-gray-500',
+    },
 ];
 </script>
 
@@ -104,13 +135,14 @@ const statusOptions = [
         <div class="flex-1 overflow-y-auto">
             <!-- Direct Messages Link -->
             <div class="px-2 py-2">
-                <Link
-                    href="/dm"
-                    class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                <button
+                    type="button"
+                    class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs font-semibold tracking-wide text-sidebar-foreground/70 uppercase hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    @click="$emit('switchToDms')"
                 >
                     <MessageSquare :size="16" />
                     Direct Messages
-                </Link>
+                </button>
             </div>
 
             <!-- Text Channels Section -->
@@ -123,7 +155,7 @@ const statusOptions = [
                     <!-- Category Header -->
                     <button
                         type="button"
-                        class="flex w-full items-center gap-1 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                        class="flex w-full items-center gap-1 px-2 py-1 text-xs font-semibold tracking-wide text-sidebar-foreground/70 uppercase hover:text-sidebar-foreground"
                         @click="toggleCategory(category.id)"
                     >
                         <ChevronRight
@@ -165,7 +197,9 @@ const statusOptions = [
         </div>
 
         <!-- User Profile Section at Bottom -->
-        <div class="relative border-t border-sidebar-border bg-sidebar-accent/30">
+        <div
+            class="relative border-t border-sidebar-border bg-sidebar-accent/30"
+        >
             <!-- Backdrop to close popup when clicking outside -->
             <div
                 v-if="showUserPopup"
@@ -176,7 +210,7 @@ const statusOptions = [
             <!-- User Popup Menu -->
             <div
                 v-if="showUserPopup"
-                class="absolute bottom-full left-0 right-0 z-20 mb-2 rounded-lg border border-sidebar-border bg-popover p-2 shadow-lg"
+                class="absolute right-0 bottom-full left-0 z-20 mb-2 rounded-lg border border-sidebar-border bg-popover p-2 shadow-lg"
             >
                 <!-- Status Options -->
                 <div class="mb-2 space-y-1">
@@ -187,7 +221,10 @@ const statusOptions = [
                         class="flex w-full items-center gap-3 rounded px-3 py-2 text-sm text-popover-foreground transition-colors hover:bg-accent"
                         @click="setStatus(status.value)"
                     >
-                        <span class="size-2.5 rounded-full" :class="status.color"></span>
+                        <span
+                            class="size-2.5 rounded-full"
+                            :class="status.color"
+                        ></span>
                         <span>{{ status.label }}</span>
                     </button>
                 </div>
@@ -226,14 +263,19 @@ const statusOptions = [
                     {{ user?.name?.[0]?.toUpperCase() || 'U' }}
                 </div>
                 <div class="min-w-0 flex-1 text-left">
-                    <div class="truncate text-sm font-medium text-sidebar-foreground">
+                    <div
+                        class="truncate text-sm font-medium text-sidebar-foreground"
+                    >
                         {{ user?.username || user?.name }}
                     </div>
                     <div class="truncate text-xs text-sidebar-foreground/60">
                         {{ currentCustomStatus || currentStatus }}
                     </div>
                 </div>
-                <MoreVertical :size="20" class="shrink-0 text-sidebar-foreground/60" />
+                <MoreVertical
+                    :size="20"
+                    class="shrink-0 text-sidebar-foreground/60"
+                />
             </button>
         </div>
     </div>

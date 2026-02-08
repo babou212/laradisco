@@ -4,8 +4,11 @@ namespace App\Actions\Fortify;
 
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
+use App\Models\InviteLink;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
 class CreateNewUser implements CreatesNewUsers
@@ -22,13 +25,37 @@ class CreateNewUser implements CreatesNewUsers
         Validator::make($input, [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),
+            'invite' => ['required', 'string'],
         ])->validate();
 
-        return User::create([
+        $invite = InviteLink::where('token', $input['invite'])->first();
+
+        if (! $invite || ! $invite->isValid()) {
+            throw ValidationException::withMessages([
+                'invite' => ['This invite link is invalid or has expired.'],
+            ]);
+        }
+
+        $user = User::create([
             'name' => $input['name'],
             'username' => $input['username'],
             'email' => $input['email'],
             'password' => $input['password'],
         ]);
+
+        // Mark the invite as used...
+        $invite->update([
+            'used_at' => now(),
+            'used_by' => $user->id,
+        ]);
+
+        // Assign the default (@everyone) role...
+        $defaultRole = Role::where('is_default', true)->first();
+
+        if ($defaultRole) {
+            $user->roles()->attach($defaultRole->id);
+        }
+
+        return $user;
     }
 }

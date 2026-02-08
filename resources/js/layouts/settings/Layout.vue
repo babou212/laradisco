@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { ArrowLeft } from 'lucide-vue-next';
+import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -8,29 +9,44 @@ import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { dashboard } from '@/routes/index';
+import { index as inviteLinksIndex } from '@/routes/invite-links';
 import { edit as editProfile } from '@/routes/profile';
 import { show } from '@/routes/two-factor';
 import { edit as editPassword } from '@/routes/user-password';
 import { type NavItem } from '@/types';
 
-const sidebarNavItems: NavItem[] = [
-    {
-        title: 'Profile',
-        href: editProfile(),
-    },
-    {
-        title: 'Password',
-        href: editPassword(),
-    },
-    {
-        title: 'Two-Factor Auth',
-        href: show(),
-    },
-    {
-        title: 'Appearance',
-        href: editAppearance(),
-    },
-];
+const page = usePage();
+const canInviteMembers = computed(() => page.props.auth.permissions?.canInviteMembers ?? false);
+
+const sidebarNavItems = computed<NavItem[]>(() => {
+    const items: NavItem[] = [
+        {
+            title: 'Profile',
+            href: editProfile(),
+        },
+        {
+            title: 'Password',
+            href: editPassword(),
+        },
+        {
+            title: 'Two-Factor Auth',
+            href: show(),
+        },
+        {
+            title: 'Appearance',
+            href: editAppearance(),
+        },
+    ];
+
+    if (canInviteMembers.value) {
+        items.push({
+            title: 'Invite Links',
+            href: inviteLinksIndex(),
+        });
+    }
+
+    return items;
+});
 
 const { isCurrentUrl } = useCurrentUrl();
 </script>

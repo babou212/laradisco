@@ -9,6 +9,10 @@ import { Spinner } from '@/components/ui/spinner';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
+
+defineProps<{
+    inviteToken: string;
+}>();
 </script>
 
 <template>
@@ -24,6 +28,8 @@ import { store } from '@/routes/register';
             v-slot="{ errors, processing }"
             class="flex flex-col gap-6"
         >
+            <input type="hidden" name="invite" :value="inviteToken" />
+
             <div class="grid gap-6">
                 <div class="grid gap-2">
                     <Label for="name">Name</Label>
@@ -41,12 +47,26 @@ import { store } from '@/routes/register';
                 </div>
 
                 <div class="grid gap-2">
+                    <Label for="username">Username</Label>
+                    <Input
+                        id="username"
+                        type="text"
+                        required
+                        :tabindex="2"
+                        autocomplete="username"
+                        name="username"
+                        placeholder="username"
+                    />
+                    <InputError :message="errors.username" />
+                </div>
+
+                <div class="grid gap-2">
                     <Label for="email">Email address</Label>
                     <Input
                         id="email"
                         type="email"
                         required
-                        :tabindex="2"
+                        :tabindex="3"
                         autocomplete="email"
                         name="email"
                         placeholder="email@example.com"
@@ -60,7 +80,7 @@ import { store } from '@/routes/register';
                         id="password"
                         type="password"
                         required
-                        :tabindex="3"
+                        :tabindex="4"
                         autocomplete="new-password"
                         name="password"
                         placeholder="Password"
@@ -74,7 +94,7 @@ import { store } from '@/routes/register';
                         id="password_confirmation"
                         type="password"
                         required
-                        :tabindex="4"
+                        :tabindex="5"
                         autocomplete="new-password"
                         name="password_confirmation"
                         placeholder="Confirm password"
@@ -82,10 +102,12 @@ import { store } from '@/routes/register';
                     <InputError :message="errors.password_confirmation" />
                 </div>
 
+                <InputError :message="errors.invite" />
+
                 <Button
                     type="submit"
                     class="mt-2 w-full"
-                    tabindex="5"
+                    tabindex="6"
                     :disabled="processing"
                     data-test="register-user-button"
                 >
@@ -99,7 +121,7 @@ import { store } from '@/routes/register';
                 <TextLink
                     :href="login()"
                     class="underline underline-offset-4"
-                    :tabindex="6"
+                    :tabindex="7"
                     >Log in</TextLink
                 >
             </div>

@@ -16,7 +16,6 @@ router.on('start', () => {
 });
 
 export function useSearch() {
-    
     const search = async () => {
         if (!query.value.trim()) {
             results.value = [];
@@ -24,16 +23,16 @@ export function useSearch() {
         }
 
         isLoading.value = true;
-        // Parse basic filters from query for UI if needed, 
+        // Parse basic filters from query for UI if needed,
         // but we send full query to backend as implemented.
-        
+
         try {
             const response = await axios.get(searchRoute().url, {
                 params: {
                     query: query.value,
                     type: scope.value,
                     // Pass parsed filters if we separate them in UI
-                }
+                },
             });
             results.value = response.data.data;
             isOpen.value = true;
@@ -67,6 +66,6 @@ export function useSearch() {
         search,
         toggle,
         close,
-        setScope
+        setScope,
     };
 }

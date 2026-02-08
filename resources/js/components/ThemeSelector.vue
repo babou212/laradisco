@@ -11,29 +11,119 @@ const props = defineProps<{
 
 const { theme, updateThemeLocally } = useAppearance();
 
-type ThemeOption = { value: Theme; label: string; color: string; description: string };
+type ThemeOption = {
+    value: Theme;
+    label: string;
+    color: string;
+    description: string;
+};
 
 const lightThemes: ThemeOption[] = [
-    { value: 'default', label: 'Default', color: 'bg-neutral-500', description: 'Clean neutral grays' },
-    { value: 'nord', label: 'Nord', color: 'bg-[hsl(213,32%,52%)]', description: 'Cool arctic blues' },
-    { value: 'rose', label: 'Rose', color: 'bg-[hsl(347,77%,50%)]', description: 'Warm elegant pinks' },
-    { value: 'ocean', label: 'Ocean', color: 'bg-[hsl(199,89%,42%)]', description: 'Deep sea blues' },
-    { value: 'forest', label: 'Forest', color: 'bg-[hsl(142,50%,36%)]', description: 'Earthy greens' },
-    { value: 'sunset', label: 'Sunset', color: 'bg-[hsl(25,95%,50%)]', description: 'Warm golden tones' },
-    { value: 'lavender', label: 'Lavender', color: 'bg-[hsl(271,60%,58%)]', description: 'Soft purple pastels' },
-    { value: 'solarized-light', label: 'Solarized', color: 'bg-[hsl(18,89%,44%)]', description: 'Classic warm ivory' },
+    {
+        value: 'default',
+        label: 'Default',
+        color: 'bg-neutral-500',
+        description: 'Clean neutral grays',
+    },
+    {
+        value: 'nord',
+        label: 'Nord',
+        color: 'bg-[hsl(213,32%,52%)]',
+        description: 'Cool arctic blues',
+    },
+    {
+        value: 'rose',
+        label: 'Rose',
+        color: 'bg-[hsl(347,77%,50%)]',
+        description: 'Warm elegant pinks',
+    },
+    {
+        value: 'ocean',
+        label: 'Ocean',
+        color: 'bg-[hsl(199,89%,42%)]',
+        description: 'Deep sea blues',
+    },
+    {
+        value: 'forest',
+        label: 'Forest',
+        color: 'bg-[hsl(142,50%,36%)]',
+        description: 'Earthy greens',
+    },
+    {
+        value: 'sunset',
+        label: 'Sunset',
+        color: 'bg-[hsl(25,95%,50%)]',
+        description: 'Warm golden tones',
+    },
+    {
+        value: 'lavender',
+        label: 'Lavender',
+        color: 'bg-[hsl(271,60%,58%)]',
+        description: 'Soft purple pastels',
+    },
+    {
+        value: 'solarized-light',
+        label: 'Solarized',
+        color: 'bg-[hsl(18,89%,44%)]',
+        description: 'Classic warm ivory',
+    },
 ];
 
 const darkThemes: ThemeOption[] = [
-    { value: 'default-dark', label: 'Default Dark', color: 'bg-neutral-400', description: 'Clean dark neutrals' },
-    { value: 'dracula', label: 'Dracula', color: 'bg-[hsl(265,89%,68%)]', description: 'Bold purples & pinks' },
-    { value: 'nord-dark', label: 'Nord Dark', color: 'bg-[hsl(213,32%,60%)]', description: 'Arctic dark blues' },
-    { value: 'midnight', label: 'Midnight', color: 'bg-[hsl(217,92%,60%)]', description: 'Deep navy blue' },
-    { value: 'cyberpunk', label: 'Cyberpunk', color: 'bg-[hsl(330,100%,60%)]', description: 'Neon pink & cyan' },
-    { value: 'monokai', label: 'Monokai', color: 'bg-[hsl(80,76%,53%)]', description: 'Classic editor feel' },
-    { value: 'emerald', label: 'Emerald', color: 'bg-[hsl(160,84%,39%)]', description: 'Rich dark greens' },
-    { value: 'solarized-dark', label: 'Solarized Dark', color: 'bg-[hsl(18,89%,50%)]', description: 'Classic dark tones' },
-    { value: 'crimson', label: 'Crimson', color: 'bg-[hsl(348,83%,47%)]', description: 'Intense dark reds' },
+    {
+        value: 'default-dark',
+        label: 'Default Dark',
+        color: 'bg-neutral-400',
+        description: 'Clean dark neutrals',
+    },
+    {
+        value: 'dracula',
+        label: 'Dracula',
+        color: 'bg-[hsl(265,89%,68%)]',
+        description: 'Bold purples & pinks',
+    },
+    {
+        value: 'nord-dark',
+        label: 'Nord Dark',
+        color: 'bg-[hsl(213,32%,60%)]',
+        description: 'Arctic dark blues',
+    },
+    {
+        value: 'midnight',
+        label: 'Midnight',
+        color: 'bg-[hsl(217,92%,60%)]',
+        description: 'Deep navy blue',
+    },
+    {
+        value: 'cyberpunk',
+        label: 'Cyberpunk',
+        color: 'bg-[hsl(330,100%,60%)]',
+        description: 'Neon pink & cyan',
+    },
+    {
+        value: 'monokai',
+        label: 'Monokai',
+        color: 'bg-[hsl(80,76%,53%)]',
+        description: 'Classic editor feel',
+    },
+    {
+        value: 'emerald',
+        label: 'Emerald',
+        color: 'bg-[hsl(160,84%,39%)]',
+        description: 'Rich dark greens',
+    },
+    {
+        value: 'solarized-dark',
+        label: 'Solarized Dark',
+        color: 'bg-[hsl(18,89%,50%)]',
+        description: 'Classic dark tones',
+    },
+    {
+        value: 'crimson',
+        label: 'Crimson',
+        color: 'bg-[hsl(348,83%,47%)]',
+        description: 'Intense dark reds',
+    },
 ];
 
 const form = useForm({
@@ -53,7 +143,9 @@ function selectTheme(value: Theme) {
 <template>
     <div class="space-y-6">
         <div>
-            <div class="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <div
+                class="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground"
+            >
                 <Sun class="h-4 w-4" />
                 Light Themes
             </div>
@@ -79,12 +171,16 @@ function selectTheme(value: Theme) {
                         ]"
                     />
                     <div class="text-center">
-                        <span class="text-sm font-medium">{{ item.label }}</span>
-                        <p class="mt-0.5 text-xs text-muted-foreground">{{ item.description }}</p>
+                        <span class="text-sm font-medium">{{
+                            item.label
+                        }}</span>
+                        <p class="mt-0.5 text-xs text-muted-foreground">
+                            {{ item.description }}
+                        </p>
                     </div>
                     <div
                         v-if="theme === item.value"
-                        class="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                        class="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground"
                     >
                         <Check class="h-3 w-3" />
                     </div>
@@ -93,7 +189,9 @@ function selectTheme(value: Theme) {
         </div>
 
         <div>
-            <div class="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <div
+                class="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground"
+            >
                 <Moon class="h-4 w-4" />
                 Dark Themes
             </div>
@@ -119,12 +217,16 @@ function selectTheme(value: Theme) {
                         ]"
                     />
                     <div class="text-center">
-                        <span class="text-sm font-medium">{{ item.label }}</span>
-                        <p class="mt-0.5 text-xs text-muted-foreground">{{ item.description }}</p>
+                        <span class="text-sm font-medium">{{
+                            item.label
+                        }}</span>
+                        <p class="mt-0.5 text-xs text-muted-foreground">
+                            {{ item.description }}
+                        </p>
                     </div>
                     <div
                         v-if="theme === item.value"
-                        class="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                        class="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground"
                     >
                         <Check class="h-3 w-3" />
                     </div>

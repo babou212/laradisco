@@ -95,7 +95,6 @@ defineProps<{
                     Log in
                 </Button>
             </div>
-
         </Form>
     </AuthBase>
 </template>

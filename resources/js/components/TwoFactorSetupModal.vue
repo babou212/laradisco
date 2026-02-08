@@ -173,10 +173,9 @@ watch(
                                         v-html="qrCodeSvg"
                                         class="flex aspect-square size-full items-center justify-center"
                                         :style="{
-                                            filter:
-                                                isDarkTheme(theme)
-                                                    ? 'invert(1) brightness(1.5)'
-                                                    : undefined,
+                                            filter: isDarkTheme(theme)
+                                                ? 'invert(1) brightness(1.5)'
+                                                : undefined,
                                         }"
                                     />
                                 </div>

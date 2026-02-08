@@ -4,6 +4,16 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
+        {{-- Inject Reverb WebSocket config for runtime use by Laravel Echo --}}
+        <script>
+            window.__reverb = {!! json_encode([
+                'key' => config('reverb.apps.apps.0.key', env('REVERB_APP_KEY', '')),
+                'host' => config('reverb.apps.apps.0.options.host', env('REVERB_HOST', 'localhost')),
+                'port' => (string) config('reverb.apps.apps.0.options.port', env('REVERB_PORT', '443')),
+                'scheme' => config('reverb.apps.apps.0.options.scheme', env('REVERB_SCHEME', 'https')),
+            ]) !!};
+        </script>
+
         {{-- Inline script to apply theme immediately and prevent flash --}}
         <script>
             (function() {

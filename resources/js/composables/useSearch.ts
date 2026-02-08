@@ -37,7 +37,9 @@ export function useSearch() {
             results.value = response.data.data;
             isOpen.value = true;
         } catch (error) {
-            console.error('Search failed:', error);
+            if (import.meta.env.DEV) {
+                console.error('Search failed:', error);
+            }
         } finally {
             isLoading.value = false;
         }

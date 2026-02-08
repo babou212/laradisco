@@ -34,7 +34,9 @@ watch(
                 const data = await response.json();
                 fullUser.value = data;
             } catch (error) {
-                console.error('Failed to fetch user data:', error);
+                if (import.meta.env.DEV) {
+                    console.error('Failed to fetch user data:', error);
+                }
                 fullUser.value = null;
             } finally {
                 loading.value = false;

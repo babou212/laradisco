@@ -36,7 +36,9 @@ const fetchGifs = async (query?: string) => {
         const data = await response.json();
         gifs.value = data.results || [];
     } catch (error) {
-        console.error('Error fetching GIFs:', error);
+        if (import.meta.env.DEV) {
+            console.error('Error fetching GIFs:', error);
+        }
         gifs.value = [];
     } finally {
         loading.value = false;

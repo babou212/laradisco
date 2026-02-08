@@ -129,7 +129,9 @@ const loadMoreMessages = async () => {
             hasMore.value = false;
         }
     } catch (error) {
-        console.error('Failed to load more messages:', error);
+        if (import.meta.env.DEV) {
+            console.error('Failed to load more messages:', error);
+        }
     } finally {
         isLoadingMore.value = false;
     }

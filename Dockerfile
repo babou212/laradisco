@@ -116,8 +116,7 @@ COPY --from=composer /app/vendor vendor
 RUN php artisan package:discover --ansi || true
 
 # Optimize for production
-RUN php artisan config:cache || true \
-    && php artisan route:cache || true \
+RUN php artisan route:cache || true \
     && php artisan view:cache || true \
     && php artisan event:cache || true
 

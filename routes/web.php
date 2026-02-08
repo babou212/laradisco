@@ -6,17 +6,20 @@ use App\Http\Controllers\DirectMessageController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\PresenceController;
 use App\Http\Controllers\ReactionController;
+use App\Http\Controllers\SetupController;
 use App\Http\Controllers\TypingController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
+Route::middleware(['auth'])->group(function () {
+    Route::get('setup', [SetupController::class, 'show'])->name('setup');
+    Route::post('setup', [SetupController::class, 'complete'])->name('setup.complete');
+});
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/', [ChatController::class, 'index'])->name('chat');
-    Route::get('/home', fn () => redirect()->route('chat'))->name('home');
-
-    Route::get('dashboard', function () {
-        return redirect()->route('chat');
-    })->name('dashboard');
+    Route::redirect('/home', '/')->name('home');
+    Route::redirect('dashboard', '/')->name('dashboard');
 
     Route::get('channels/{channel}', [ChannelController::class, 'show'])->name('channels.show');
     Route::post('channels/{channel}/messages', [MessageController::class, 'store'])->name('channels.messages.store');

@@ -58,6 +58,8 @@ class DirectMessage extends Model
     public function clearCaches(): void
     {
         // Clear DM groups cache for all participants
+        $this->loadMissing('group.participants');
+
         if ($this->group) {
             foreach ($this->group->participants as $participant) {
                 cache()->forget("user.{$participant->id}.dm_groups");

@@ -107,13 +107,15 @@ class Message extends Model
      */
     public function toSearchableArray(): array
     {
+        $this->loadMissing('attachments');
+
         return [
             'id' => $this->id,
             'content' => $this->content,
             'channel_id' => $this->channel_id,
             'user_id' => $this->user_id,
             'created_at' => $this->created_at->timestamp,
-            'has_attachment' => $this->attachments()->exists(),
+            'has_attachment' => $this->attachments->isNotEmpty(),
         ];
     }
 }

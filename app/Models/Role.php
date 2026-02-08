@@ -90,6 +90,8 @@ class Role extends Model
     public function clearCaches(): void
     {
         // Clear permission caches for all users with this role
+        $this->loadMissing('users');
+
         foreach ($this->users as $user) {
             cache()->forget("user.{$user->id}.permissions");
         }

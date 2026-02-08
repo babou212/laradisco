@@ -24,8 +24,14 @@ class TypingController extends Controller
     {
         $user = $request->user();
 
-        // Check if user is a participant
-        if (! $dmGroup->participants()->where('users.id', $user->id)->exists()) {
+        // Cache participation check to avoid DB query on every keystroke
+        $isParticipant = cache()->remember(
+            "dm.{$dmGroup->id}.participant.{$user->id}",
+            now()->addMinutes(30),
+            fn () => $dmGroup->participants()->where('users.id', $user->id)->exists()
+        );
+
+        if (! $isParticipant) {
             abort(403);
         }
 

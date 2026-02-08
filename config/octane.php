@@ -132,6 +132,10 @@ return [
 
     'warm' => [
         ...Octane::defaultServicesToWarm(),
+        'cache',
+        'cache.store',
+        'db',
+        'redis',
     ],
 
     'flush' => [

@@ -8,11 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Scout\Searchable;
 
 class Message extends Model
 {
     /** @use HasFactory<\Database\Factories\MessageFactory> */
-    use ClearsCaches, HasFactory, SoftDeletes;
+    use ClearsCaches, HasFactory, Searchable, SoftDeletes;
 
     /**
      * @var list<string>
@@ -97,5 +98,22 @@ class Message extends Model
         if ($this->channel_id) {
             cache()->forget("channel.{$this->channel_id}.metadata");
         }
+    }
+
+    /**
+     * Get the indexable data array for the model.
+     *
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'content' => $this->content,
+            'channel_id' => $this->channel_id,
+            'user_id' => $this->user_id,
+            'created_at' => $this->created_at->timestamp,
+            'has_attachment' => $this->attachments()->exists(),
+        ];
     }
 }

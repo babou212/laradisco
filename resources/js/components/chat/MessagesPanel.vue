@@ -2,6 +2,7 @@
 import { router, usePage } from '@inertiajs/vue3';
 import { Hash, MessageSquare } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import SearchInput from '@/components/SearchInput.vue';
 import echo from '@/lib/echo';
 import type { User } from '@/types/auth';
 import Message, { type MessageData, type MessageReaction } from './Message.vue';
@@ -486,6 +487,10 @@ const emitTyping = () => {
                 <p v-if="channel?.topic" class="text-xs text-muted-foreground">
                     {{ channel.topic }}
                 </p>
+            </div>
+            
+            <div class="ml-4">
+                <SearchInput />
             </div>
         </div>
 

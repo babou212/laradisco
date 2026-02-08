@@ -31,6 +31,7 @@ class User extends Authenticatable
         'nickname',
         'about_me',
         'custom_status',
+        'must_setup',
         'status',
         'theme',
         'last_seen_at',
@@ -43,6 +44,7 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
+        'must_setup',
         'two_factor_secret',
         'two_factor_recovery_codes',
         'remember_token',
@@ -73,6 +75,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'must_setup' => 'boolean',
             'two_factor_confirmed_at' => 'datetime',
             'last_seen_at' => 'datetime',
         ];

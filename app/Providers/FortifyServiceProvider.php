@@ -49,7 +49,6 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::loginView(fn (Request $request) => Inertia::render('auth/Login', [
             'canResetPassword' => Features::enabled(Features::resetPasswords()),
-            'canRegister' => Features::enabled(Features::registration()),
             'status' => $request->session()->get('status'),
         ]));
 
@@ -66,7 +65,23 @@ class FortifyServiceProvider extends ServiceProvider
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::registerView(fn () => Inertia::render('auth/Register'));
+        Fortify::registerView(function (Request $request) {
+            $token = $request->query('invite');
+            $validInvite = false;
+
+            if ($token) {
+                $invite = \App\Models\InviteLink::where('token', $token)->first();
+                $validInvite = $invite && $invite->isValid();
+            }
+
+            if (! $validInvite) {
+                abort(403, 'A valid invite link is required to register.');
+            }
+
+            return Inertia::render('auth/Register', [
+                'inviteToken' => $token,
+            ]);
+        });
 
         Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/TwoFactorChallenge'));
 

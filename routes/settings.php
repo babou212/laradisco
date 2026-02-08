@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Settings\AppearanceController;
+use App\Http\Controllers\Settings\InviteLinkController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\TwoFactorAuthenticationController;
@@ -27,4 +28,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('settings/two-factor', [TwoFactorAuthenticationController::class, 'show'])
         ->name('two-factor.show');
+
+    Route::get('settings/invite-links', [InviteLinkController::class, 'index'])->name('invite-links.index');
+    Route::post('settings/invite-links', [InviteLinkController::class, 'store'])->name('invite-links.store');
+    Route::delete('settings/invite-links/{inviteLink}', [InviteLinkController::class, 'destroy'])->name('invite-links.destroy');
 });

@@ -23,7 +23,7 @@ class PresenceTest extends TestCase
         ]);
 
         $response->assertRedirect();
-        
+
         // Only custom_status is stored in DB - status is managed by WebSocket presence
         $this->assertDatabaseHas('users', [
             'id' => $user->id,

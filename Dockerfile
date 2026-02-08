@@ -1,28 +1,12 @@
 # =============================================================================
 # Multi-stage Dockerfile for Laradisco
-# Stage 1: Build frontend assets (Node.js)
-# Stage 2: Install PHP dependencies (Composer)
+# Stage 1: Install PHP dependencies (Composer)
+# Stage 2: Build frontend assets (Node.js + PHP)
 # Stage 3: Production image (Nginx + PHP-FPM via supervisord)
 # =============================================================================
 
 # ---------------------------------------------------------------------------
-# Stage 1: Build frontend assets
-# ---------------------------------------------------------------------------
-FROM node:22-alpine AS frontend
-
-WORKDIR /app
-
-COPY package.json package-lock.json* ./
-RUN npm ci
-
-COPY resources/ resources/
-COPY vite.config.ts tsconfig.json components.json tailwind.config.* ./
-COPY public/ public/
-
-RUN npm run build
-
-# ---------------------------------------------------------------------------
-# Stage 2: Install PHP dependencies
+# Stage 1: Install PHP dependencies
 # ---------------------------------------------------------------------------
 FROM composer:2 AS composer
 
@@ -37,6 +21,38 @@ RUN composer install \
     --prefer-dist \
     --optimize-autoloader \
     --ignore-platform-reqs
+
+# ---------------------------------------------------------------------------
+# Stage 2: Build frontend assets
+# ---------------------------------------------------------------------------
+FROM php:8.5-alpine AS frontend
+
+WORKDIR /app
+
+# Install Node.js and NPM
+RUN apk add --no-cache nodejs npm
+
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Copy application files (needed for artisan)
+COPY . .
+
+# Setup environment for build
+RUN cp .env.example .env && \
+    sed -i 's/DB_CONNECTION=pgsql/DB_CONNECTION=sqlite/' .env && \
+    sed -i 's/DB_DATABASE=laradisco/DB_DATABASE=\/app\/database\/database.sqlite/' .env && \
+    sed -i 's/SESSION_DRIVER=database/SESSION_DRIVER=array/' .env && \
+    mkdir -p database && touch database/database.sqlite
+
+# Copy vendor directory from composer stage
+COPY --from=composer /app/vendor ./vendor
+
+RUN php artisan key:generate
+RUN php artisan wayfinder:generate --with-form -v
+
+# Build assets (requires PHP for wayfinder)
+RUN npm run build
 
 # ---------------------------------------------------------------------------
 # Stage 3: Production image
@@ -56,14 +72,13 @@ RUN apk add --no-cache \
     libjpeg-turbo-dev \
     libpng-dev \
     curl \
+    linux-headers \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
         pdo_pgsql \
         pgsql \
         zip \
         intl \
-        mbstring \
-        opcache \
         gd \
         pcntl \
         bcmath \

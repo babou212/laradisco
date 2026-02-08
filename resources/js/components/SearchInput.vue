@@ -2,9 +2,9 @@
 import { useDebounceFn } from '@vueuse/core';
 import { Search } from 'lucide-vue-next';
 import { watch, ref } from 'vue'; // Import watch from vue
+import { nextTick } from 'vue';
 import { Input } from '@/components/ui/input';
 import { useSearch } from '@/composables/useSearch';
-import { nextTick } from 'vue';
 
 const { query, search, isOpen } = useSearch();
 const inputRef = ref<HTMLInputElement | null>(null);

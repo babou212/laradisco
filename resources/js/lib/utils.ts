@@ -1,7 +1,7 @@
 import type { InertiaLinkProps } from '@inertiajs/vue3';
 import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
+import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -45,7 +45,7 @@ export function formatMessageDate(dateValue: any): string {
         }
         
         return format(date, 'MM/dd/yyyy');
-    } catch (e) {
+    } catch {
         return '';
     }
 }

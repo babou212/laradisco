@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { router } from '@inertiajs/vue3';
 import { X } from 'lucide-vue-next';
 import { useSearch } from '@/composables/useSearch';
-import { router } from '@inertiajs/vue3';
 import { formatMessageDate } from '@/lib/utils'; // Use shared formatter
 
 const { isOpen, results, isLoading, close, query } = useSearch();

@@ -1,6 +1,6 @@
-import { ref } from 'vue';
-import axios from 'axios';
 import { router } from '@inertiajs/vue3';
+import axios from 'axios';
+import { ref } from 'vue';
 import { search as searchRoute } from '@/routes';
 
 const isOpen = ref(false);
@@ -8,11 +8,6 @@ const query = ref('');
 const results = ref<any[]>([]);
 const isLoading = ref(false);
 const scope = ref<'all' | 'channel' | 'dm'>('all');
-const filters = ref<{
-    from?: string;
-    in?: string;
-    has?: string;
-}>({});
 
 router.on('start', () => {
     isOpen.value = false;

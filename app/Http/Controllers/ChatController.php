@@ -51,9 +51,16 @@ class ChatController extends Controller
             ];
         }
 
+        $directMessages = $request->user()
+            ?->directMessageGroups()
+            ->with(['participants', 'lastMessage'])
+            ->orderByDesc('updated_at')
+            ->get() ?? [];
+
         return Inertia::render('Chat', [
             'categories' => $categories,
             'currentChannel' => $channel,
+            'directMessages' => $directMessages,
         ]);
     }
 }

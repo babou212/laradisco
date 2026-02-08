@@ -19,14 +19,14 @@ withDefaults(defineProps<Props>(), {
 <template>
     <AppShell variant="sidebar">
         <AppSidebar />
-        <AppContent variant="sidebar" class="overflow-hidden flex flex-col">
+        <AppContent variant="sidebar" class="flex flex-col overflow-hidden">
             <AppSidebarHeader :breadcrumbs="breadcrumbs">
                 <template #actions>
                     <SearchInput />
                 </template>
             </AppSidebarHeader>
-            <div class="flex flex-1 overflow-hidden min-h-0">
-                <main class="flex-1 overflow-y-auto min-h-0">
+            <div class="flex min-h-0 flex-1 overflow-hidden">
+                <main class="min-h-0 flex-1 overflow-y-auto">
                     <slot />
                 </main>
                 <SearchResultsSidebar />

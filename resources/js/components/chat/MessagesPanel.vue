@@ -488,7 +488,7 @@ const emitTyping = () => {
                     {{ channel.topic }}
                 </p>
             </div>
-            
+
             <div class="ml-4">
                 <SearchInput />
             </div>

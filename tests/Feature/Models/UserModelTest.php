@@ -3,7 +3,6 @@
 namespace Tests\Feature\Models;
 
 use App\Enums\PermissionFlag;
-use App\Enums\UserStatusType;
 use App\Models\DirectMessageGroup;
 use App\Models\Message;
 use App\Models\MessageReaction;

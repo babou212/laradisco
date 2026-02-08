@@ -43,10 +43,7 @@ onUnmounted(() => {
             </div>
 
             <div class="p-6">
-                <div
-                    v-if="!twoFactorEnabled"
-                    class="space-y-5"
-                >
+                <div v-if="!twoFactorEnabled" class="space-y-5">
                     <Badge variant="destructive">Disabled</Badge>
 
                     <p class="text-muted-foreground">
@@ -76,10 +73,7 @@ onUnmounted(() => {
                     </div>
                 </div>
 
-                <div
-                    v-else
-                    class="space-y-5"
-                >
+                <div v-else class="space-y-5">
                     <Badge variant="default">Enabled</Badge>
 
                     <p class="text-muted-foreground">

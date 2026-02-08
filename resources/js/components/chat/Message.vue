@@ -2,8 +2,8 @@
 import { usePage } from '@inertiajs/vue3';
 import { CornerDownRight, Pencil, SmilePlus, Trash2 } from 'lucide-vue-next';
 import { computed } from 'vue';
-import EmojiPicker from './EmojiPicker.vue';
 import { formatMessageDate } from '@/lib/utils';
+import EmojiPicker from './EmojiPicker.vue';
 
 export interface MessageReaction {
     id: number;

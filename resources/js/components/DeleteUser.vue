@@ -2,7 +2,6 @@
 import { Form } from '@inertiajs/vue3';
 import { useTemplateRef } from 'vue';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
-import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,34 +21,57 @@ const passwordInput = useTemplateRef('passwordInput');
 </script>
 
 <template>
-    <div class="rounded-lg border border-destructive/50 bg-card overflow-hidden\">
-        <div class="border-b border-destructive/50 bg-destructive/10 px-6 py-4\">
-            <h2 class="text-lg font-semibold text-destructive\">Danger zone</h2>
-            <p class="mt-1 text-sm text-destructive/80\">
+    <div
+        class="overflow-hidden\ rounded-lg border border-destructive/50 bg-card"
+    >
+        <div
+            class="py-4\ border-b border-destructive/50 bg-destructive/10 px-6"
+        >
+            <h2 class="text-destructive\ text-lg font-semibold">Danger zone</h2>
+            <p class="text-destructive/80\ mt-1 text-sm">
                 Permanently delete your account and all of its data
             </p>
         </div>
-        
-        <div class="p-6 space-y-4">
-            <div class="rounded-md bg-destructive/10 border border-destructive/20 p-4">
+
+        <div class="space-y-4 p-6">
+            <div
+                class="rounded-md border border-destructive/20 bg-destructive/10 p-4"
+            >
                 <div class="flex items-start gap-3">
-                    <div class="shrink-0 mt-0.5">
-                        <svg class="h-5 w-5 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    <div class="mt-0.5 shrink-0">
+                        <svg
+                            class="h-5 w-5 text-destructive"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                            />
                         </svg>
                     </div>
                     <div class="space-y-1">
-                        <p class="text-sm font-medium text-destructive">This action cannot be undone</p>
+                        <p class="text-sm font-medium text-destructive">
+                            This action cannot be undone
+                        </p>
                         <p class="text-sm text-muted-foreground">
-                            Once you delete your account, all of your data will be permanently removed from our servers.
+                            Once you delete your account, all of your data will
+                            be permanently removed from our servers.
                         </p>
                     </div>
                 </div>
             </div>
-            
+
             <Dialog>
                 <DialogTrigger as-child>
-                    <Button variant="destructive" data-test="delete-user-button" class="w-full sm:w-auto">
+                    <Button
+                        variant="destructive"
+                        data-test="delete-user-button"
+                        class="w-full sm:w-auto"
+                    >
                         Delete account
                     </Button>
                 </DialogTrigger>

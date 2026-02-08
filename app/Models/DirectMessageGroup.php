@@ -59,6 +59,11 @@ class DirectMessageGroup extends Model
         return $this->hasMany(DirectMessage::class);
     }
 
+    public function lastMessage()
+    {
+        return $this->hasOne(DirectMessage::class)->latestOfMany();
+    }
+
     /**
      * Check if this is a one-to-one DM (exactly 2 participants).
      */

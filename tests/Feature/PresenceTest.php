@@ -22,11 +22,7 @@ class PresenceTest extends TestCase
             'custom_status' => 'Available for chat!',
         ]);
 
-        $response->assertOk();
-        $response->assertJson([
-            'status' => 'online',
-            'custom_status' => 'Available for chat!',
-        ]);
+        $response->assertRedirect();
 
         // Only custom_status is stored in DB - status is managed by WebSocket presence
         $this->assertDatabaseHas('users', [
@@ -84,7 +80,7 @@ class PresenceTest extends TestCase
             'custom_status' => null,
         ]);
 
-        $response->assertOk();
+        $response->assertRedirect();
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,

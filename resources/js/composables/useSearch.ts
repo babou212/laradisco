@@ -1,6 +1,6 @@
-import { ref } from 'vue';
-import axios from 'axios';
 import { router } from '@inertiajs/vue3';
+import axios from 'axios';
+import { ref } from 'vue';
 import { search as searchRoute } from '@/routes';
 
 const isOpen = ref(false);
@@ -8,11 +8,6 @@ const query = ref('');
 const results = ref<any[]>([]);
 const isLoading = ref(false);
 const scope = ref<'all' | 'channel' | 'dm'>('all');
-const filters = ref<{
-    from?: string;
-    in?: string;
-    has?: string;
-}>({});
 
 router.on('start', () => {
     isOpen.value = false;
@@ -21,7 +16,6 @@ router.on('start', () => {
 });
 
 export function useSearch() {
-    
     const search = async () => {
         if (!query.value.trim()) {
             results.value = [];
@@ -29,16 +23,16 @@ export function useSearch() {
         }
 
         isLoading.value = true;
-        // Parse basic filters from query for UI if needed, 
+        // Parse basic filters from query for UI if needed,
         // but we send full query to backend as implemented.
-        
+
         try {
             const response = await axios.get(searchRoute().url, {
                 params: {
                     query: query.value,
                     type: scope.value,
                     // Pass parsed filters if we separate them in UI
-                }
+                },
             });
             results.value = response.data.data;
             isOpen.value = true;
@@ -72,6 +66,6 @@ export function useSearch() {
         search,
         toggle,
         close,
-        setScope
+        setScope,
     };
 }

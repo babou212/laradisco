@@ -69,11 +69,14 @@ function getStatus(link: InviteLink): 'used' | 'expired' | 'active' {
         <h1 class="sr-only">Invite Links</h1>
 
         <div class="rounded-lg border bg-card">
-            <div class="flex items-center justify-between border-b bg-muted/50 px-6 py-4">
+            <div
+                class="flex items-center justify-between border-b bg-muted/50 px-6 py-4"
+            >
                 <div>
                     <h2 class="text-lg font-semibold">Invite Links</h2>
                     <p class="mt-1 text-sm text-muted-foreground">
-                        Generate single-use invite links for new members. Links expire after 1 hour.
+                        Generate single-use invite links for new members. Links
+                        expire after 1 hour.
                     </p>
                 </div>
                 <Button @click="generateLink" size="sm">
@@ -83,8 +86,13 @@ function getStatus(link: InviteLink): 'used' | 'expired' | 'active' {
             </div>
 
             <div class="p-6">
-                <div v-if="inviteLinks.length === 0" class="flex flex-col items-center justify-center py-8 text-center">
-                    <div class="mb-3 rounded-full border border-border bg-muted p-3">
+                <div
+                    v-if="inviteLinks.length === 0"
+                    class="flex flex-col items-center justify-center py-8 text-center"
+                >
+                    <div
+                        class="mb-3 rounded-full border border-border bg-muted p-3"
+                    >
                         <Link2 class="h-6 w-6 text-muted-foreground" />
                     </div>
                     <p class="text-sm font-medium">No invite links yet</p>
@@ -106,26 +114,53 @@ function getStatus(link: InviteLink): 'used' | 'expired' | 'active' {
                     >
                         <div class="min-w-0 flex-1 space-y-1">
                             <div class="flex items-center gap-2">
-                                <code class="truncate text-xs text-muted-foreground">
+                                <code
+                                    class="truncate text-xs text-muted-foreground"
+                                >
                                     {{ baseUrl + link.token }}
                                 </code>
                             </div>
-                            <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                <span>Created {{ formatDate(link.created_at) }}</span>
+                            <div
+                                class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+                            >
+                                <span
+                                    >Created
+                                    {{ formatDate(link.created_at) }}</span
+                                >
                                 <span>&middot;</span>
-                                <span>Expires {{ formatDate(link.expires_at) }}</span>
+                                <span
+                                    >Expires
+                                    {{ formatDate(link.expires_at) }}</span
+                                >
                                 <template v-if="link.used_by_user">
                                     <span>&middot;</span>
-                                    <span>Used by <strong>{{ link.used_by_user.name }}</strong></span>
+                                    <span
+                                        >Used by
+                                        <strong>{{
+                                            link.used_by_user.name
+                                        }}</strong></span
+                                    >
                                 </template>
                             </div>
                         </div>
 
                         <div class="flex shrink-0 items-center gap-2">
                             <Badge
-                                :variant="getStatus(link) === 'active' ? 'default' : getStatus(link) === 'used' ? 'secondary' : 'destructive'"
+                                :variant="
+                                    getStatus(link) === 'active'
+                                        ? 'default'
+                                        : getStatus(link) === 'used'
+                                          ? 'secondary'
+                                          : 'destructive'
+                                "
                             >
-                                {{ getStatus(link) === 'active' ? 'Active' : getStatus(link) === 'used' ? 'Used' : 'Expired' }}
+                                {{
+                                    getStatus(link) === 'active'
+                                        ? 'Active'
+                                        : getStatus(link) === 'used'
+                                          ? 'Used'
+                                          : 'Expired'
+                                }}
                             </Badge>
 
                             <Button
@@ -135,7 +170,13 @@ function getStatus(link: InviteLink): 'used' | 'expired' | 'active' {
                                 @click="copyInviteUrl(link.token)"
                                 class="h-8 w-8"
                             >
-                                <Check v-if="copied && copiedText === baseUrl + link.token" class="h-4 w-4 text-green-500" />
+                                <Check
+                                    v-if="
+                                        copied &&
+                                        copiedText === baseUrl + link.token
+                                    "
+                                    class="h-4 w-4 text-green-500"
+                                />
                                 <Copy v-else class="h-4 w-4" />
                             </Button>
 

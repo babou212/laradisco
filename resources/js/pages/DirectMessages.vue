@@ -2,9 +2,9 @@
 import { Head, router } from '@inertiajs/vue3';
 import { onMounted, ref, computed } from 'vue';
 import DirectMessagesSidebar from '@/components/chat/DirectMessagesSidebar.vue';
+import MessagesPanel from '@/components/chat/MessagesPanel.vue';
 import SearchResultsSidebar from '@/components/SearchResultsSidebar.vue';
 import { useSearch } from '@/composables/useSearch';
-import MessagesPanel from '@/components/chat/MessagesPanel.vue';
 
 type Props = {
     dmGroups: Array<{

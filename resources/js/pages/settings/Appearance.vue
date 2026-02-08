@@ -20,7 +20,8 @@ defineProps<{
                 <div class="border-b bg-muted/50 px-6 py-4">
                     <h2 class="text-lg font-semibold">Theme</h2>
                     <p class="mt-1 text-sm text-muted-foreground">
-                        Select a theme to change the look and feel of the application
+                        Select a theme to change the look and feel of the
+                        application
                     </p>
                 </div>
 

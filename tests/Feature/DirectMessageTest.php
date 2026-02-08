@@ -6,6 +6,7 @@ use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class DirectMessageTest extends TestCase
@@ -17,7 +18,7 @@ class DirectMessageTest extends TestCase
         $user1 = User::factory()->create();
         $user2 = User::factory()->create();
 
-        $response = $this->actingAs($user1)->postJson('/dm/start', [
+        $response = $this->actingAs($user1)->postJson('/direct-message/start', [
             'user_id' => $user2->id,
         ]);
 
@@ -34,7 +35,7 @@ class DirectMessageTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->postJson('/dm/start', [
+        $response = $this->actingAs($user)->postJson('/direct-message/start', [
             'user_id' => $user->id,
         ]);
 
@@ -49,7 +50,7 @@ class DirectMessageTest extends TestCase
         $dmGroup = DirectMessageGroup::create(['owner_id' => $user1->id]);
         $dmGroup->participants()->attach([$user1->id, $user2->id]);
 
-        $response = $this->actingAs($user1)->postJson('/dm/start', [
+        $response = $this->actingAs($user1)->postJson('/direct-message/start', [
             'user_id' => $user2->id,
         ]);
 
@@ -65,7 +66,7 @@ class DirectMessageTest extends TestCase
         $dmGroup = DirectMessageGroup::create(['owner_id' => $user1->id]);
         $dmGroup->participants()->attach([$user1->id, $user2->id]);
 
-        $response = $this->actingAs($user1)->post("/dm/{$dmGroup->id}/messages", [
+        $response = $this->actingAs($user1)->post("/direct-message/{$dmGroup->id}/messages", [
             'content' => 'Hello!',
         ]);
 
@@ -90,7 +91,7 @@ class DirectMessageTest extends TestCase
         $dmGroup = DirectMessageGroup::create(['owner_id' => $user1->id]);
         $dmGroup->participants()->attach([$user1->id, $user2->id]);
 
-        $response = $this->actingAs($outsider)->post("/dm/{$dmGroup->id}/messages", [
+        $response = $this->actingAs($outsider)->post("/direct-message/{$dmGroup->id}/messages", [
             'content' => 'Hello!',
         ]);
 
@@ -117,10 +118,13 @@ class DirectMessageTest extends TestCase
             'content' => 'Message 2',
         ]);
 
-        $response = $this->actingAs($user1)->getJson("/dm/{$dmGroup->id}");
+        $response = $this->actingAs($user1)->get("/direct-message/{$dmGroup->id}");
 
         $response->assertOk();
-        $response->assertJsonCount(2, 'messages');
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('DirectMessages')
+            ->has('currentDmGroup.messages', 2)
+        );
     }
 
     public function test_cannot_view_dm_if_not_participant(): void
@@ -132,7 +136,7 @@ class DirectMessageTest extends TestCase
         $dmGroup = DirectMessageGroup::create(['owner_id' => $user1->id]);
         $dmGroup->participants()->attach([$user1->id, $user2->id]);
 
-        $response = $this->actingAs($outsider)->getJson("/dm/{$dmGroup->id}");
+        $response = $this->actingAs($outsider)->getJson("/direct-message/{$dmGroup->id}");
 
         $response->assertForbidden();
     }
@@ -151,7 +155,7 @@ class DirectMessageTest extends TestCase
             'content' => 'Original message',
         ]);
 
-        $response = $this->actingAs($user1)->putJson("/dm/{$dmGroup->id}/messages/{$message->id}", [
+        $response = $this->actingAs($user1)->putJson("/direct-message/{$dmGroup->id}/messages/{$message->id}", [
             'content' => 'Updated message',
         ]);
 
@@ -175,7 +179,7 @@ class DirectMessageTest extends TestCase
             'content' => 'Original message',
         ]);
 
-        $response = $this->actingAs($user2)->putJson("/dm/{$dmGroup->id}/messages/{$message->id}", [
+        $response = $this->actingAs($user2)->putJson("/direct-message/{$dmGroup->id}/messages/{$message->id}", [
             'content' => 'Hacked message',
         ]);
 
@@ -196,7 +200,7 @@ class DirectMessageTest extends TestCase
             'content' => 'To be deleted',
         ]);
 
-        $response = $this->actingAs($user1)->deleteJson("/dm/{$dmGroup->id}/messages/{$message->id}");
+        $response = $this->actingAs($user1)->deleteJson("/direct-message/{$dmGroup->id}/messages/{$message->id}");
 
         $response->assertOk();
         $this->assertSoftDeleted('direct_messages', ['id' => $message->id]);
@@ -216,7 +220,7 @@ class DirectMessageTest extends TestCase
             'content' => 'Protected message',
         ]);
 
-        $response = $this->actingAs($user2)->deleteJson("/dm/{$dmGroup->id}/messages/{$message->id}");
+        $response = $this->actingAs($user2)->deleteJson("/direct-message/{$dmGroup->id}/messages/{$message->id}");
 
         $response->assertForbidden();
     }

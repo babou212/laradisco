@@ -2,9 +2,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import { ArrowLeft } from 'lucide-vue-next';
 import { computed } from 'vue';
-import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
@@ -16,7 +14,9 @@ import { edit as editPassword } from '@/routes/user-password';
 import { type NavItem } from '@/types';
 
 const page = usePage();
-const canInviteMembers = computed(() => page.props.auth.permissions?.canInviteMembers ?? false);
+const canInviteMembers = computed(
+    () => page.props.auth.permissions?.canInviteMembers ?? false,
+);
 
 const sidebarNavItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
@@ -75,7 +75,7 @@ const { isCurrentUrl } = useCurrentUrl();
             <!-- Main Content Layout -->
             <div class="flex flex-col gap-8 lg:flex-row lg:gap-12">
                 <!-- Sidebar Navigation -->
-                <aside class="w-full lg:w-56 shrink-0">
+                <aside class="w-full shrink-0 lg:w-56">
                     <div class="rounded-lg border bg-card p-1">
                         <nav
                             class="flex flex-col space-y-0.5"
@@ -94,7 +94,10 @@ const { isCurrentUrl } = useCurrentUrl();
                                 as-child
                             >
                                 <Link :href="item.href">
-                                    <component :is="item.icon" class="h-4 w-4" />
+                                    <component
+                                        :is="item.icon"
+                                        class="h-4 w-4"
+                                    />
                                     {{ item.title }}
                                 </Link>
                             </Button>
@@ -103,7 +106,7 @@ const { isCurrentUrl } = useCurrentUrl();
                 </aside>
 
                 <!-- Main Content -->
-                <div class="flex-1 min-w-0">
+                <div class="min-w-0 flex-1">
                     <div class="max-w-2xl space-y-6">
                         <slot />
                     </div>

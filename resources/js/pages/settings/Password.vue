@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
-
 </script>
 
 <template>
@@ -19,7 +18,8 @@ import SettingsLayout from '@/layouts/settings/Layout.vue';
             <div class="border-b bg-muted/50 px-6 py-4">
                 <h2 class="text-lg font-semibold">Update password</h2>
                 <p class="mt-1 text-sm text-muted-foreground">
-                    Ensure your account is using a long, random password to stay secure
+                    Ensure your account is using a long, random password to stay
+                    secure
                 </p>
             </div>
 

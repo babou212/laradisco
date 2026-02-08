@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\MessageResource;
 use App\Models\DirectMessage;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class SearchController extends Controller
@@ -25,7 +23,7 @@ class SearchController extends Controller
         $perPage = 20;
 
         $filters = [];
-        
+
         if (preg_match('/from:(\w+)/', $query, $matches)) {
             $username = $matches[1];
             $query = trim(str_replace($matches[0], '', $query));
@@ -61,21 +59,21 @@ class SearchController extends Controller
         }
 
         $directMessages = collect();
-        if (($type === 'all' || $type === 'dm') && !isset($filters['channel_id'])) {
+        if (($type === 'all' || $type === 'dm') && ! isset($filters['channel_id'])) {
             $dmSearch = DirectMessage::search($query);
-            
+
             $dmSearch->where('participant_ids', auth()->id());
-            
+
             if (isset($filters['user_id'])) {
                 $dmSearch->where('user_id', $filters['user_id']);
             }
 
             $directMessages = $dmSearch->take($perPage * 2)->get();
-            $directMessages->load(['user', 'group.participants', 'group']); 
+            $directMessages->load(['user', 'group.participants', 'group']);
         }
 
         $allMessages = $channelMessages->concat($directMessages);
-        
+
         $sortedMessages = $allMessages->sortByDesc('created_at')->values();
 
         $sliced = $sortedMessages->slice(($page - 1) * $perPage, $perPage)->values();

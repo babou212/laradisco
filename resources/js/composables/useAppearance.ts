@@ -1,33 +1,44 @@
-import type { ComputedRef, Ref } from 'vue';
-import { computed, onMounted, ref } from 'vue';
-import type { Appearance, ResolvedAppearance } from '@/types';
+import type { Ref } from 'vue';
+import { onMounted, ref } from 'vue';
+import type { Theme } from '@/types';
 
-export type { Appearance, ResolvedAppearance };
+export type { Theme };
+
+const DARK_THEMES: ReadonlySet<Theme> = new Set([
+    'default-dark',
+    'dracula',
+    'nord-dark',
+    'midnight',
+    'cyberpunk',
+    'monokai',
+    'emerald',
+    'solarized-dark',
+    'crimson',
+]);
+
+export function isDarkTheme(theme: Theme): boolean {
+    return DARK_THEMES.has(theme);
+}
 
 export type UseAppearanceReturn = {
-    appearance: Ref<Appearance>;
-    resolvedAppearance: ComputedRef<ResolvedAppearance>;
-    updateAppearance: (value: Appearance) => void;
+    theme: Ref<Theme>;
+    updateThemeLocally: (value: Theme) => void;
 };
 
-export function updateTheme(value: Appearance): void {
-    if (typeof window === 'undefined') {
+export function applyTheme(value: Theme): void {
+    if (typeof document === 'undefined') {
         return;
     }
 
-    if (value === 'system') {
-        const mediaQueryList = window.matchMedia(
-            '(prefers-color-scheme: dark)',
-        );
-        const systemTheme = mediaQueryList.matches ? 'dark' : 'light';
-
-        document.documentElement.classList.toggle(
-            'dark',
-            systemTheme === 'dark',
-        );
+    // Set or remove the data-theme attribute...
+    if (value === 'default' || value === 'default-dark') {
+        document.documentElement.removeAttribute('data-theme');
     } else {
-        document.documentElement.classList.toggle('dark', value === 'dark');
+        document.documentElement.setAttribute('data-theme', value);
     }
+
+    // Toggle .dark class based on theme category...
+    document.documentElement.classList.toggle('dark', isDarkTheme(value));
 }
 
 const setCookie = (name: string, value: string, days = 365) => {
@@ -40,34 +51,12 @@ const setCookie = (name: string, value: string, days = 365) => {
     document.cookie = `${name}=${value};path=/;max-age=${maxAge};SameSite=Lax`;
 };
 
-const mediaQuery = () => {
+const getStoredTheme = (): Theme | null => {
     if (typeof window === 'undefined') {
         return null;
     }
 
-    return window.matchMedia('(prefers-color-scheme: dark)');
-};
-
-const getStoredAppearance = () => {
-    if (typeof window === 'undefined') {
-        return null;
-    }
-
-    return localStorage.getItem('appearance') as Appearance | null;
-};
-
-const prefersDark = (): boolean => {
-    if (typeof window === 'undefined') {
-        return false;
-    }
-
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-};
-
-const handleSystemThemeChange = () => {
-    const currentAppearance = getStoredAppearance();
-
-    updateTheme(currentAppearance || 'system');
+    return localStorage.getItem('theme') as Theme | null;
 };
 
 export function initializeTheme(): void {
@@ -75,50 +64,35 @@ export function initializeTheme(): void {
         return;
     }
 
-    // Initialize theme from saved preference or default to system...
-    const savedAppearance = getStoredAppearance();
-    updateTheme(savedAppearance || 'system');
-
-    // Set up system theme change listener...
-    mediaQuery()?.addEventListener('change', handleSystemThemeChange);
+    const savedTheme = getStoredTheme();
+    applyTheme(savedTheme || 'default');
 }
 
-const appearance = ref<Appearance>('system');
+const theme = ref<Theme>('default');
 
 export function useAppearance(): UseAppearanceReturn {
     onMounted(() => {
-        const savedAppearance = localStorage.getItem(
-            'appearance',
-        ) as Appearance | null;
+        const savedTheme = localStorage.getItem('theme') as Theme | null;
 
-        if (savedAppearance) {
-            appearance.value = savedAppearance;
+        if (savedTheme) {
+            theme.value = savedTheme;
         }
     });
 
-    const resolvedAppearance = computed<ResolvedAppearance>(() => {
-        if (appearance.value === 'system') {
-            return prefersDark() ? 'dark' : 'light';
-        }
+    function updateThemeLocally(value: Theme) {
+        theme.value = value;
 
-        return appearance.value;
-    });
-
-    function updateAppearance(value: Appearance) {
-        appearance.value = value;
-
-        // Store in localStorage for client-side persistence...
-        localStorage.setItem('appearance', value);
+        // Store in localStorage for instant client-side persistence...
+        localStorage.setItem('theme', value);
 
         // Store in cookie for SSR...
-        setCookie('appearance', value);
+        setCookie('theme', value);
 
-        updateTheme(value);
+        applyTheme(value);
     }
 
     return {
-        appearance,
-        resolvedAppearance,
-        updateAppearance,
+        theme,
+        updateThemeLocally,
     };
 }

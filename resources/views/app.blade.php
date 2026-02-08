@@ -1,20 +1,25 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"  @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @class(['dark' => ($isDarkTheme ?? false)]) @if(($theme ?? 'default') !== 'default' && ($theme ?? 'default') !== 'default-dark') data-theme="{{ $theme }}" @endif>
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        {{-- Inline script to detect system dark mode preference and apply it immediately --}}
+        {{-- Inline script to apply theme immediately and prevent flash --}}
         <script>
             (function() {
-                const appearance = '{{ $appearance ?? "system" }}';
+                var darkThemes = ['default-dark','dracula','nord-dark','midnight','cyberpunk','monokai','emerald','solarized-dark','crimson'];
+                var theme = localStorage.getItem('theme') || '{{ $theme ?? "default" }}';
 
-                if (appearance === 'system') {
-                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (theme && theme !== 'default' && theme !== 'default-dark') {
+                    document.documentElement.setAttribute('data-theme', theme);
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                }
 
-                    if (prefersDark) {
-                        document.documentElement.classList.add('dark');
-                    }
+                if (darkThemes.indexOf(theme) !== -1) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
                 }
             })();
         </script>

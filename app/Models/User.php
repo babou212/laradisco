@@ -32,6 +32,7 @@ class User extends Authenticatable
         'about_me',
         'custom_status',
         'status',
+        'theme',
         'last_seen_at',
     ];
 

@@ -19,7 +19,7 @@ import {
     InputOTPSlot,
 } from '@/components/ui/input-otp';
 import { Spinner } from '@/components/ui/spinner';
-import { useAppearance } from '@/composables/useAppearance';
+import { isDarkTheme, useAppearance } from '@/composables/useAppearance';
 import { useTwoFactorAuth } from '@/composables/useTwoFactorAuth';
 import { confirm } from '@/routes/two-factor';
 import type { TwoFactorConfigContent } from '@/types';
@@ -29,7 +29,7 @@ type Props = {
     twoFactorEnabled: boolean;
 };
 
-const { resolvedAppearance } = useAppearance();
+const { theme } = useAppearance();
 
 const props = defineProps<Props>();
 const isOpen = defineModel<boolean>('isOpen');
@@ -174,7 +174,7 @@ watch(
                                         class="flex aspect-square size-full items-center justify-center"
                                         :style="{
                                             filter:
-                                                resolvedAppearance === 'dark'
+                                                isDarkTheme(theme)
                                                     ? 'invert(1) brightness(1.5)'
                                                     : undefined,
                                         }"
@@ -265,12 +265,7 @@ watch(
                                         />
                                     </InputOTPGroup>
                                 </InputOTP>
-                                <InputError
-                                    :message="
-                                        errors?.confirmTwoFactorAuthentication
-                                            ?.code
-                                    "
-                                />
+                                <InputError :message="errors?.code" />
                             </div>
 
                             <div class="flex w-full items-center space-x-5">

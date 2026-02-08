@@ -41,6 +41,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('api/users/{user}', function (User $user) {
         return response()->json($user);
     })->name('api.users.show');
+
+    Route::get('search', [App\Http\Controllers\SearchController::class, 'index'])->name('search');
 });
 
 require __DIR__.'/settings.php';

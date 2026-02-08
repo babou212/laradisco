@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import ChannelSidebar from '@/components/chat/ChannelSidebar.vue';
 import MessagesPanel from '@/components/chat/MessagesPanel.vue';
 import OnlineUsersSidebar from '@/components/chat/OnlineUsersSidebar.vue';
+import SearchResultsSidebar from '@/components/SearchResultsSidebar.vue';
+import { useSearch } from '@/composables/useSearch';
 
 type Props = {
     categories: Array<{
@@ -64,6 +66,12 @@ const handleSelectChannel = (channelId: number) => {
 const switchToDms = () => {
     router.visit('/direct-message');
 };
+
+const { isOpen: isSearchOpen, setScope } = useSearch();
+
+onMounted(() => {
+    setScope('channel');
+});
 </script>
 
 <template>
@@ -86,7 +94,8 @@ const switchToDms = () => {
             :channel-id="selectedChannelId"
         />
 
-        <!-- Right Sidebar: Online Users -->
-        <OnlineUsersSidebar />
+        <!-- Right Sidebar: Online Users or Search Results -->
+        <SearchResultsSidebar />
+        <OnlineUsersSidebar v-show="!isSearchOpen" />
     </div>
 </template>

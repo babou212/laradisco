@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import DirectMessagesSidebar from '@/components/chat/DirectMessagesSidebar.vue';
+import SearchResultsSidebar from '@/components/SearchResultsSidebar.vue';
+import { useSearch } from '@/composables/useSearch';
 import MessagesPanel from '@/components/chat/MessagesPanel.vue';
 
 type Props = {
@@ -48,6 +50,12 @@ const handleSelectDm = (dmGroupId: number) => {
 const switchToChannels = () => {
     router.visit('/');
 };
+
+const { setScope } = useSearch();
+
+onMounted(() => {
+    setScope('dm');
+});
 </script>
 
 <template>
@@ -70,7 +78,6 @@ const switchToChannels = () => {
             :is-dm="true"
         />
 
-        <!-- Empty state when no conversation selected -->
         <div
             v-else
             class="flex flex-1 items-center justify-center bg-background"
@@ -79,5 +86,7 @@ const switchToChannels = () => {
                 <p class="text-muted-foreground">No direct message selected</p>
             </div>
         </div>
+
+        <SearchResultsSidebar />
     </div>
 </template>

@@ -13,6 +13,7 @@
         "wayfinder-development",
         "inertia-vue-development",
         "tailwindcss-development",
-        "developing-with-fortify"
+        "developing-with-fortify",
+        "web-design-guidelines"
     ]
 }

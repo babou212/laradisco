@@ -13,6 +13,11 @@ class MessageDeleted implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
+     * The queue the broadcast event should be placed on.
+     */
+    public string $queue = 'broadcasting';
+
+    /**
      * Create a new event instance.
      */
     public function __construct(

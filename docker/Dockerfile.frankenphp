@@ -1,0 +1,55 @@
+# =============================================================================
+# Local development Dockerfile for FrankenPHP + Laravel Octane
+# Used by compose.yaml for the laravel.test service
+# =============================================================================
+
+FROM dunglas/frankenphp:1-php8.5-alpine
+
+# Install system dependencies
+RUN apk add --no-cache \
+    libpq-dev \
+    libzip-dev \
+    icu-dev \
+    oniguruma-dev \
+    freetype-dev \
+    libjpeg-turbo-dev \
+    libpng-dev \
+    linux-headers \
+    nodejs \
+    npm \
+    shadow \
+    bash \
+    curl \
+    git \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) \
+        pdo_pgsql \
+        pgsql \
+        zip \
+        intl \
+        gd \
+        pcntl \
+        bcmath \
+        sockets \
+        mbstring \
+    && apk del --no-cache
+
+# Install Redis extension
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apk del .build-deps
+
+# Install Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Create sail user for local dev (matches host UID/GID)
+ARG WWWGROUP=1000
+RUN addgroup -g ${WWWGROUP} -S sail || true \
+    && adduser -u 1337 -G sail -S sail -s /bin/bash || true
+
+WORKDIR /var/www/html
+
+EXPOSE 80 443 443/udp 5173
+
+CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=80", "--admin-port=2019", "--watch"]

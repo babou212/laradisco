@@ -13,6 +13,11 @@ class ReactionToggled implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
+     * The queue the broadcast event should be placed on.
+     */
+    public string $queue = 'broadcasting';
+
+    /**
      * Create a new event instance.
      *
      * @param  array{id: int, message_id: int, user_id: int, emoji: string}  $reaction

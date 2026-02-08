@@ -1,11 +1,11 @@
 services:
     laravel.test:
         build:
-            context: ./vendor/laravel/sail/runtimes/8.5
-            dockerfile: Dockerfile
+            context: .
+            dockerfile: docker/Dockerfile.frankenphp
             args:
                 WWWGROUP: '${WWWGROUP}'
-        image: sail-8.5/app
+        image: laradisco-frankenphp/app
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         ports:
@@ -15,8 +15,9 @@ services:
             WWWUSER: '${WWWUSER}'
             LARAVEL_SAIL: 1
             XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
-            XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
             IGNITION_LOCAL_SITES_PATH: '${PWD}'
+            SERVER_NAME: ':80'
+            OCTANE_SERVER: frankenphp
         volumes:
             - '.:/var/www/html'
         networks:
@@ -45,7 +46,7 @@ services:
         depends_on:
             - pgsql
             - redis
-        command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+        command: php artisan horizon
         restart: unless-stopped
     reverb:
         build:

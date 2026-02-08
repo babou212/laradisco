@@ -1,0 +1,20 @@
+# =============================================================================
+# Dockerfile for Laradisco Reverb (WebSocket) server
+# Uses the same base as the main app but runs reverb:start instead
+# =============================================================================
+
+ARG BASE_IMAGE=ghcr.io/OWNER/laradisco:latest
+FROM ${BASE_IMAGE}
+
+# Override supervisor config for Reverb
+COPY docker/supervisord-reverb.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Remove Nginx (not needed for Reverb)
+RUN apk del nginx || true
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8080/ || exit 1
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

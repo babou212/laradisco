@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\UpdateUserLastSeen;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: ['sidebar_state', 'theme']);
 
         $middleware->web(append: [
+            SecurityHeaders::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             UpdateUserLastSeen::class,

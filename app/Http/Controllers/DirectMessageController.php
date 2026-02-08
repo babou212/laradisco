@@ -20,41 +20,8 @@ class DirectMessageController extends Controller
     {
         $user = $request->user();
 
-        $dmGroups = cache()->remember(
-            "user.{$user->id}.dm_groups",
-            now()->addMinutes(5),
-            function () use ($user) {
-                return $user->directMessageGroups()
-                    ->with(['participants', 'messages' => function ($query) {
-                        $query->latest()->limit(1)->with('user');
-                    }])
-                    ->orderBy('last_message_at', 'desc')
-                    ->get()
-                    ->map(function ($group) use ($user) {
-                        $otherParticipant = $group->participants->firstWhere('id', '!=', $user->id);
-                        $lastMessage = $group->messages->first();
-
-                        return [
-                            'id' => $group->id,
-                            'name' => $group->name ?? $otherParticipant?->username ?? 'Unknown',
-                            'other_user' => $otherParticipant ? [
-                                'id' => $otherParticipant->id,
-                                'username' => $otherParticipant->username,
-                                'avatar_path' => $otherParticipant->avatar_path,
-                            ] : null,
-                            'last_message' => $lastMessage ? [
-                                'content' => $lastMessage->content,
-                                'created_at' => $lastMessage->created_at,
-                                'user_id' => $lastMessage->user_id,
-                            ] : null,
-                            'last_message_at' => $group->last_message_at,
-                        ];
-                    });
-            }
-        );
-
         return Inertia::render('DirectMessages', [
-            'dmGroups' => $dmGroups,
+            'dmGroups' => $this->getCachedDmGroups($user),
         ]);
     }
 
@@ -83,32 +50,7 @@ class DirectMessageController extends Controller
 
         $otherParticipant = $dmGroup->participants()->where('users.id', '!=', $user->id)->first();
 
-        $dmGroups = $user->directMessageGroups()
-            ->with(['participants', 'messages' => function ($query) {
-                $query->latest()->limit(1)->with('user');
-            }])
-            ->orderBy('last_message_at', 'desc')
-            ->get()
-            ->map(function ($group) use ($user) {
-                $otherParticipant = $group->participants->firstWhere('id', '!=', $user->id);
-                $lastMessage = $group->messages->first();
-
-                return [
-                    'id' => $group->id,
-                    'name' => $group->name ?? $otherParticipant?->username ?? 'Unknown',
-                    'other_user' => $otherParticipant ? [
-                        'id' => $otherParticipant->id,
-                        'username' => $otherParticipant->username,
-                        'avatar_path' => $otherParticipant->avatar_path,
-                    ] : null,
-                    'last_message' => $lastMessage ? [
-                        'content' => $lastMessage->content,
-                        'created_at' => $lastMessage->created_at,
-                        'user_id' => $lastMessage->user_id,
-                    ] : null,
-                    'last_message_at' => $group->last_message_at,
-                ];
-            });
+        $dmGroups = $this->getCachedDmGroups($user);
 
         return Inertia::render('DirectMessages', [
             'dmGroups' => $dmGroups,
@@ -247,5 +189,44 @@ class DirectMessageController extends Controller
         $dmGroup->participants()->attach([$currentUser->id, $otherUserId]);
 
         return response()->json(['dm_group_id' => $dmGroup->id]);
+    }
+
+    /**
+     * Get cached DM groups sidebar data for a user.
+     */
+    private function getCachedDmGroups(User $user): mixed
+    {
+        return cache()->remember(
+            "user.{$user->id}.dm_groups",
+            now()->addMinutes(5),
+            function () use ($user) {
+                return $user->directMessageGroups()
+                    ->with(['participants', 'messages' => function ($query) {
+                        $query->latest()->limit(1)->with('user');
+                    }])
+                    ->orderBy('last_message_at', 'desc')
+                    ->get()
+                    ->map(function ($group) use ($user) {
+                        $otherParticipant = $group->participants->firstWhere('id', '!=', $user->id);
+                        $lastMessage = $group->messages->first();
+
+                        return [
+                            'id' => $group->id,
+                            'name' => $group->name ?? $otherParticipant?->username ?? 'Unknown',
+                            'other_user' => $otherParticipant ? [
+                                'id' => $otherParticipant->id,
+                                'username' => $otherParticipant->username,
+                                'avatar_path' => $otherParticipant->avatar_path,
+                            ] : null,
+                            'last_message' => $lastMessage ? [
+                                'content' => $lastMessage->content,
+                                'created_at' => $lastMessage->created_at,
+                                'user_id' => $lastMessage->user_id,
+                            ] : null,
+                            'last_message_at' => $group->last_message_at,
+                        ];
+                    });
+            }
+        );
     }
 }

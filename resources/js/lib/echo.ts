@@ -41,10 +41,10 @@ export const echo = new Echo({
     broadcaster: 'reverb',
     key: config.key,
     wsHost: config.host,
-    wsPort: config.forceTLS ? config.port : config.port,
-    wssPort: config.forceTLS ? config.port : config.port,
+    wsPort: config.forceTLS ? undefined : config.port,
+    wssPort: config.forceTLS ? config.port : undefined,
     forceTLS: config.forceTLS,
-    enabledTransports: ['ws', 'wss'],
+    enabledTransports: config.forceTLS ? ['wss'] : ['ws'],
     disableStats: true,
     authEndpoint: '/broadcasting/auth',
 });

@@ -14,7 +14,8 @@ window.Pusher = Pusher;
  */
 function resolveReverbConfig() {
     // Server-injected config (set in app.blade.php from reverb config)
-    const serverConfig = (window as unknown as Record<string, unknown>).__reverb as
+    const serverConfig = (window as unknown as Record<string, unknown>)
+        .__reverb as
         | { key?: string; host?: string; port?: string; scheme?: string }
         | undefined;
 

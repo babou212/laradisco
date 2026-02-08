@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -11,8 +12,10 @@ class ExampleTest extends TestCase
 
     public function test_returns_a_successful_response()
     {
-        $response = $this->get(route('home'));
+        $user = User::factory()->create();
 
-        $response->assertOk();
+        $response = $this->actingAs($user)->get(route('home'));
+
+        $response->assertRedirect(route('chat'));
     }
 }

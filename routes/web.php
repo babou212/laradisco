@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/', [ChatController::class, 'index'])->name('chat');
+    Route::get('/home', fn () => redirect()->route('chat'))->name('home');
 
     Route::get('dashboard', function () {
         return redirect()->route('chat');

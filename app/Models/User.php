@@ -135,6 +135,10 @@ class User extends Authenticatable
                 ->values();
         });
 
+        if ($permissions->contains(PermissionFlag::Administrator->value)) {
+            return true;
+        }
+
         return $permissions->contains($permission->value);
     }
 

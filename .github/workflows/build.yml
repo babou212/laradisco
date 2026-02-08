@@ -112,6 +112,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -137,6 +140,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          platforms: linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -157,6 +161,7 @@ jobs:
           context: .
           file: ./Dockerfile.reverb
           push: true
+          platforms: linux/arm64
           tags: ${{ steps.meta-reverb.outputs.tags }}
           labels: ${{ steps.meta-reverb.outputs.labels }}
           build-args: |
@@ -179,6 +184,7 @@ jobs:
           context: .
           file: ./Dockerfile.worker
           push: true
+          platforms: linux/arm64
           tags: ${{ steps.meta-worker.outputs.tags }}
           labels: ${{ steps.meta-worker.outputs.labels }}
           build-args: |

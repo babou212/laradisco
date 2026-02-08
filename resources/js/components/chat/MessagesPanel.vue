@@ -180,7 +180,14 @@ const joinChannel = (channelId: number, isDm: boolean = false) => {
                 );
                 if (msg) {
                     if (data.added) {
-                        msg.reactions.push(data.reaction);
+                        const exists = msg.reactions.some(
+                            (r) =>
+                                r.user_id === data.reaction.user_id &&
+                                r.emoji === data.reaction.emoji,
+                        );
+                        if (!exists) {
+                            msg.reactions.push(data.reaction);
+                        }
                     } else {
                         const idx = msg.reactions.findIndex(
                             (r) =>

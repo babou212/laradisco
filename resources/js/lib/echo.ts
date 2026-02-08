@@ -14,6 +14,7 @@ export const echo = new Echo({
     forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
     enabledTransports: ['ws', 'wss'],
     disableStats: true,
+    authEndpoint: '/broadcasting/auth',
 });
 
 // Debug logging

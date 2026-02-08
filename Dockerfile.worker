@@ -1,14 +1,12 @@
 # =============================================================================
-# Dockerfile for Laradisco Reverb (WebSocket) server
-# Uses the same base as the main app but runs reverb:start instead
+# Dockerfile for Laradisco Horizon (Queue Worker)
+# Uses the same base as the main app but runs horizon instead
 # =============================================================================
 
 ARG BASE_IMAGE=ghcr.io/babou212/laradisco:latest
 FROM ${BASE_IMAGE}
 
-EXPOSE 8080
-
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8080/ || exit 1
+    CMD php /var/www/html/artisan horizon:status | grep -q running || exit 1
 
-CMD ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+CMD ["php", "artisan", "horizon"]

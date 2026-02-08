@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useSearch } from '@/composables/useSearch';
 
 const { query, search, isOpen } = useSearch();
-const inputRef = ref<HTMLInputElement | null>(null);
+const inputRef = ref<any>(null);
 const inputValue = ref(query.value);
 const isSubmitting = ref(false);
 
@@ -45,7 +45,7 @@ const handleEnter = () => {
     nextTick(() => {
         isSubmitting.value = false;
         // Blur to close suggestions/keyboard if needed
-        inputRef.value?.blur();
+        inputRef.value?.$el?.blur();
     });
 };
 </script>

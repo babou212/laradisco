@@ -2,7 +2,7 @@
 # Multi-stage Dockerfile for Laradisco
 # Stage 1: Install PHP dependencies (Composer)
 # Stage 2: Build frontend assets (Node.js + PHP)
-# Stage 3: Production image (Nginx + PHP-FPM via supervisord)
+# Stage 3: Production image (FrankenPHP + Laravel Octane)
 # =============================================================================
 
 # ---------------------------------------------------------------------------
@@ -57,13 +57,10 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 # Stage 3: Production image
 # ---------------------------------------------------------------------------
-FROM php:8.5-fpm-alpine
+FROM dunglas/frankenphp:1-php8.5-alpine
 
 # Install system dependencies
 RUN apk add --no-cache \
-    nginx \
-    nginx-mod-http-headers-more \
-    supervisor \
     libpq-dev \
     libzip-dev \
     icu-dev \
@@ -83,6 +80,7 @@ RUN apk add --no-cache \
         pcntl \
         bcmath \
         sockets \
+        mbstring \
     && apk del --no-cache
 
 # Install Redis extension
@@ -94,9 +92,6 @@ RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
 # Create required directories
 RUN mkdir -p \
     /var/log/php \
-    /var/log/supervisor \
-    /var/log/nginx \
-    /run/nginx \
     /var/www/html/storage/framework/sessions \
     /var/www/html/storage/framework/views \
     /var/www/html/storage/framework/cache/data \
@@ -108,19 +103,13 @@ WORKDIR /var/www/html
 # Copy PHP production config
 COPY docker/php/php-prod.ini /usr/local/etc/php/conf.d/99-production.ini
 
-# Copy Nginx config
-COPY docker/nginx/default.conf /etc/nginx/http.d/default.conf
-
-# Copy supervisor config
-COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
 # Copy application code
 COPY . .
 
-# Copy built frontend assets from stage 1
+# Copy built frontend assets from stage 2
 COPY --from=frontend /app/public/build public/build
 
-# Copy vendor from stage 2
+# Copy vendor from stage 1
 COPY --from=composer /app/vendor vendor
 
 # Run composer post-install scripts (package discovery, etc.)
@@ -138,9 +127,13 @@ RUN chown -R www-data:www-data \
     bootstrap/cache \
     public
 
+# FrankenPHP environment
+ENV SERVER_NAME=":80"
+ENV OCTANE_SERVER=frankenphp
+
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost/healthz || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost/up || exit 1
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=80", "--admin-port=2019"]

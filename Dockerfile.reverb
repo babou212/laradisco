@@ -3,7 +3,7 @@
 # Uses the same base as the main app but runs reverb:start instead
 # =============================================================================
 
-ARG BASE_IMAGE=ghcr.io/OWNER/laradisco:latest
+ARG BASE_IMAGE=ghcr.io/babou212/laradisco:latest
 FROM ${BASE_IMAGE}
 
 # Override supervisor config for Reverb

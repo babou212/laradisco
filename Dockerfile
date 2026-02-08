@@ -8,7 +8,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Build frontend assets
 # ---------------------------------------------------------------------------
-FROM node:20-alpine AS frontend
+FROM node:22-alpine AS frontend
 
 WORKDIR /app
 
@@ -41,7 +41,7 @@ RUN composer install \
 # ---------------------------------------------------------------------------
 # Stage 3: Production image
 # ---------------------------------------------------------------------------
-FROM php:8.2-fpm-alpine
+FROM php:8.4-fpm-alpine
 
 # Install system dependencies
 RUN apk add --no-cache \

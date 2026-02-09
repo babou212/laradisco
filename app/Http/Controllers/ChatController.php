@@ -35,19 +35,18 @@ class ChatController extends Controller
 
         $channelData = null;
         $messages = null;
-        
+
         if ($channel) {
             $channelData = [
                 'id' => $channel->id,
                 'name' => $channel->name,
                 'topic' => $channel->topic,
             ];
-            
-            $messages = Inertia::scroll(fn () => 
-                $channel->messages()
-                    ->with(['user', 'attachments', 'reactions', 'replyTo.user'])
-                    ->orderBy('created_at', 'asc')
-                    ->cursorPaginate(50)
+
+            $messages = Inertia::scroll(fn () => $channel->messages()
+                ->with(['user', 'attachments', 'reactions', 'replyTo.user'])
+                ->orderBy('created_at', 'asc')
+                ->cursorPaginate(50)
             );
         }
 

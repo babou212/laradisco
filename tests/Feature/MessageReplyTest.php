@@ -66,12 +66,10 @@ class MessageReplyTest extends TestCase
         $response->assertInertia(fn (Assert $page) => $page
             ->component('Chat')
             ->has('messages.data')
-            ->where('messages.data', fn ($messages) => 
-                collect($messages)->contains(fn ($msg) => 
-                    $msg['id'] === $reply->id && 
+            ->where('messages.data', fn ($messages) => collect($messages)->contains(fn ($msg) => $msg['id'] === $reply->id &&
                     $msg['reply_to_id'] === $originalMessage->id &&
                     $msg['reply_to']['content'] === $originalMessage->content
-                )
+            )
             )
         );
     }

@@ -66,5 +66,4 @@ class ChatTest extends TestCase
 
         $response->assertSessionHasErrors('content');
     }
-
 }

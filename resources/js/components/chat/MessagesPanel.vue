@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { router, usePage } from '@inertiajs/vue3';
+import { router, usePage, InfiniteScroll } from '@inertiajs/vue3';
 import { Hash, MessageSquare } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import SearchInput from '@/components/SearchInput.vue';
@@ -13,8 +13,6 @@ type ChannelData = {
     id: number;
     name: string;
     topic?: string | null;
-    messages?: MessageData[];
-    has_more?: boolean;
     other_user?: {
         id: number;
         username: string;
@@ -22,8 +20,17 @@ type ChannelData = {
     };
 };
 
+type MessagesData = {
+    data: MessageData[];
+    next_cursor?: string | null;
+    prev_cursor?: string | null;
+    next_page_url?: string | null;
+    prev_page_url?: string | null;
+};
+
 type Props = {
     channel?: ChannelData;
+    messages?: MessagesData;
     channelId?: number;
     isDm?: boolean;
 };
@@ -34,7 +41,8 @@ type PageProps = {
         user: User;
     };
     sidebarOpen: boolean;
-    channel?: ChannelData;
+    currentChannel?: ChannelData;
+    messages?: MessagesData;
 };
 
 const props = withDefaults(defineProps<Props>(), {
@@ -50,12 +58,6 @@ const getCsrfToken = (): string => {
 };
 
 const messagesContainer = ref<HTMLElement>();
-
-const messages = ref<MessageData[]>([]);
-
-const hasMore = ref(true);
-const isLoadingMore = ref(false);
-const scrollSentinel = ref<HTMLElement>();
 
 const editingMessageId = ref<number | null>(null);
 const editContent = ref('');
@@ -90,53 +92,6 @@ const scrollToBottom = () => {
     });
 };
 
-const loadMoreMessages = async () => {
-    if (
-        !props.channelId ||
-        isLoadingMore.value ||
-        !hasMore.value ||
-        messages.value.length === 0
-    )
-        return;
-
-    isLoadingMore.value = true;
-    const oldestMessageId = messages.value[0]?.id;
-    const previousScrollHeight = messagesContainer.value?.scrollHeight || 0;
-
-    const endpoint = props.isDm
-        ? `/direct-message/${props.channelId}?before=${oldestMessageId}`
-        : `/channels/${props.channelId}?before=${oldestMessageId}`;
-
-    try {
-        const response = await fetch(endpoint, {
-            headers: { Accept: 'application/json' },
-        });
-        const data = await response.json();
-
-        if (data.messages && data.messages.length > 0) {
-            messages.value = [...data.messages, ...messages.value];
-            hasMore.value = data.has_more ?? false;
-
-            nextTick(() => {
-                if (messagesContainer.value) {
-                    const newScrollHeight =
-                        messagesContainer.value.scrollHeight;
-                    messagesContainer.value.scrollTop =
-                        newScrollHeight - previousScrollHeight;
-                }
-            });
-        } else {
-            hasMore.value = false;
-        }
-    } catch (error) {
-        if (import.meta.env.DEV) {
-            console.error('Failed to load more messages:', error);
-        }
-    } finally {
-        isLoadingMore.value = false;
-    }
-};
-
 let currentChannelListener: string | null = null;
 
 const joinChannel = (channelId: number, isDm: boolean = false) => {
@@ -153,31 +108,37 @@ const joinChannel = (channelId: number, isDm: boolean = false) => {
                 return;
             }
 
-            messages.value.push(data.message);
+            // Add new message to the messages array in page props
+            if (page.props.messages?.data) {
+                page.props.messages.data.push(data.message);
+            }
             scrollToBottom();
         })
         .listen('MessageEdited', (data: { message: MessageData }) => {
-            const idx = messages.value.findIndex(
+            if (!page.props.messages?.data) return;
+            const idx = page.props.messages.data.findIndex(
                 (m) => m.id === data.message.id,
             );
             if (idx !== -1) {
-                messages.value[idx].content = data.message.content;
-                messages.value[idx].is_edited = true;
-                messages.value[idx].edited_at = data.message.edited_at;
+                page.props.messages.data[idx].content = data.message.content;
+                page.props.messages.data[idx].is_edited = true;
+                page.props.messages.data[idx].edited_at = data.message.edited_at;
             }
         })
         .listen('MessageDeleted', (data: { message_id: number }) => {
-            const idx = messages.value.findIndex(
+            if (!page.props.messages?.data) return;
+            const idx = page.props.messages.data.findIndex(
                 (m) => m.id === data.message_id,
             );
             if (idx !== -1) {
-                messages.value.splice(idx, 1);
+                page.props.messages.data.splice(idx, 1);
             }
         })
         .listen(
             'ReactionToggled',
             (data: { reaction: MessageReaction; added: boolean }) => {
-                const msg = messages.value.find(
+                if (!page.props.messages?.data) return;
+                const msg = page.props.messages.data.find(
                     (m) => m.id === data.reaction.message_id,
                 );
                 if (msg) {
@@ -245,7 +206,6 @@ watch(
     () => props.channelId,
     (newId) => {
         if (newId) {
-            hasMore.value = true;
             joinChannel(newId, props.isDm);
             scrollToBottom();
         }
@@ -253,39 +213,8 @@ watch(
     { immediate: true },
 );
 
-watch(
-    () => props.channel?.messages,
-    (newMessages) => {
-        if (newMessages) {
-            messages.value = [...newMessages];
-            hasMore.value = props.channel?.has_more ?? true;
-        }
-    },
-    { immediate: true, deep: true },
-);
-
 onMounted(() => {
     document.addEventListener('click', handleClickOutside);
-
-    if (scrollSentinel.value) {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (
-                    entries[0].isIntersecting &&
-                    hasMore.value &&
-                    !isLoadingMore.value
-                ) {
-                    loadMoreMessages();
-                }
-            },
-            { threshold: 0.1 },
-        );
-        observer.observe(scrollSentinel.value);
-
-        onUnmounted(() => {
-            observer.disconnect();
-        });
-    }
 });
 
 onUnmounted(() => {
@@ -295,6 +224,8 @@ onUnmounted(() => {
 
 const sendMessage = (content: string) => {
     if (!props.channelId) return;
+    
+    if (!page.props.messages?.data) return;
 
     const data: { content: string; reply_to_id?: number } = { content };
     if (replyingToMessage.value) {
@@ -322,7 +253,7 @@ const sendMessage = (content: string) => {
         created_at: new Date().toISOString(),
     };
 
-    messages.value.push(optimisticMessage);
+    page.props.messages.data.push(optimisticMessage);
     scrollToBottom();
 
     router.post(endpoint, data, {
@@ -330,25 +261,27 @@ const sendMessage = (content: string) => {
         preserveScroll: true,
         onSuccess: () => {
             replyingToMessage.value = null;
-            const idx = messages.value.findIndex(
+            if (!page.props.messages?.data) return;
+            const idx = page.props.messages.data.findIndex(
                 (m) => m.id === optimisticMessage.id,
             );
-            if (idx !== -1 && page.props.channel?.messages) {
+            if (idx !== -1 && page.props.messages?.data) {
                 const realMessage =
-                    page.props.channel.messages[
-                        page.props.channel.messages.length - 1
+                    page.props.messages.data[
+                        page.props.messages.data.length - 1
                     ];
                 if (realMessage) {
-                    messages.value[idx] = realMessage;
+                    page.props.messages.data[idx] = realMessage;
                 }
             }
         },
         onError: () => {
-            const idx = messages.value.findIndex(
+            if (!page.props.messages?.data) return;
+            const idx = page.props.messages.data.findIndex(
                 (m) => m.id === optimisticMessage.id,
             );
             if (idx !== -1) {
-                messages.value.splice(idx, 1);
+                page.props.messages.data.splice(idx, 1);
             }
         },
     });
@@ -395,6 +328,8 @@ const saveEdit = (message: MessageData) => {
 
 const deleteMessage = (message: MessageData) => {
     if (!props.channelId) return;
+    
+    if (!page.props.messages?.data) return;
 
     const endpoint = props.isDm
         ? `/direct-message/${props.channelId}/messages/${message.id}`
@@ -408,9 +343,10 @@ const deleteMessage = (message: MessageData) => {
         },
     }).then((res) => {
         if (res.ok) {
-            const idx = messages.value.findIndex((m) => m.id === message.id);
+            if (!page.props.messages?.data) return;
+            const idx = page.props.messages.data.findIndex((m) => m.id === message.id);
             if (idx !== -1) {
-                messages.value.splice(idx, 1);
+                page.props.messages.data.splice(idx, 1);
             }
         }
     });
@@ -507,7 +443,7 @@ const emitTyping = () => {
         <div ref="messagesContainer" class="flex-1 overflow-y-auto p-4">
             <!-- Empty state -->
             <div
-                v-if="messages.length === 0"
+                v-if="!messages?.data || messages.data.length === 0"
                 class="flex h-full items-center justify-center"
             >
                 <div class="text-center text-muted-foreground">
@@ -521,40 +457,45 @@ const emitTyping = () => {
                 </div>
             </div>
 
-            <!-- Messages list -->
-            <div v-else class="space-y-1">
-                <!-- Scroll sentinel for infinite scroll -->
-                <div ref="scrollSentinel" class="h-1"></div>
+            <InfiniteScroll 
+                v-else
+                data="messages" 
+                reverse
+                only-previous
+                preserve-url
+            >
+                <template #default="{ loadingPrevious }">
+                    <div class="space-y-1">
+                        <div v-if="loadingPrevious" class="flex justify-center py-2">
+                            <div
+                                class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"
+                            ></div>
+                        </div>
 
-                <!-- Loading indicator -->
-                <div v-if="isLoadingMore" class="flex justify-center py-2">
-                    <div
-                        class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"
-                    ></div>
-                </div>
-
-                <Message
-                    v-for="message in messages"
-                    :key="message.id"
-                    :message="message"
-                    :is-editing="editingMessageId === message.id"
-                    :edit-content="editContent"
-                    :show-emoji-picker="emojiPickerMessageId === message.id"
-                    @start-edit="startEdit(message)"
-                    @cancel-edit="cancelEdit"
-                    @save-edit="saveEdit(message)"
-                    @delete="deleteMessage(message)"
-                    @reply="startReply(message)"
-                    @toggle-reaction="(emoji) => toggleReaction(message, emoji)"
-                    @toggle-emoji-picker="
-                        emojiPickerMessageId =
-                            emojiPickerMessageId === message.id
-                                ? null
-                                : message.id
-                    "
-                    @update-edit-content="editContent = $event"
-                />
-            </div>
+                        <Message
+                            v-for="message in messages.data"
+                            :key="message.id"
+                            :message="message"
+                            :is-editing="editingMessageId === message.id"
+                            :edit-content="editContent"
+                            :show-emoji-picker="emojiPickerMessageId === message.id"
+                            @start-edit="startEdit(message)"
+                            @cancel-edit="cancelEdit"
+                            @save-edit="saveEdit(message)"
+                            @delete="deleteMessage(message)"
+                            @reply="startReply(message)"
+                            @toggle-reaction="(emoji) => toggleReaction(message, emoji)"
+                            @toggle-emoji-picker="
+                                emojiPickerMessageId =
+                                    emojiPickerMessageId === message.id
+                                        ? null
+                                        : message.id
+                            "
+                            @update-edit-content="editContent = $event"
+                        />
+                    </div>
+                </template>
+            </InfiniteScroll>
         </div>
 
         <TypingIndicator :typing-users="typingUsers" />

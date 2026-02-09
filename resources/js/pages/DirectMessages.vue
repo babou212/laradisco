@@ -30,8 +30,8 @@ type Props = {
             username: string;
             avatar_path: string | null;
         };
-        messages?: Array<any>;
     };
+    messages?: any;
 };
 
 const props = defineProps<Props>();
@@ -74,6 +74,7 @@ onMounted(() => {
         <MessagesPanel
             v-if="selectedDmGroup"
             :channel="selectedDmGroup"
+            :messages="messages"
             :channel-id="selectedDmGroupId"
             :is-dm="true"
         />

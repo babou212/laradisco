@@ -34,20 +34,6 @@ class DirectMessageController extends Controller
             abort(403);
         }
 
-        $query = $dmGroup->messages()->with('user');
-
-        // Cursor pagination: load messages before a specific message ID
-        if ($request->has('before')) {
-            $query->where('id', '<', $request->input('before'));
-        }
-
-        $messages = $query
-            ->orderBy('created_at', 'desc')
-            ->limit(50)
-            ->get()
-            ->reverse()
-            ->values();
-
         $otherParticipant = $dmGroup->participants()->where('users.id', '!=', $user->id)->first();
 
         $dmGroups = $this->getCachedDmGroups($user);
@@ -62,9 +48,13 @@ class DirectMessageController extends Controller
                     'username' => $otherParticipant->username,
                     'avatar_path' => $otherParticipant->avatar_path,
                 ] : null,
-                'messages' => $messages,
-                'has_more' => $messages->count() === 50,
             ],
+            'messages' => Inertia::scroll(fn () =>
+                $dmGroup->messages()
+                    ->with('user')
+                    ->orderBy('created_at', 'asc')
+                    ->cursorPaginate(50)
+            ),
         ]);
     }
 

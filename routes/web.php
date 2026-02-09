@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\ChannelController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DirectMessageController;
 use App\Http\Controllers\MessageController;
@@ -21,7 +20,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::redirect('/home', '/')->name('home');
     Route::redirect('dashboard', '/')->name('dashboard');
 
-    Route::get('channels/{channel}', [ChannelController::class, 'show'])->name('channels.show');
     Route::post('channels/{channel}/messages', [MessageController::class, 'store'])->name('channels.messages.store');
     Route::put('channels/{channel}/messages/{message}', [MessageController::class, 'update'])->name('channels.messages.update');
     Route::delete('channels/{channel}/messages/{message}', [MessageController::class, 'destroy'])->name('channels.messages.destroy');

@@ -23,8 +23,8 @@ type Props = {
         id: number;
         name: string;
         topic: string | null;
-        messages?: Array<any>;
     };
+    messages?: any;
 };
 
 const props = defineProps<Props>();
@@ -91,6 +91,7 @@ onMounted(() => {
         <MessagesPanel
             v-if="selectedChannel"
             :channel="selectedChannel"
+            :messages="messages"
             :channel-id="selectedChannelId"
         />
 

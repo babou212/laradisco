@@ -24,31 +24,31 @@ class ChatController extends Controller
         $channel = null;
 
         if ($channelId) {
-            $channel = Channel::with(['messages' => function ($query) {
-                $query->with(['user', 'attachments', 'reactions', 'replyTo.user'])
-                    ->orderBy('created_at', 'asc')
-                    ->limit(50);
-            }])->find($channelId);
+            $channel = Channel::find($channelId);
         }
 
         if (! $channel) {
-            $channel = Channel::with(['messages' => function ($query) {
-                $query->with(['user', 'attachments', 'reactions', 'replyTo.user'])
-                    ->orderBy('created_at', 'asc')
-                    ->limit(50);
-            }])
-                ->where('is_private', false)
+            $channel = Channel::where('is_private', false)
                 ->orderBy('position')
                 ->first();
         }
 
+        $channelData = null;
+        $messages = null;
+        
         if ($channel) {
-            $channel = [
+            $channelData = [
                 'id' => $channel->id,
                 'name' => $channel->name,
                 'topic' => $channel->topic,
-                'messages' => $channel->messages,
             ];
+            
+            $messages = Inertia::scroll(fn () => 
+                $channel->messages()
+                    ->with(['user', 'attachments', 'reactions', 'replyTo.user'])
+                    ->orderBy('created_at', 'asc')
+                    ->cursorPaginate(50)
+            );
         }
 
         $directMessages = $request->user()
@@ -59,7 +59,8 @@ class ChatController extends Controller
 
         return Inertia::render('Chat', [
             'categories' => $categories,
-            'currentChannel' => $channel,
+            'currentChannel' => $channelData,
+            'messages' => $messages,
             'directMessages' => $directMessages,
         ]);
     }

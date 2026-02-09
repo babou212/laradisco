@@ -49,11 +49,10 @@ class DirectMessageController extends Controller
                     'avatar_path' => $otherParticipant->avatar_path,
                 ] : null,
             ],
-            'messages' => Inertia::scroll(fn () =>
-                $dmGroup->messages()
-                    ->with('user')
-                    ->orderBy('created_at', 'asc')
-                    ->cursorPaginate(50)
+            'messages' => Inertia::scroll(fn () => $dmGroup->messages()
+                ->with('user')
+                ->orderBy('created_at', 'asc')
+                ->cursorPaginate(50)
             ),
         ]);
     }

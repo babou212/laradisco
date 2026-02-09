@@ -66,20 +66,4 @@ class ChatTest extends TestCase
 
         $response->assertSessionHasErrors('content');
     }
-
-    public function test_users_can_fetch_channel_messages()
-    {
-        $user = User::factory()->create();
-        $category = Category::factory()->create();
-        $channel = Channel::factory()->create(['category_id' => $category->id]);
-
-        $response = $this->actingAs($user)
-            ->get(route('channels.show', $channel));
-
-        $response->assertOk();
-        $response->assertJsonStructure([
-            'channel',
-            'messages',
-        ]);
-    }
 }

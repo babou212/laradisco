@@ -7,6 +7,7 @@ use App\Models\Channel;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class MessageReplyTest extends TestCase
@@ -59,16 +60,18 @@ class MessageReplyTest extends TestCase
             'reply_to_id' => $originalMessage->id,
         ]);
 
-        $response = $this->actingAs($user)->get("/channels/{$channel->id}");
+        $response = $this->actingAs($user)->get("/?channel={$channel->id}");
 
         $response->assertStatus(200);
-        $data = $response->json();
-
-        $replyData = collect($data['messages'])->firstWhere('id', $reply->id);
-        $this->assertNotNull($replyData);
-        $this->assertEquals($originalMessage->id, $replyData['reply_to_id']);
-        $this->assertNotNull($replyData['reply_to']);
-        $this->assertEquals($originalMessage->content, $replyData['reply_to']['content']);
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Chat')
+            ->has('messages.data')
+            ->where('messages.data', fn ($messages) => collect($messages)->contains(fn ($msg) => $msg['id'] === $reply->id &&
+                    $msg['reply_to_id'] === $originalMessage->id &&
+                    $msg['reply_to']['content'] === $originalMessage->content
+            )
+            )
+        );
     }
 
     public function test_reply_to_id_must_exist(): void

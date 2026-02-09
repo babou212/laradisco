@@ -123,7 +123,7 @@ class DirectMessageTest extends TestCase
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
             ->component('DirectMessages')
-            ->has('currentDmGroup.messages', 2)
+            ->has('messages.data', 2)
         );
     }
 

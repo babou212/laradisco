@@ -122,7 +122,8 @@ const joinChannel = (channelId: number, isDm: boolean = false) => {
             if (idx !== -1) {
                 page.props.messages.data[idx].content = data.message.content;
                 page.props.messages.data[idx].is_edited = true;
-                page.props.messages.data[idx].edited_at = data.message.edited_at;
+                page.props.messages.data[idx].edited_at =
+                    data.message.edited_at;
             }
         })
         .listen('MessageDeleted', (data: { message_id: number }) => {
@@ -224,7 +225,7 @@ onUnmounted(() => {
 
 const sendMessage = (content: string) => {
     if (!props.channelId) return;
-    
+
     if (!page.props.messages?.data) return;
 
     const data: { content: string; reply_to_id?: number } = { content };
@@ -328,7 +329,7 @@ const saveEdit = (message: MessageData) => {
 
 const deleteMessage = (message: MessageData) => {
     if (!props.channelId) return;
-    
+
     if (!page.props.messages?.data) return;
 
     const endpoint = props.isDm
@@ -344,7 +345,9 @@ const deleteMessage = (message: MessageData) => {
     }).then((res) => {
         if (res.ok) {
             if (!page.props.messages?.data) return;
-            const idx = page.props.messages.data.findIndex((m) => m.id === message.id);
+            const idx = page.props.messages.data.findIndex(
+                (m) => m.id === message.id,
+            );
             if (idx !== -1) {
                 page.props.messages.data.splice(idx, 1);
             }
@@ -457,16 +460,19 @@ const emitTyping = () => {
                 </div>
             </div>
 
-            <InfiniteScroll 
+            <InfiniteScroll
                 v-else
-                data="messages" 
+                data="messages"
                 reverse
                 only-previous
                 preserve-url
             >
                 <template #default="{ loadingPrevious }">
                     <div class="space-y-1">
-                        <div v-if="loadingPrevious" class="flex justify-center py-2">
+                        <div
+                            v-if="loadingPrevious"
+                            class="flex justify-center py-2"
+                        >
                             <div
                                 class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"
                             ></div>
@@ -478,13 +484,17 @@ const emitTyping = () => {
                             :message="message"
                             :is-editing="editingMessageId === message.id"
                             :edit-content="editContent"
-                            :show-emoji-picker="emojiPickerMessageId === message.id"
+                            :show-emoji-picker="
+                                emojiPickerMessageId === message.id
+                            "
                             @start-edit="startEdit(message)"
                             @cancel-edit="cancelEdit"
                             @save-edit="saveEdit(message)"
                             @delete="deleteMessage(message)"
                             @reply="startReply(message)"
-                            @toggle-reaction="(emoji) => toggleReaction(message, emoji)"
+                            @toggle-reaction="
+                                (emoji) => toggleReaction(message, emoji)
+                            "
                             @toggle-emoji-picker="
                                 emojiPickerMessageId =
                                     emojiPickerMessageId === message.id

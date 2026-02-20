@@ -19,9 +19,7 @@ export const usePresenceStore = defineStore('presence', () => {
         const serverMembers = (page.props.members ?? []) as OnlineUser[];
 
         return serverMembers.map((member) => {
-            const liveUser = onlineUsers.value.find(
-                (u) => u.id === member.id,
-            );
+            const liveUser = onlineUsers.value.find((u) => u.id === member.id);
 
             if (liveUser) {
                 return {
@@ -64,9 +62,7 @@ export const usePresenceStore = defineStore('presence', () => {
                 isConnected.value = true;
             })
             .joining((user: OnlineUser) => {
-                const exists = onlineUsers.value.find(
-                    (u) => u.id === user.id,
-                );
+                const exists = onlineUsers.value.find((u) => u.id === user.id);
                 if (!exists) {
                     onlineUsers.value.push({
                         ...user,

@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { router, usePage, InfiniteScroll } from '@inertiajs/vue3';
 import { Hash, MessageSquare } from 'lucide-vue-next';
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import {
+    computed,
+    nextTick,
+    onMounted,
+    onUnmounted,
+    reactive,
+    ref,
+    watch,
+} from 'vue';
 import SearchInput from '@/components/SearchInput.vue';
 import echo from '@/lib/echo';
 import type { User } from '@/types/auth';
@@ -67,7 +75,10 @@ const emojiPickerMessageId = ref<number | null>(null);
 const replyingToMessage = ref<MessageData | null>(null);
 
 const typingUsers = reactive(
-    new Map<number, { username: string; timeout: ReturnType<typeof setTimeout> }>()
+    new Map<
+        number,
+        { username: string; timeout: ReturnType<typeof setTimeout> }
+    >(),
 );
 let typingDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -103,7 +114,6 @@ const joinChannel = (channelId: number, isDm: boolean = false) => {
 
     echo.join(currentChannelListener)
         .listen('MessageSent', (data: { message: MessageData }) => {
-
             const senderId = data.message.user.id;
             const existingTyping = typingUsers.get(senderId);
             if (existingTyping) {

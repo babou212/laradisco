@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
-import { computed, onMounted, ref } from 'vue';
+import { ChevronDown, ChevronRight } from 'lucide-vue-next';
+import { computed, reactive, ref } from 'vue';
 import { usePresenceStore } from '@/stores/presence';
 import type { UserStatusType } from '@/types';
 import UserProfilePanel from './UserProfilePanel.vue';
@@ -9,22 +10,28 @@ import UserProfilePanel from './UserProfilePanel.vue';
 const presenceStore = usePresenceStore();
 const page = usePage();
 
-onMounted(() => {
-    presenceStore.connect();
-});
-
 const selectedUser = ref<any>(null);
 const showUserProfile = ref(false);
 
 const currentUserId = computed(() => page.props.auth?.user?.id);
 
+const collapsedSections = reactive(new Set<string>());
+
+const toggleSection = (section: string) => {
+    if (collapsedSections.has(section)) {
+        collapsedSections.delete(section);
+    } else {
+        collapsedSections.add(section);
+    }
+};
+
 const usersByStatus = computed(() => {
-    const online = presenceStore.onlineUsers.filter(
+    const online = presenceStore.allMembers.filter(
         (u) => u.status === 'online',
     );
-    const idle = presenceStore.onlineUsers.filter((u) => u.status === 'idle');
-    const dnd = presenceStore.onlineUsers.filter((u) => u.status === 'dnd');
-    const offline = presenceStore.onlineUsers.filter(
+    const idle = presenceStore.allMembers.filter((u) => u.status === 'idle');
+    const dnd = presenceStore.allMembers.filter((u) => u.status === 'dnd');
+    const offline = presenceStore.allMembers.filter(
         (u) => u.status === 'offline',
     );
 
@@ -90,13 +97,28 @@ const startDm = (userId: number) => {
         <!-- Scrollable Members List -->
         <div class="flex-1 overflow-y-auto px-2 py-4">
             <!-- Online Users -->
-            <div v-if="usersByStatus.online.length > 0" class="mb-4">
-                <h3
-                    class="mb-2 px-2 text-xs font-semibold tracking-wide text-sidebar-foreground/70 uppercase"
+            <div v-if="usersByStatus.online.length > 0" class="mb-2">
+                <button
+                    type="button"
+                    class="flex w-full items-center gap-1 px-2 py-1 text-xs font-semibold tracking-wide text-sidebar-foreground/70 uppercase hover:text-sidebar-foreground"
+                    @click="toggleSection('online')"
                 >
+                    <ChevronRight
+                        v-if="collapsedSections.has('online')"
+                        :size="12"
+                        class="transition-transform"
+                    />
+                    <ChevronDown
+                        v-else
+                        :size="12"
+                        class="transition-transform"
+                    />
                     Online — {{ usersByStatus.online.length }}
-                </h3>
-                <div class="pt-0.5">
+                </button>
+                <div
+                    v-if="!collapsedSections.has('online')"
+                    class="mt-1 space-y-0.5"
+                >
                     <button
                         v-for="user in usersByStatus.online"
                         :key="user.id"
@@ -133,18 +155,33 @@ const startDm = (userId: number) => {
             </div>
 
             <!-- Idle Users -->
-            <div v-if="usersByStatus.idle.length > 0" class="mb-4">
-                <h3
-                    class="mb-2 px-2 text-xs font-semibold tracking-wide text-sidebar-foreground/70 uppercase"
+            <div v-if="usersByStatus.idle.length > 0" class="mb-2">
+                <button
+                    type="button"
+                    class="flex w-full items-center gap-1 px-2 py-1 text-xs font-semibold tracking-wide text-sidebar-foreground/70 uppercase hover:text-sidebar-foreground"
+                    @click="toggleSection('idle')"
                 >
+                    <ChevronRight
+                        v-if="collapsedSections.has('idle')"
+                        :size="12"
+                        class="transition-transform"
+                    />
+                    <ChevronDown
+                        v-else
+                        :size="12"
+                        class="transition-transform"
+                    />
                     Idle — {{ usersByStatus.idle.length }}
-                </h3>
-                <div class="space-y-0.5">
+                </button>
+                <div
+                    v-if="!collapsedSections.has('idle')"
+                    class="mt-1 space-y-0.5"
+                >
                     <button
                         v-for="user in usersByStatus.idle"
                         :key="user.id"
                         type="button"
-                        class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 transition-colors hover:bg-sidebar-accent"
+                        class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1 text-left transition-colors hover:bg-sidebar-accent"
                         @click="openUserProfile(user)"
                     >
                         <div class="relative">
@@ -154,7 +191,7 @@ const startDm = (userId: number) => {
                                 {{ user.display_name[0].toUpperCase() }}
                             </div>
                             <div
-                                class="absolute right-0 bottom-0 size-3 rounded-full border-2 border-sidebar"
+                                class="absolute right-0 bottom-0 size-2.5 rounded-full border-2 border-sidebar"
                                 :class="getStatusColor(user.status)"
                             />
                         </div>
@@ -170,18 +207,33 @@ const startDm = (userId: number) => {
             </div>
 
             <!-- DND Users -->
-            <div v-if="usersByStatus.dnd.length > 0" class="mb-4">
-                <h3
-                    class="mb-2 px-2 text-xs font-semibold tracking-wide text-sidebar-foreground/70 uppercase"
+            <div v-if="usersByStatus.dnd.length > 0" class="mb-2">
+                <button
+                    type="button"
+                    class="flex w-full items-center gap-1 px-2 py-1 text-xs font-semibold tracking-wide text-sidebar-foreground/70 uppercase hover:text-sidebar-foreground"
+                    @click="toggleSection('dnd')"
                 >
+                    <ChevronRight
+                        v-if="collapsedSections.has('dnd')"
+                        :size="12"
+                        class="transition-transform"
+                    />
+                    <ChevronDown
+                        v-else
+                        :size="12"
+                        class="transition-transform"
+                    />
                     Do Not Disturb — {{ usersByStatus.dnd.length }}
-                </h3>
-                <div class="space-y-0.5">
+                </button>
+                <div
+                    v-if="!collapsedSections.has('dnd')"
+                    class="mt-1 space-y-0.5"
+                >
                     <button
                         v-for="user in usersByStatus.dnd"
                         :key="user.id"
                         type="button"
-                        class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 transition-colors hover:bg-sidebar-accent"
+                        class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1 text-left transition-colors hover:bg-sidebar-accent"
                         @click="openUserProfile(user)"
                     >
                         <div class="relative">
@@ -191,7 +243,7 @@ const startDm = (userId: number) => {
                                 {{ user.display_name[0].toUpperCase() }}
                             </div>
                             <div
-                                class="absolute right-0 bottom-0 size-3 rounded-full border-2 border-sidebar"
+                                class="absolute right-0 bottom-0 size-2.5 rounded-full border-2 border-sidebar"
                                 :class="getStatusColor(user.status)"
                             />
                         </div>
@@ -207,18 +259,33 @@ const startDm = (userId: number) => {
             </div>
 
             <!-- Offline Users -->
-            <div v-if="usersByStatus.offline.length > 0" class="mb-4">
-                <h3
-                    class="mb-2 px-2 text-xs font-semibold tracking-wide text-sidebar-foreground/70 uppercase"
+            <div v-if="usersByStatus.offline.length > 0" class="mb-2">
+                <button
+                    type="button"
+                    class="flex w-full items-center gap-1 px-2 py-1 text-xs font-semibold tracking-wide text-sidebar-foreground/70 uppercase hover:text-sidebar-foreground"
+                    @click="toggleSection('offline')"
                 >
+                    <ChevronRight
+                        v-if="collapsedSections.has('offline')"
+                        :size="12"
+                        class="transition-transform"
+                    />
+                    <ChevronDown
+                        v-else
+                        :size="12"
+                        class="transition-transform"
+                    />
                     Offline — {{ usersByStatus.offline.length }}
-                </h3>
-                <div class="space-y-0.5">
+                </button>
+                <div
+                    v-if="!collapsedSections.has('offline')"
+                    class="mt-1 space-y-0.5"
+                >
                     <button
                         v-for="user in usersByStatus.offline"
                         :key="user.id"
                         type="button"
-                        class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 opacity-60 transition-colors hover:bg-sidebar-accent hover:opacity-100"
+                        class="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1 text-left opacity-60 transition-colors hover:bg-sidebar-accent hover:opacity-100"
                         @click="openUserProfile(user)"
                     >
                         <div class="relative">
@@ -228,7 +295,7 @@ const startDm = (userId: number) => {
                                 {{ user.display_name[0].toUpperCase() }}
                             </div>
                             <div
-                                class="absolute right-0 bottom-0 size-3 rounded-full border-2 border-sidebar"
+                                class="absolute right-0 bottom-0 size-2.5 rounded-full border-2 border-sidebar"
                                 :class="getStatusColor(user.status)"
                             />
                         </div>

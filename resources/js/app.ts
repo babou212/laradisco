@@ -8,6 +8,7 @@ import { createApp, h } from 'vue';
 import '../css/app.css';
 import { initializeTheme } from './composables/useAppearance';
 import './lib/echo';
+import { usePresenceStore } from './stores/presence';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 const pinia = createPinia();
@@ -40,3 +41,6 @@ createInertiaApp({
 
 // This will set light / dark mode on page load...
 initializeTheme();
+
+const presenceStore = usePresenceStore(pinia);
+presenceStore.connect();

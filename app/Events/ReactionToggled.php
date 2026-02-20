@@ -26,6 +26,7 @@ class ReactionToggled implements ShouldBroadcast
         public int $channelId,
         public array $reaction,
         public bool $added,
+        public bool $isDm = false,
     ) {}
 
     /**
@@ -35,8 +36,10 @@ class ReactionToggled implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
+        $channelName = $this->isDm ? 'direct-message.'.$this->channelId : 'channel.'.$this->channelId;
+
         return [
-            new PresenceChannel('channel.'.$this->channelId),
+            new PresenceChannel($channelName),
         ];
     }
 

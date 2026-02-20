@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
+use App\Models\DirectMessageReaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -223,5 +224,117 @@ class DirectMessageTest extends TestCase
         $response = $this->actingAs($user2)->deleteJson("/direct-message/{$dmGroup->id}/messages/{$message->id}");
 
         $response->assertForbidden();
+    }
+
+    // --- Reaction tests ---
+
+    public function test_participant_can_add_reaction_to_dm(): void
+    {
+        $user1 = User::factory()->create();
+        $user2 = User::factory()->create();
+
+        $dmGroup = DirectMessageGroup::create(['owner_id' => $user1->id]);
+        $dmGroup->participants()->attach([$user1->id, $user2->id]);
+
+        $message = DirectMessage::create([
+            'direct_message_group_id' => $dmGroup->id,
+            'user_id' => $user2->id,
+            'content' => 'React to this!',
+        ]);
+
+        $response = $this->actingAs($user1)
+            ->postJson("/direct-message/{$dmGroup->id}/messages/{$message->id}/reactions", [
+                'emoji' => '👍',
+            ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('added', true);
+
+        $this->assertDatabaseHas('direct_message_reactions', [
+            'direct_message_id' => $message->id,
+            'user_id' => $user1->id,
+            'emoji' => '👍',
+        ]);
+    }
+
+    public function test_participant_can_remove_reaction_from_dm(): void
+    {
+        $user1 = User::factory()->create();
+        $user2 = User::factory()->create();
+
+        $dmGroup = DirectMessageGroup::create(['owner_id' => $user1->id]);
+        $dmGroup->participants()->attach([$user1->id, $user2->id]);
+
+        $message = DirectMessage::create([
+            'direct_message_group_id' => $dmGroup->id,
+            'user_id' => $user2->id,
+            'content' => 'React to this!',
+        ]);
+
+        DirectMessageReaction::create([
+            'direct_message_id' => $message->id,
+            'user_id' => $user1->id,
+            'emoji' => '👍',
+        ]);
+
+        $response = $this->actingAs($user1)
+            ->postJson("/direct-message/{$dmGroup->id}/messages/{$message->id}/reactions", [
+                'emoji' => '👍',
+            ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('added', false);
+
+        $this->assertDatabaseMissing('direct_message_reactions', [
+            'direct_message_id' => $message->id,
+            'user_id' => $user1->id,
+            'emoji' => '👍',
+        ]);
+    }
+
+    public function test_non_participant_cannot_react_to_dm(): void
+    {
+        $user1 = User::factory()->create();
+        $user2 = User::factory()->create();
+        $outsider = User::factory()->create();
+
+        $dmGroup = DirectMessageGroup::create(['owner_id' => $user1->id]);
+        $dmGroup->participants()->attach([$user1->id, $user2->id]);
+
+        $message = DirectMessage::create([
+            'direct_message_group_id' => $dmGroup->id,
+            'user_id' => $user1->id,
+            'content' => 'Private message',
+        ]);
+
+        $response = $this->actingAs($outsider)
+            ->postJson("/direct-message/{$dmGroup->id}/messages/{$message->id}/reactions", [
+                'emoji' => '👍',
+            ]);
+
+        $response->assertForbidden();
+    }
+
+    public function test_dm_reaction_requires_emoji(): void
+    {
+        $user1 = User::factory()->create();
+        $user2 = User::factory()->create();
+
+        $dmGroup = DirectMessageGroup::create(['owner_id' => $user1->id]);
+        $dmGroup->participants()->attach([$user1->id, $user2->id]);
+
+        $message = DirectMessage::create([
+            'direct_message_group_id' => $dmGroup->id,
+            'user_id' => $user1->id,
+            'content' => 'Test message',
+        ]);
+
+        $response = $this->actingAs($user1)
+            ->postJson("/direct-message/{$dmGroup->id}/messages/{$message->id}/reactions", [
+                'emoji' => '',
+            ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors('emoji');
     }
 }

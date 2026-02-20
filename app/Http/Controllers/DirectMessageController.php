@@ -50,7 +50,7 @@ class DirectMessageController extends Controller
                 ] : null,
             ],
             'messages' => Inertia::scroll(fn () => $dmGroup->messages()
-                ->with('user')
+                ->with(['user', 'reactions'])
                 ->orderBy('created_at', 'asc')
                 ->cursorPaginate(50)
             ),

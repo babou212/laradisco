@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { router, usePage, InfiniteScroll } from '@inertiajs/vue3';
 import { Hash, MessageSquare } from 'lucide-vue-next';
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import SearchInput from '@/components/SearchInput.vue';
 import echo from '@/lib/echo';
 import type { User } from '@/types/auth';
@@ -66,9 +66,9 @@ const emojiPickerMessageId = ref<number | null>(null);
 
 const replyingToMessage = ref<MessageData | null>(null);
 
-const typingUsers = ref<
-    Map<number, { username: string; timeout: ReturnType<typeof setTimeout> }>
->(new Map());
+const typingUsers = reactive(
+    new Map<number, { username: string; timeout: ReturnType<typeof setTimeout> }>()
+);
 let typingDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 const handleClickOutside = (e: MouseEvent) => {
@@ -103,8 +103,15 @@ const joinChannel = (channelId: number, isDm: boolean = false) => {
 
     echo.join(currentChannelListener)
         .listen('MessageSent', (data: { message: MessageData }) => {
-            console.log('[MessagesPanel] MessageSent event received:', data);
-            if (data.message.user.id === currentUser.value.id) {
+
+            const senderId = data.message.user.id;
+            const existingTyping = typingUsers.get(senderId);
+            if (existingTyping) {
+                clearTimeout(existingTyping.timeout);
+                typingUsers.delete(senderId);
+            }
+
+            if (senderId === currentUser.value.id) {
                 return;
             }
 
@@ -175,21 +182,21 @@ const joinChannel = (channelId: number, isDm: boolean = false) => {
                 if (data.user_id === currentUser.value.id) return;
 
                 if (data.is_typing) {
-                    const existing = typingUsers.value.get(data.user_id);
+                    const existing = typingUsers.get(data.user_id);
                     if (existing) clearTimeout(existing.timeout);
 
                     const timeout = setTimeout(() => {
-                        typingUsers.value.delete(data.user_id);
-                    }, 4000);
+                        typingUsers.delete(data.user_id);
+                    }, 3000);
 
-                    typingUsers.value.set(data.user_id, {
+                    typingUsers.set(data.user_id, {
                         username: data.username,
                         timeout,
                     });
                 } else {
-                    const existing = typingUsers.value.get(data.user_id);
+                    const existing = typingUsers.get(data.user_id);
                     if (existing) clearTimeout(existing.timeout);
-                    typingUsers.value.delete(data.user_id);
+                    typingUsers.delete(data.user_id);
                 }
             },
         );
@@ -200,7 +207,7 @@ const leaveChannel = () => {
         echo.leave(currentChannelListener);
         currentChannelListener = null;
     }
-    typingUsers.value.clear();
+    typingUsers.clear();
 };
 
 watch(
@@ -395,8 +402,7 @@ const toggleReaction = (message: MessageData, emoji: string) => {
 
 const emitTyping = () => {
     if (!props.channelId) return;
-
-    if (typingDebounceTimer) clearTimeout(typingDebounceTimer);
+    if (typingDebounceTimer) return;
 
     const endpoint = props.isDm
         ? `/direct-message/${props.channelId}/typing`

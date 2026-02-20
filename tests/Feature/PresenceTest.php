@@ -103,4 +103,135 @@ class PresenceTest extends TestCase
         $this->assertNotEquals($originalLastSeen, $user->last_seen_at);
         $this->assertTrue($user->last_seen_at->greaterThan($originalLastSeen));
     }
+
+    public function test_middleware_does_not_broadcast_presence(): void
+    {
+        Event::fake();
+
+        $user = User::factory()->create([
+            'last_seen_at' => now()->subHours(2),
+        ]);
+
+        $this->actingAs($user)->get('/dashboard');
+
+        // The middleware only updates last_seen_at; presence is
+        // entirely managed by the WebSocket presence channel.
+        Event::assertNotDispatched(UserPresenceUpdated::class);
+    }
+
+    public function test_login_resets_user_status_to_online(): void
+    {
+        $user = User::factory()->create([
+            'status' => 'offline',
+        ]);
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $user->refresh();
+
+        $this->assertSame('online', $user->status);
+    }
+
+    public function test_login_resets_dnd_status_to_online(): void
+    {
+        $user = User::factory()->create([
+            'status' => 'dnd',
+        ]);
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $user->refresh();
+
+        $this->assertSame('online', $user->status);
+    }
+
+    public function test_presence_event_broadcasts_immediately(): void
+    {
+        $event = new UserPresenceUpdated(
+            User::factory()->create(),
+            UserStatusType::Online,
+        );
+
+        $this->assertInstanceOf(\Illuminate\Contracts\Broadcasting\ShouldBroadcastNow::class, $event);
+    }
+
+    public function test_presence_event_has_correct_broadcast_name(): void
+    {
+        $event = new UserPresenceUpdated(
+            User::factory()->create(),
+            UserStatusType::Online,
+        );
+
+        $this->assertSame('user.presence.updated', $event->broadcastAs());
+    }
+
+    public function test_presence_event_broadcasts_on_online_channel(): void
+    {
+        $event = new UserPresenceUpdated(
+            User::factory()->create(),
+            UserStatusType::Online,
+        );
+
+        $channels = $event->broadcastOn();
+        $this->assertCount(1, $channels);
+        $this->assertInstanceOf(\Illuminate\Broadcasting\PresenceChannel::class, $channels[0]);
+        $this->assertSame('presence-online', $channels[0]->name);
+    }
+
+    public function test_members_shared_prop_includes_all_users(): void
+    {
+        $userA = User::factory()->create(['username' => 'alpha']);
+        $userB = User::factory()->create(['username' => 'beta']);
+        $userC = User::factory()->create(['username' => 'gamma']);
+
+        $response = $this->actingAs($userA)->get('/');
+
+        $response->assertInertia(function ($page) use ($userA, $userB, $userC) {
+            $page->has('members', 3);
+            $members = collect($page->toArray()['props']['members']);
+            $this->assertTrue($members->contains('id', $userA->id));
+            $this->assertTrue($members->contains('id', $userB->id));
+            $this->assertTrue($members->contains('id', $userC->id));
+        });
+    }
+
+    public function test_members_shared_prop_contains_expected_fields(): void
+    {
+        $user = User::factory()->create([
+            'username' => 'testuser',
+            'nickname' => 'Tester',
+            'custom_status' => 'Hello!',
+        ]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertInertia(function ($page) use ($user) {
+            $members = collect($page->toArray()['props']['members']);
+            $member = $members->firstWhere('id', $user->id);
+
+            $this->assertNotNull($member);
+            $this->assertSame($user->username, $member['username']);
+            $this->assertSame($user->display_name, $member['display_name']);
+            $this->assertSame('Hello!', $member['custom_status']);
+            $this->assertArrayHasKey('avatar_path', $member);
+        });
+    }
+
+    public function test_members_shared_prop_not_available_for_guests(): void
+    {
+        User::factory()->create();
+
+        $response = $this->get('/login');
+
+        $response->assertInertia(function ($page) {
+            $members = $page->toArray()['props']['members'] ?? [];
+            $this->assertEmpty($members);
+        });
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\PermissionFlag;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -46,6 +47,19 @@ class HandleInertiaRequests extends Middleware
                 ] : [],
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'members' => fn () => $request->user()
+                ? User::query()
+                    ->select('id', 'username', 'name', 'nickname', 'avatar_path', 'custom_status')
+                    ->orderBy('username')
+                    ->get()
+                    ->map(fn (User $u) => [
+                        'id' => $u->id,
+                        'username' => $u->username,
+                        'display_name' => $u->display_name,
+                        'avatar_path' => $u->avatar_path,
+                        'custom_status' => $u->custom_status,
+                    ])
+                : [],
         ];
     }
 }

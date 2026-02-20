@@ -6,18 +6,13 @@ use App\Enums\UserStatusType;
 use App\Models\User;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class UserPresenceUpdated implements ShouldBroadcast
+class UserPresenceUpdated implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
-
-    /**
-     * The queue the broadcast event should be placed on.
-     */
-    public string $queue = 'broadcasting';
 
     /**
      * Create a new event instance.
@@ -38,6 +33,14 @@ class UserPresenceUpdated implements ShouldBroadcast
         return [
             new PresenceChannel('online'),
         ];
+    }
+
+    /**
+     * The event's broadcast name.
+     */
+    public function broadcastAs(): string
+    {
+        return 'user.presence.updated';
     }
 
     /**

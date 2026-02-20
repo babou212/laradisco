@@ -1,24 +1,62 @@
 import type { PresenceChannel } from 'laravel-echo';
+import { usePage } from '@inertiajs/vue3';
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import echo from '@/lib/echo';
 import type { OnlineUser, UserStatusType } from '@/types';
 
 export const usePresenceStore = defineStore('presence', () => {
+    // Users currently connected via WebSocket
     const onlineUsers = ref<OnlineUser[]>([]);
     const isConnected = ref(false);
     let presenceChannel: PresenceChannel | null = null;
 
+    // All members merged with live presence data.
+    // Server-loaded members come from Inertia shared props;
+    // WebSocket-connected users get their live status, everyone else is offline.
+    const allMembers = computed<OnlineUser[]>(() => {
+        const page = usePage();
+        const serverMembers = (page.props.members ?? []) as OnlineUser[];
+
+        return serverMembers.map((member) => {
+            const liveUser = onlineUsers.value.find(
+                (u) => u.id === member.id,
+            );
+
+            if (liveUser) {
+                return {
+                    ...member,
+                    status: liveUser.status || 'online',
+                    custom_status:
+                        liveUser.custom_status ?? member.custom_status,
+                };
+            }
+
+            return { ...member, status: 'offline' as UserStatusType };
+        });
+    });
+
     const connect = () => {
+        // If already connected and the channel is still alive, skip
+        if (presenceChannel && isConnected.value) {
+            return;
+        }
+
+        // Clean up any stale channel reference before reconnecting
         if (presenceChannel) {
-            return; // Already connected
+            try {
+                echo.leave('online');
+            } catch {
+                // Channel may already be gone
+            }
+            presenceChannel = null;
+            isConnected.value = false;
         }
 
         presenceChannel = echo.join('online') as PresenceChannel;
 
         presenceChannel
             .here((users: OnlineUser[]) => {
-                // Preserve existing status or default to 'online'
                 onlineUsers.value = users.map((u) => ({
                     ...u,
                     status: u.status || 'online',
@@ -26,8 +64,9 @@ export const usePresenceStore = defineStore('presence', () => {
                 isConnected.value = true;
             })
             .joining((user: OnlineUser) => {
-                // Add user if not already in the list
-                const exists = onlineUsers.value.find((u) => u.id === user.id);
+                const exists = onlineUsers.value.find(
+                    (u) => u.id === user.id,
+                );
                 if (!exists) {
                     onlineUsers.value.push({
                         ...user,
@@ -36,13 +75,11 @@ export const usePresenceStore = defineStore('presence', () => {
                 }
             })
             .leaving((user: OnlineUser) => {
-                // Remove user from list
                 onlineUsers.value = onlineUsers.value.filter(
                     (u) => u.id !== user.id,
                 );
             })
-            .listen('UserPresenceUpdated', (data: any) => {
-                // Update user's status and custom status in the list
+            .listen('.user.presence.updated', (data: any) => {
                 const user = onlineUsers.value.find(
                     (u) => u.id === data.user_id,
                 );
@@ -67,7 +104,8 @@ export const usePresenceStore = defineStore('presence', () => {
     };
 
     const getUserStatus = (userId: number): OnlineUser | undefined => {
-        return onlineUsers.value.find((u) => u.id === userId);
+        const member = allMembers.value.find((u) => u.id === userId);
+        return member;
     };
 
     const updateUserStatus = (
@@ -84,6 +122,7 @@ export const usePresenceStore = defineStore('presence', () => {
 
     return {
         onlineUsers,
+        allMembers,
         isConnected,
         connect,
         disconnect,

@@ -34,6 +34,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('direct-message/{dmGroup}/messages', [DirectMessageController::class, 'store'])->name('direct-message.messages.store');
     Route::put('direct-message/{dmGroup}/messages/{message}', [DirectMessageController::class, 'update'])->name('direct-message.messages.update');
     Route::delete('direct-message/{dmGroup}/messages/{message}', [DirectMessageController::class, 'destroy'])->name('direct-message.messages.destroy');
+    Route::post('direct-message/{dmGroup}/messages/{message}/reactions', [ReactionController::class, 'dmToggle'])->name('direct-message.messages.reactions.toggle');
     Route::post('direct-message/{dmGroup}/typing', [TypingController::class, 'dmTyping'])->name('direct-message.typing');
     Route::post('direct-message/start', [DirectMessageController::class, 'startOrGetDm'])->name('direct-message.start');
 

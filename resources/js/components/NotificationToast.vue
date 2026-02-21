@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { AtSign, Bell, MessageSquare, X } from 'lucide-vue-next';
 import { router } from '@inertiajs/vue3';
+import { AtSign, Bell, MessageSquare, X } from 'lucide-vue-next';
 import {
     useNotificationStore,
     type ToastNotification,

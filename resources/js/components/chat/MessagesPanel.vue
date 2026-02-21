@@ -10,8 +10,8 @@ import {
     ref,
     watch,
 } from 'vue';
-import SearchInput from '@/components/SearchInput.vue';
 import NotificationBell from '@/components/NotificationBell.vue';
+import SearchInput from '@/components/SearchInput.vue';
 import echo from '@/lib/echo';
 import type { User } from '@/types/auth';
 import Message, { type MessageData, type MessageReaction } from './Message.vue';

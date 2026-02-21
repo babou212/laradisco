@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { router } from '@inertiajs/vue3';
 import {
     AtSign,
     Bell,
@@ -7,12 +8,11 @@ import {
     MessageSquare,
 } from 'lucide-vue-next';
 import { onMounted, onUnmounted, ref } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { formatMessageDate } from '@/lib/utils';
 import {
     useNotificationStore,
     type AppNotification,
 } from '@/stores/notifications';
-import { formatMessageDate } from '@/lib/utils';
 
 const notificationStore = useNotificationStore();
 const showDropdown = ref(false);

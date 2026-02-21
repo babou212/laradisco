@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { CornerDownRight, Image, Send, Smile, X } from 'lucide-vue-next';
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import EmojiPicker from './EmojiPicker.vue';
 import GifPicker from './GifPicker.vue';
-import type { MessageData } from './Message.vue';
 import MentionDropdown from './MentionDropdown.vue';
+import type { MessageData } from './Message.vue';
 
 interface Props {
     channelName?: string;

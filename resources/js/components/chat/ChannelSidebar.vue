@@ -10,10 +10,10 @@ import {
     MoreVertical,
 } from 'lucide-vue-next';
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
-import { usePresenceStore } from '@/stores/presence';
-import { useVoiceStore } from '@/stores/voice';
 import VoiceChannelItem from '@/components/chat/VoiceChannelItem.vue';
 import VoiceControlPanel from '@/components/chat/VoiceControlPanel.vue';
+import { usePresenceStore } from '@/stores/presence';
+import { useVoiceStore } from '@/stores/voice';
 import type { User, UserStatusType } from '@/types';
 
 type Props = {

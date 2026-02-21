@@ -1,14 +1,13 @@
-import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import axios from 'axios';
 import {
     Room,
     RoomEvent,
     Track,
     type RemoteParticipant,
     type LocalParticipant,
-    type RemoteTrackPublication,
 } from 'livekit-client';
-import axios from 'axios';
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
 import echo from '@/lib/echo';
 
 export interface VoiceParticipant {
@@ -244,16 +243,13 @@ export const useVoiceStore = defineStore('voice', () => {
         });
 
         // Track subscribed — auto-attach audio
-        lkRoom.on(
-            RoomEvent.TrackSubscribed,
-            (track, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
-                if (track.kind === Track.Kind.Audio && !isSoundMuted.value) {
-                    const element = track.attach();
-                    element.style.display = 'none';
-                    document.body.appendChild(element);
-                }
-            },
-        );
+        lkRoom.on(RoomEvent.TrackSubscribed, (track) => {
+            if (track.kind === Track.Kind.Audio && !isSoundMuted.value) {
+                const element = track.attach();
+                element.style.display = 'none';
+                document.body.appendChild(element);
+            }
+        });
 
         // Track unsubscribed — detach audio element
         lkRoom.on(RoomEvent.TrackUnsubscribed, (track) => {

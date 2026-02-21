@@ -58,7 +58,12 @@ export const useVoiceStore = defineStore('voice', () => {
      */
     function initializeChannelParticipants(
         channelId: number,
-        participants: Array<{ id: number; username: string; display_name: string; avatar_path: string | null }>,
+        participants: Array<{
+            id: number;
+            username: string;
+            display_name: string;
+            avatar_path: string | null;
+        }>,
     ): void {
         const participantList = participants.map((u) => ({
             id: u.id,
@@ -77,27 +82,43 @@ export const useVoiceStore = defineStore('voice', () => {
      */
     function subscribeToChannelPresence(channelId: number): void {
         echo.private(`voice.channel.${channelId}`)
-            .listen('.voice.joined', (data: { user: { id: number; username: string; display_name: string; avatar_path: string | null }; channel_id: number }) => {
-                const current = channelParticipants.value.get(channelId) ?? [];
-                if (!current.some((p) => p.id === data.user.id)) {
-                    current.push({
-                        id: data.user.id,
-                        username: data.user.username,
-                        displayName: data.user.display_name,
-                        avatarPath: data.user.avatar_path,
-                        isMuted: false,
-                        isSpeaking: false,
-                    });
-                    channelParticipants.value.set(channelId, [...current]);
-                }
-            })
-            .listen('.voice.left', (data: { user_id: number; channel_id: number }) => {
-                const current = channelParticipants.value.get(channelId) ?? [];
-                channelParticipants.value.set(
-                    channelId,
-                    current.filter((p) => p.id !== data.user_id),
-                );
-            });
+            .listen(
+                '.voice.joined',
+                (data: {
+                    user: {
+                        id: number;
+                        username: string;
+                        display_name: string;
+                        avatar_path: string | null;
+                    };
+                    channel_id: number;
+                }) => {
+                    const current =
+                        channelParticipants.value.get(channelId) ?? [];
+                    if (!current.some((p) => p.id === data.user.id)) {
+                        current.push({
+                            id: data.user.id,
+                            username: data.user.username,
+                            displayName: data.user.display_name,
+                            avatarPath: data.user.avatar_path,
+                            isMuted: false,
+                            isSpeaking: false,
+                        });
+                        channelParticipants.value.set(channelId, [...current]);
+                    }
+                },
+            )
+            .listen(
+                '.voice.left',
+                (data: { user_id: number; channel_id: number }) => {
+                    const current =
+                        channelParticipants.value.get(channelId) ?? [];
+                    channelParticipants.value.set(
+                        channelId,
+                        current.filter((p) => p.id !== data.user_id),
+                    );
+                },
+            );
     }
 
     /**
@@ -111,7 +132,10 @@ export const useVoiceStore = defineStore('voice', () => {
     /**
      * Join a voice channel — connects to LiveKit via token from backend.
      */
-    async function joinChannel(channelId: number, channelName: string): Promise<void> {
+    async function joinChannel(
+        channelId: number,
+        channelName: string,
+    ): Promise<void> {
         // If already in a channel, leave first
         if (isConnected.value && currentChannel.value) {
             await leaveChannel();
@@ -121,7 +145,9 @@ export const useVoiceStore = defineStore('voice', () => {
 
         try {
             // Request token from backend
-            const response = await axios.post(`/channels/${channelId}/voice/join`);
+            const response = await axios.post(
+                `/channels/${channelId}/voice/join`,
+            );
             const { token, url } = response.data;
 
             // Create and configure the LiveKit room
@@ -232,15 +258,21 @@ export const useVoiceStore = defineStore('voice', () => {
      */
     function setupRoomEventHandlers(lkRoom: Room): void {
         // Participant joined
-        lkRoom.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
-            addRemoteParticipant(participant);
-        });
+        lkRoom.on(
+            RoomEvent.ParticipantConnected,
+            (participant: RemoteParticipant) => {
+                addRemoteParticipant(participant);
+            },
+        );
 
         // Participant left
-        lkRoom.on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
-            participants.value.delete(participant.identity);
-            participants.value = new Map(participants.value);
-        });
+        lkRoom.on(
+            RoomEvent.ParticipantDisconnected,
+            (participant: RemoteParticipant) => {
+                participants.value.delete(participant.identity);
+                participants.value = new Map(participants.value);
+            },
+        );
 
         // Track subscribed — auto-attach audio
         lkRoom.on(RoomEvent.TrackSubscribed, (track) => {
@@ -367,7 +399,10 @@ export const useVoiceStore = defineStore('voice', () => {
      */
     function handleBeforeUnload(): void {
         if (currentChannel.value && isConnected.value) {
-            sessionStorage.setItem(VOICE_SESSION_KEY, JSON.stringify(currentChannel.value));
+            sessionStorage.setItem(
+                VOICE_SESSION_KEY,
+                JSON.stringify(currentChannel.value),
+            );
         }
 
         // Disconnect from LiveKit synchronously (best-effort cleanup)
@@ -385,7 +420,12 @@ export const useVoiceStore = defineStore('voice', () => {
         const saved = sessionStorage.getItem(VOICE_SESSION_KEY);
         sessionStorage.removeItem(VOICE_SESSION_KEY);
 
-        if (!saved || isConnected.value || isConnecting.value || isReconnecting) {
+        if (
+            !saved ||
+            isConnected.value ||
+            isConnecting.value ||
+            isReconnecting
+        ) {
             return;
         }
 

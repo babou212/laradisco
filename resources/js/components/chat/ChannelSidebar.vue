@@ -64,7 +64,9 @@ const getTextChannels = (channels: Props['categories'][number]['channels']) => {
 /**
  * Filter voice channels from a category's channels.
  */
-const getVoiceChannels = (channels: Props['categories'][number]['channels']) => {
+const getVoiceChannels = (
+    channels: Props['categories'][number]['channels'],
+) => {
     return channels.filter((c) => c.type === 'voice');
 };
 
@@ -88,7 +90,12 @@ onMounted(() => {
     // Load initial voice participants from Inertia props
     const serverParticipants = (page.props.voiceParticipants ?? {}) as Record<
         number,
-        Array<{ id: number; username: string; display_name: string; avatar_path: string | null }>
+        Array<{
+            id: number;
+            username: string;
+            display_name: string;
+            avatar_path: string | null;
+        }>
     >;
 
     allVoiceChannelIds.value.forEach((id) => {
@@ -228,13 +235,13 @@ const statusOptions = [
                         {{ category.name }}
                     </button>
 
-                    <div
-                        v-if="!collapsedCategories.has(category.id)"
-                    >
+                    <div v-if="!collapsedCategories.has(category.id)">
                         <!-- Text Channels -->
                         <div class="mt-1 space-y-0.5">
                             <button
-                                v-for="channel in getTextChannels(category.channels)"
+                                v-for="channel in getTextChannels(
+                                    category.channels,
+                                )"
                                 :key="channel.id"
                                 type="button"
                                 class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors"
@@ -252,11 +259,15 @@ const statusOptions = [
 
                         <!-- Voice Channels -->
                         <div
-                            v-if="getVoiceChannels(category.channels).length > 0"
+                            v-if="
+                                getVoiceChannels(category.channels).length > 0
+                            "
                             class="mt-1 space-y-0.5"
                         >
                             <VoiceChannelItem
-                                v-for="channel in getVoiceChannels(category.channels)"
+                                v-for="channel in getVoiceChannels(
+                                    category.channels,
+                                )"
                                 :key="channel.id"
                                 :channel="channel"
                             />

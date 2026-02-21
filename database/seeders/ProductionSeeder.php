@@ -46,17 +46,16 @@ class ProductionSeeder extends Seeder
      */
     private function createDefaultChannels(): void
     {
-        if (Category::exists()) {
-            return;
-        }
-
-        $generalCategory = Category::create(['name' => 'General', 'position' => 0]);
+        $generalCategory = Category::firstOrCreate(['name' => 'General'], ['position' => 0]);
         $this->createChannel($generalCategory, 'general', 'General discussion', 0);
         $this->createChannel($generalCategory, 'introductions', 'Introduce yourself!', 1);
 
-        $infoCategory = Category::create(['name' => 'Information', 'position' => 1]);
+        $infoCategory = Category::firstOrCreate(['name' => 'Information'], ['position' => 1]);
         $this->createChannel($infoCategory, 'announcements', 'Server announcements', 0);
         $this->createChannel($infoCategory, 'rules', 'Server rules and guidelines', 1);
+
+        $voiceCategory = Category::firstOrCreate(['name' => 'Voice Channels'], ['position' => 2]);
+        $this->createVoiceChannel($voiceCategory, 'General', 'Hang out and chat', 0);
     }
 
     /**
@@ -87,17 +86,24 @@ class ProductionSeeder extends Seeder
     }
 
     /**
-     * Create a text channel within a category.
+     * Create a text channel within a category if it does not already exist.
      */
     private function createChannel(Category $category, string $name, string $topic, int $position): Channel
     {
-        return Channel::create([
-            'category_id' => $category->id,
-            'name' => $name,
-            'slug' => Str::slug($name),
-            'topic' => $topic,
-            'type' => 'text',
-            'position' => $position,
-        ]);
+        return Channel::firstOrCreate(
+            ['category_id' => $category->id, 'slug' => Str::slug($name)],
+            ['name' => $name, 'topic' => $topic, 'type' => 'text', 'position' => $position],
+        );
+    }
+
+    /**
+     * Create a voice channel within a category if it does not already exist.
+     */
+    private function createVoiceChannel(Category $category, string $name, string $topic, int $position): Channel
+    {
+        return Channel::firstOrCreate(
+            ['category_id' => $category->id, 'slug' => Str::slug($name)],
+            ['name' => $name, 'topic' => $topic, 'type' => 'voice', 'position' => $position],
+        );
     }
 }

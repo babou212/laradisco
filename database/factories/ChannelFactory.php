@@ -51,4 +51,14 @@ class ChannelFactory extends Factory
             'slowmode_seconds' => $seconds,
         ]);
     }
+
+    /**
+     * Create a voice channel.
+     */
+    public function voice(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => 'voice',
+        ]);
+    }
 }

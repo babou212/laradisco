@@ -9,8 +9,11 @@ import {
     LogOut,
     MoreVertical,
 } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
 import { usePresenceStore } from '@/stores/presence';
+import { useVoiceStore } from '@/stores/voice';
+import VoiceChannelItem from '@/components/chat/VoiceChannelItem.vue';
+import VoiceControlPanel from '@/components/chat/VoiceControlPanel.vue';
 import type { User, UserStatusType } from '@/types';
 
 type Props = {
@@ -29,7 +32,7 @@ type Props = {
     selectedChannelId?: number;
 };
 
-defineProps<Props>();
+const props = defineProps<Props>();
 const emit = defineEmits<{
     selectChannel: [channelId: number];
     switchToDms: [];
@@ -48,7 +51,61 @@ const currentCustomStatus = ref<string | null>(
 // Use the Pinia presence store
 const presenceStore = usePresenceStore();
 
-// Watch for changes to the current user's status from the store
+// Use the voice store
+const voiceStore = useVoiceStore();
+
+/**
+ * Filter text channels from a category's channels.
+ */
+const getTextChannels = (channels: Props['categories'][number]['channels']) => {
+    return channels.filter((c) => c.type !== 'voice');
+};
+
+/**
+ * Filter voice channels from a category's channels.
+ */
+const getVoiceChannels = (channels: Props['categories'][number]['channels']) => {
+    return channels.filter((c) => c.type === 'voice');
+};
+
+/**
+ * Collect all voice channel IDs for event subscription.
+ */
+const allVoiceChannelIds = computed(() => {
+    const ids: number[] = [];
+    for (const category of props.categories) {
+        for (const channel of category.channels) {
+            if (channel.type === 'voice') {
+                ids.push(channel.id);
+            }
+        }
+    }
+    return ids;
+});
+
+// Initialize voice participants from server data and subscribe to events
+onMounted(() => {
+    // Load initial voice participants from Inertia props
+    const serverParticipants = (page.props.voiceParticipants ?? {}) as Record<
+        number,
+        Array<{ id: number; username: string; display_name: string; avatar_path: string | null }>
+    >;
+
+    allVoiceChannelIds.value.forEach((id) => {
+        const initial = serverParticipants[id] ?? [];
+        voiceStore.initializeChannelParticipants(id, initial);
+        voiceStore.subscribeToChannelPresence(id);
+    });
+
+    voiceStore.attemptReconnect();
+});
+
+onUnmounted(() => {
+    allVoiceChannelIds.value.forEach((id) => {
+        voiceStore.unsubscribeFromChannelPresence(id);
+    });
+});
+
 watch(
     () => presenceStore.getUserStatus(user.value?.id),
     (userStatus) => {
@@ -145,7 +202,7 @@ const statusOptions = [
                 </button>
             </div>
 
-            <!-- Text Channels Section -->
+            <!-- Channels Section -->
             <div class="px-2 py-2">
                 <div
                     v-for="category in categories"
@@ -171,30 +228,46 @@ const statusOptions = [
                         {{ category.name }}
                     </button>
 
-                    <!-- Channels List -->
                     <div
                         v-if="!collapsedCategories.has(category.id)"
-                        class="mt-1 space-y-0.5"
                     >
-                        <button
-                            v-for="channel in category.channels"
-                            :key="channel.id"
-                            type="button"
-                            class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors"
-                            :class="
-                                selectedChannelId === channel.id
-                                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                                    : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
-                            "
-                            @click="selectChannel(channel.id)"
+                        <!-- Text Channels -->
+                        <div class="mt-1 space-y-0.5">
+                            <button
+                                v-for="channel in getTextChannels(category.channels)"
+                                :key="channel.id"
+                                type="button"
+                                class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors"
+                                :class="
+                                    selectedChannelId === channel.id
+                                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                                        : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                                "
+                                @click="selectChannel(channel.id)"
+                            >
+                                <Hash :size="16" class="shrink-0" />
+                                <span class="truncate">{{ channel.name }}</span>
+                            </button>
+                        </div>
+
+                        <!-- Voice Channels -->
+                        <div
+                            v-if="getVoiceChannels(category.channels).length > 0"
+                            class="mt-1 space-y-0.5"
                         >
-                            <Hash :size="16" class="shrink-0" />
-                            <span class="truncate">{{ channel.name }}</span>
-                        </button>
+                            <VoiceChannelItem
+                                v-for="channel in getVoiceChannels(category.channels)"
+                                :key="channel.id"
+                                :channel="channel"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Voice Control Panel -->
+        <VoiceControlPanel />
 
         <!-- User Profile Section at Bottom -->
         <div

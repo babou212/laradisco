@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ChannelType;
 use App\Models\Category;
 use App\Models\Channel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -56,11 +58,23 @@ class ChatController extends Controller
             ->orderByDesc('updated_at')
             ->get() ?? [];
 
+        // Gather current voice channel participants from cache
+        $voiceParticipants = [];
+        foreach ($categories as $category) {
+            foreach ($category->channels as $ch) {
+                if ($ch->type === ChannelType::Voice) {
+                    $cached = Cache::get("voice_channel:{$ch->id}:participants", []);
+                    $voiceParticipants[$ch->id] = array_values($cached);
+                }
+            }
+        }
+
         return Inertia::render('Chat', [
             'categories' => $categories,
             'currentChannel' => $channelData,
             'messages' => $messages,
             'directMessages' => $directMessages,
+            'voiceParticipants' => $voiceParticipants,
         ]);
     }
 }

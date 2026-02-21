@@ -98,6 +98,9 @@ enum PermissionFlag: string
             self::AddReactions,
             self::ReadMessageHistory,
             self::ChangeNickname,
+            self::Connect,
+            self::Speak,
+            self::Video,
         ];
     }
 }

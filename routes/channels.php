@@ -28,6 +28,17 @@ Broadcast::channel('channel.{channelId}', function (User $user, int $channelId) 
     ];
 });
 
+// Voice channel — private channel for join/leave event broadcasts
+Broadcast::channel('voice.channel.{channelId}', function (User $user, int $channelId) {
+    $channel = Channel::find($channelId);
+
+    if (! $channel) {
+        return false;
+    }
+
+    return $user->hasPermission(PermissionFlag::Connect, $channel);
+});
+
 // Direct message group presence
 Broadcast::channel('direct-message.{groupId}', function (User $user, int $groupId) {
     $group = DirectMessageGroup::find($groupId);

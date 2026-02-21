@@ -26,6 +26,7 @@ services:
             - pgsql
             - redis
             - reverb
+            - livekit
             - selenium
             - mailpit
             - meilisearch
@@ -116,6 +117,17 @@ services:
                 - 'http://127.0.0.1:7700/health'
             retries: 3
             timeout: 5s
+    livekit:
+        image: 'livekit/livekit-server:latest'
+        ports:
+            - '${FORWARD_LIVEKIT_PORT:-7880}:7880'
+            - '${FORWARD_LIVEKIT_TCP_PORT:-7881}:7881'
+            - '${FORWARD_LIVEKIT_UDP_PORT:-7882}:7882/udp'
+        environment:
+            LIVEKIT_KEYS: '${LIVEKIT_API_KEY:-devkey}: ${LIVEKIT_API_SECRET:-secret}'
+        command: --dev --bind 0.0.0.0
+        networks:
+            - sail
     pgsql:
         image: 'postgres:18-alpine'
         ports:

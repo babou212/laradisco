@@ -58,19 +58,24 @@ class DatabaseSeeder extends Seeder
         $infoCategory = Category::create(['name' => 'Information', 'position' => 1]);
         $this->createChannel($infoCategory, 'announcements', 'Server announcements', 0);
         $this->createChannel($infoCategory, 'rules', 'Server rules and guidelines', 1);
+
+        $voiceCategory = Category::create(['name' => 'Voice Channels', 'position' => 2]);
+        $this->createChannel($voiceCategory, 'General Voice', 'Hang out and chat', 0, 'voice');
+        $this->createChannel($voiceCategory, 'Gaming', 'Voice chat for gaming', 1, 'voice');
+        $this->createChannel($voiceCategory, 'Music', 'Listen to music together', 2, 'voice');
     }
 
     /**
-     * Create a text channel within a category.
+     * Create a channel within a category.
      */
-    private function createChannel(Category $category, string $name, string $topic, int $position): Channel
+    private function createChannel(Category $category, string $name, string $topic, int $position, string $type = 'text'): Channel
     {
         return Channel::create([
             'category_id' => $category->id,
             'name' => $name,
             'slug' => Str::slug($name),
             'topic' => $topic,
-            'type' => 'text',
+            'type' => $type,
             'position' => $position,
         ]);
     }

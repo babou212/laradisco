@@ -9,6 +9,7 @@ use App\Http\Controllers\PresenceController;
 use App\Http\Controllers\ReactionController;
 use App\Http\Controllers\SetupController;
 use App\Http\Controllers\TypingController;
+use App\Http\Controllers\VoiceChannelController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -29,6 +30,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('channels/{channel}/messages/{message}/reactions', [ReactionController::class, 'toggle'])->name('channels.messages.reactions.toggle');
 
     Route::post('channels/{channel}/typing', TypingController::class)->name('channels.typing');
+
+    // Voice Channels
+    Route::post('channels/{channel}/voice/join', [VoiceChannelController::class, 'join'])->name('channels.voice.join');
+    Route::post('channels/{channel}/voice/leave', [VoiceChannelController::class, 'leave'])->name('channels.voice.leave');
 
     // Direct Messages
     Route::get('direct-message', [DirectMessageController::class, 'index'])->name('direct-message.index');

@@ -45,8 +45,9 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Create sail user for local dev (matches host UID/GID)
 ARG WWWGROUP=1000
+ARG WWWUSER=1000
 RUN addgroup -g ${WWWGROUP} -S sail || true \
-    && adduser -u 1337 -G sail -S sail -s /bin/bash || true
+    && adduser -u ${WWWUSER} -G sail -S sail -s /bin/bash || true
 
 WORKDIR /var/www/html
 

@@ -11,6 +11,7 @@ import {
     watch,
 } from 'vue';
 import SearchInput from '@/components/SearchInput.vue';
+import NotificationBell from '@/components/NotificationBell.vue';
 import echo from '@/lib/echo';
 import type { User } from '@/types/auth';
 import Message, { type MessageData, type MessageReaction } from './Message.vue';
@@ -453,7 +454,8 @@ const emitTyping = () => {
                 </p>
             </div>
 
-            <div class="ml-4">
+            <div class="ml-4 flex items-center gap-2">
+                <NotificationBell />
                 <SearchInput />
             </div>
         </div>

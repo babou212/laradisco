@@ -34,6 +34,7 @@ class User extends Authenticatable
         'must_setup',
         'status',
         'theme',
+        'notification_preferences',
         'last_seen_at',
     ];
 
@@ -76,6 +77,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'must_setup' => 'boolean',
+            'notification_preferences' => 'array',
             'two_factor_confirmed_at' => 'datetime',
             'last_seen_at' => 'datetime',
         ];

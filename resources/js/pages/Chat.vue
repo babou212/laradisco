@@ -4,6 +4,7 @@ import { computed, ref, onMounted } from 'vue';
 import ChannelSidebar from '@/components/chat/ChannelSidebar.vue';
 import MessagesPanel from '@/components/chat/MessagesPanel.vue';
 import OnlineUsersSidebar from '@/components/chat/OnlineUsersSidebar.vue';
+import NotificationToast from '@/components/NotificationToast.vue';
 import SearchResultsSidebar from '@/components/SearchResultsSidebar.vue';
 import { useSearch } from '@/composables/useSearch';
 
@@ -76,6 +77,8 @@ onMounted(() => {
 
 <template>
     <Head title="Chat" />
+
+    <NotificationToast />
 
     <div class="flex h-screen overflow-hidden bg-background">
         <!-- Left Sidebar: Channels -->

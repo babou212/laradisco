@@ -41,6 +41,12 @@ class CreateNewUser implements CreatesNewUsers
             'username' => $input['username'],
             'email' => $input['email'],
             'password' => $input['password'],
+            'notification_preferences' => [
+                'enable_toast_notifications' => true,
+                'enable_browser_notifications' => true,
+                'enable_dm_notifications' => true,
+                'enable_mention_notifications' => true,
+            ],
         ]);
 
         // Mark the invite as used...

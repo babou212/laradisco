@@ -35,6 +35,12 @@ class UserFactory extends Factory
             'custom_status' => null,
             'last_seen_at' => null,
             'remember_token' => Str::random(10),
+            'notification_preferences' => [
+                'enable_toast_notifications' => true,
+                'enable_browser_notifications' => true,
+                'enable_dm_notifications' => true,
+                'enable_mention_notifications' => true,
+            ],
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,

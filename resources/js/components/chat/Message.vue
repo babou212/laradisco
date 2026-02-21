@@ -129,6 +129,36 @@ const isGifUrl = computed(() => {
         props.message.content.includes('media.tenor.com')
     );
 });
+
+/**
+ * Parse message content and convert @mentions to highlighted HTML spans.
+ */
+const parseMentions = (text: string): string => {
+    // Escape HTML first
+    const escaped = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+    // Replace @everyone and @here with highlighted spans
+    return escaped.replace(/@(everyone|here|\w+)/g, (match, name) => {
+        const isSpecial = name === 'everyone' || name === 'here';
+        const classes = isSpecial
+            ? 'mention mention-special cursor-pointer rounded bg-primary/20 px-1 py-0.5 font-medium text-primary hover:bg-primary/30'
+            : 'mention mention-user cursor-pointer rounded bg-primary/20 px-1 py-0.5 font-medium text-primary hover:bg-primary/30';
+        return `<span class="${classes}" data-mention="${name}">${match}</span>`;
+    });
+};
+
+const renderedContent = computed(() => {
+    return parseMentions(props.message.content);
+});
+
+const renderedContentWithoutYoutube = computed(() => {
+    if (!messageWithoutYoutubeUrl.value) return '';
+    return parseMentions(messageWithoutYoutubeUrl.value);
+});
 </script>
 
 <template>
@@ -236,17 +266,15 @@ const isGifUrl = computed(() => {
                 <div
                     v-else-if="messageWithoutYoutubeUrl && !youtubeVideoId"
                     class="text-sm wrap-break-word whitespace-pre-wrap"
-                >
-                    {{ messageWithoutYoutubeUrl }}
-                </div>
+                    v-html="renderedContent"
+                />
 
                 <template v-else-if="youtubeVideoId">
                     <div
                         v-if="messageWithoutYoutubeUrl"
                         class="mb-2 text-sm wrap-break-word whitespace-pre-wrap"
-                    >
-                        {{ messageWithoutYoutubeUrl }}
-                    </div>
+                        v-html="renderedContentWithoutYoutube"
+                    />
 
                     <!-- YouTube embed -->
                     <div class="mt-2 max-w-md overflow-hidden rounded-lg">

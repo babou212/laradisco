@@ -90,6 +90,14 @@ class Message extends Model
     }
 
     /**
+     * @return HasMany<Mention, $this>
+     */
+    public function mentions(): HasMany
+    {
+        return $this->hasMany(Mention::class);
+    }
+
+    /**
      * Clear caches related to this message.
      */
     public function clearCaches(): void

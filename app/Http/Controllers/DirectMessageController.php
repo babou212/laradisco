@@ -8,6 +8,7 @@ use App\Events\DirectMessageSent;
 use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
 use App\Models\User;
+use App\Notifications\DirectMessageNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,7 +30,6 @@ class DirectMessageController extends Controller
     {
         $user = $request->user();
 
-        // Check if user is a participant
         if (! $dmGroup->participants()->where('users.id', $user->id)->exists()) {
             abort(403);
         }
@@ -86,6 +86,15 @@ class DirectMessageController extends Controller
         }
 
         broadcast(new DirectMessageSent($message))->toOthers();
+
+        // Notify other participants
+        $recipients = $dmGroup->participants()
+            ->where('users.id', '!=', $user->id)
+            ->get();
+
+        foreach ($recipients as $recipient) {
+            $recipient->notify(new DirectMessageNotification($message));
+        }
 
         return back();
     }

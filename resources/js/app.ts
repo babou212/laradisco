@@ -8,6 +8,7 @@ import { createApp, h } from 'vue';
 import '../css/app.css';
 import { initializeTheme } from './composables/useAppearance';
 import './lib/echo';
+import { useNotificationStore } from './stores/notifications';
 import { usePresenceStore } from './stores/presence';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
@@ -44,3 +45,17 @@ initializeTheme();
 
 const presenceStore = usePresenceStore(pinia);
 presenceStore.connect();
+
+const notificationStore = useNotificationStore(pinia);
+const pageProps = document.querySelector('#app')?.getAttribute('data-page');
+if (pageProps) {
+    try {
+        const parsed = JSON.parse(pageProps);
+        if (parsed?.props?.auth?.user?.id) {
+            notificationStore.connect(parsed.props.auth.user.id);
+            notificationStore.requestPermission();
+        }
+    } catch {
+        // Not on an authenticated page
+    }
+}

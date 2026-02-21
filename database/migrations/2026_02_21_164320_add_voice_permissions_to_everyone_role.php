@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\PermissionFlag;
 use App\Models\Role;
 use Illuminate\Database\Migrations\Migration;
 

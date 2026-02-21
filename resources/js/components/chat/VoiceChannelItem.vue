@@ -68,7 +68,7 @@ const handleClick = () => {
                     class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-all duration-200"
                     :class="
                         participant.isSpeaking
-                            ? 'ring-2 ring-green-500 bg-green-600 text-white'
+                            ? 'bg-green-600 text-white ring-2 ring-green-500'
                             : 'bg-primary text-primary-foreground'
                     "
                 >
@@ -77,7 +77,9 @@ const handleClick = () => {
 
                 <span
                     class="truncate text-xs text-sidebar-foreground/70"
-                    :class="{ 'text-sidebar-foreground': participant.isSpeaking }"
+                    :class="{
+                        'text-sidebar-foreground': participant.isSpeaking,
+                    }"
                 >
                     {{ participant.displayName || participant.username }}
                 </span>
@@ -97,7 +99,9 @@ const handleClick = () => {
                         <path
                             d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"
                         />
-                        <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .7-.1 1.37-.29 2" />
+                        <path
+                            d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .7-.1 1.37-.29 2"
+                        />
                         <line x1="12" y1="19" x2="12" y2="23" />
                         <line x1="8" y1="23" x2="16" y2="23" />
                     </svg>

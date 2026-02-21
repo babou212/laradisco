@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\ChannelType;
 use App\Models\Category;
 use App\Models\Channel;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\LiveKitService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -34,6 +35,15 @@ class VoiceChannelTest extends TestCase
         ]);
     }
 
+    private function createUserWithVoicePermission(): User
+    {
+        $role = Role::factory()->everyone()->create();
+        $user = User::factory()->create();
+        $user->roles()->attach($role);
+
+        return $user;
+    }
+
     private function mockLiveKitService(): void
     {
         $mock = Mockery::mock(LiveKitService::class);
@@ -58,7 +68,7 @@ class VoiceChannelTest extends TestCase
     {
         $this->mockLiveKitService();
 
-        $user = User::factory()->create();
+        $user = $this->createUserWithVoicePermission();
         $channel = $this->createVoiceChannel();
 
         $response = $this->actingAs($user)
@@ -85,8 +95,21 @@ class VoiceChannelTest extends TestCase
     {
         $this->mockLiveKitService();
 
-        $user = User::factory()->create();
+        $user = $this->createUserWithVoicePermission();
         $channel = $this->createTextChannel();
+
+        $response = $this->actingAs($user)
+            ->postJson(route('channels.voice.join', $channel));
+
+        $response->assertForbidden();
+    }
+
+    public function test_users_without_connect_permission_cannot_join_voice_channels(): void
+    {
+        $this->mockLiveKitService();
+
+        $user = User::factory()->create();
+        $channel = $this->createVoiceChannel();
 
         $response = $this->actingAs($user)
             ->postJson(route('channels.voice.join', $channel));
@@ -121,7 +144,7 @@ class VoiceChannelTest extends TestCase
     {
         $this->mockLiveKitService();
 
-        $user = User::factory()->create();
+        $user = $this->createUserWithVoicePermission();
         $channel = $this->createVoiceChannel();
 
         $response = $this->actingAs($user)
@@ -166,7 +189,7 @@ class VoiceChannelTest extends TestCase
     {
         $this->mockLiveKitService();
 
-        $user = User::factory()->create();
+        $user = $this->createUserWithVoicePermission();
         $channel = $this->createVoiceChannel();
         $cacheKey = "voice_channel:{$channel->id}:participants";
 
@@ -193,7 +216,7 @@ class VoiceChannelTest extends TestCase
     {
         $this->mockLiveKitService();
 
-        $user = User::factory()->create();
+        $user = $this->createUserWithVoicePermission();
         $channel = $this->createVoiceChannel();
         $cacheKey = "voice_channel:{$channel->id}:participants";
 

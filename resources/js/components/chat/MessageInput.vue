@@ -3,6 +3,7 @@ import { CornerDownRight, Image, Send, Smile, X } from 'lucide-vue-next';
 import { onMounted, onUnmounted, ref } from 'vue';
 import EmojiPicker from './EmojiPicker.vue';
 import GifPicker from './GifPicker.vue';
+import MentionDropdown from './MentionDropdown.vue';
 import type { MessageData } from './Message.vue';
 
 interface Props {
@@ -22,6 +23,9 @@ const emit = defineEmits<Emits>();
 const messageInput = ref('');
 const showEmojiPicker = ref(false);
 const showGifPicker = ref(false);
+const showMentionDropdown = ref(false);
+const mentionQuery = ref('');
+const mentionStartIndex = ref(-1);
 const textareaRef = ref<HTMLTextAreaElement>();
 const emojiPickerRef = ref<HTMLElement>();
 const gifPickerRef = ref<HTMLElement>();
@@ -30,17 +34,74 @@ const sendMessage = () => {
     if (!messageInput.value.trim()) return;
     emit('send', messageInput.value);
     messageInput.value = '';
+    showMentionDropdown.value = false;
 };
 
 const handleKeydown = (e: KeyboardEvent) => {
+    // Let MentionDropdown handle navigation keys when visible
+    if (showMentionDropdown.value) {
+        if (['ArrowDown', 'ArrowUp', 'Tab', 'Escape'].includes(e.key)) {
+            return; // MentionDropdown's global listener handles these
+        }
+        if (e.key === 'Enter') {
+            return; // MentionDropdown handles Enter for selection
+        }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         sendMessage();
     }
 };
 
+const detectMention = () => {
+    const textarea = textareaRef.value;
+    if (!textarea) return;
+
+    const cursorPos = textarea.selectionStart;
+    const textBeforeCursor = messageInput.value.slice(0, cursorPos);
+
+    // Find the last @ symbol before cursor that's either at start or after a space
+    const mentionMatch = textBeforeCursor.match(/(?:^|\s)@(\w*)$/);
+
+    if (mentionMatch) {
+        const query = mentionMatch[1];
+        mentionQuery.value = query;
+        mentionStartIndex.value = cursorPos - query.length - 1; // -1 for @
+        showMentionDropdown.value = true;
+    } else {
+        showMentionDropdown.value = false;
+        mentionQuery.value = '';
+        mentionStartIndex.value = -1;
+    }
+};
+
+const onMentionSelect = (value: string) => {
+    if (mentionStartIndex.value < 0) return;
+
+    const before = messageInput.value.slice(0, mentionStartIndex.value);
+    const cursorPos =
+        textareaRef.value?.selectionStart || messageInput.value.length;
+    const after = messageInput.value.slice(cursorPos);
+
+    // Handle case where @ was preceded by a space - preserve the space
+    const prefix = before.length > 0 && !before.endsWith(' ') ? before : before;
+    messageInput.value = `${prefix}@${value} ${after}`;
+    showMentionDropdown.value = false;
+    mentionQuery.value = '';
+    mentionStartIndex.value = -1;
+
+    // Move cursor after the inserted mention
+    setTimeout(() => {
+        const newPos = prefix.length + value.length + 2; // +2 for @ and space
+        textareaRef.value?.focus();
+        textareaRef.value?.setSelectionRange(newPos, newPos);
+    }, 0);
+};
+
 const handleInput = () => {
     emit('typing');
+    detectMention();
 };
 
 const onSelectEmoji = (emoji: string) => {
@@ -131,6 +192,14 @@ onUnmounted(() => {
         </div>
 
         <div class="relative p-4">
+            <!-- Mention Dropdown -->
+            <MentionDropdown
+                :query="mentionQuery"
+                :visible="showMentionDropdown"
+                @select="onMentionSelect"
+                @close="showMentionDropdown = false"
+            />
+
             <!-- Emoji Picker Popup -->
             <div
                 v-if="showEmojiPicker"

@@ -5,21 +5,24 @@ namespace App\Http\Controllers;
 use App\Events\MessageDeleted;
 use App\Events\MessageEdited;
 use App\Events\MessageSent;
+use App\Http\Requests\StoreMessageRequest;
 use App\Http\Requests\UpdateMessageRequest;
 use App\Models\Channel;
 use App\Models\Message;
+use App\Services\MentionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class MessageController extends Controller
 {
-    public function store(Request $request, Channel $channel): RedirectResponse
+    public function __construct(
+        public MentionService $mentionService,
+    ) {}
+
+    public function store(StoreMessageRequest $request, Channel $channel): RedirectResponse
     {
-        $validated = $request->validate([
-            'content' => 'required|string|max:2000',
-            'reply_to_id' => 'nullable|exists:messages,id',
-        ]);
+        $validated = $request->validated();
 
         $message = $channel->messages()->create([
             'user_id' => $request->user()->id,
@@ -30,6 +33,8 @@ class MessageController extends Controller
         $message->load(['user', 'replyTo.user']);
 
         broadcast(new MessageSent($message))->toOthers();
+
+        $this->mentionService->processMentions($message);
 
         return back();
     }

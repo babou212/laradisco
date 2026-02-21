@@ -10,6 +10,7 @@ import {
     ref,
     watch,
 } from 'vue';
+import NotificationBell from '@/components/NotificationBell.vue';
 import SearchInput from '@/components/SearchInput.vue';
 import echo from '@/lib/echo';
 import type { User } from '@/types/auth';
@@ -453,7 +454,8 @@ const emitTyping = () => {
                 </p>
             </div>
 
-            <div class="ml-4">
+            <div class="ml-4 flex items-center gap-2">
+                <NotificationBell />
                 <SearchInput />
             </div>
         </div>

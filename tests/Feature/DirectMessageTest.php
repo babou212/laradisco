@@ -6,7 +6,9 @@ use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
 use App\Models\DirectMessageReaction;
 use App\Models\User;
+use App\Notifications\DirectMessageNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -336,5 +338,67 @@ class DirectMessageTest extends TestCase
 
         $response->assertUnprocessable();
         $response->assertJsonValidationErrors('emoji');
+    }
+
+    // --- DM Notification Tests ---
+
+    public function test_sending_dm_notifies_other_participants(): void
+    {
+        $sender = User::factory()->create();
+        $recipient = User::factory()->create();
+
+        $dmGroup = DirectMessageGroup::create(['owner_id' => $sender->id]);
+        $dmGroup->participants()->attach([$sender->id, $recipient->id]);
+
+        Notification::fake();
+
+        $this->actingAs($sender)->post("/direct-message/{$dmGroup->id}/messages", [
+            'content' => 'Hey there!',
+        ]);
+
+        Notification::assertSentTo($recipient, DirectMessageNotification::class);
+        Notification::assertNotSentTo($sender, DirectMessageNotification::class);
+    }
+
+    public function test_dm_notification_is_sent_regardless_of_recipient_status(): void
+    {
+        $sender = User::factory()->create();
+        $offlineRecipient = User::factory()->create(['status' => 'offline']);
+
+        $dmGroup = DirectMessageGroup::create(['owner_id' => $sender->id]);
+        $dmGroup->participants()->attach([$sender->id, $offlineRecipient->id]);
+
+        Notification::fake();
+
+        $this->actingAs($sender)->post("/direct-message/{$dmGroup->id}/messages", [
+            'content' => 'Are you there?',
+        ]);
+
+        Notification::assertSentTo($offlineRecipient, DirectMessageNotification::class);
+    }
+
+    public function test_dm_notification_contains_expected_data(): void
+    {
+        $sender = User::factory()->create();
+        $recipient = User::factory()->create();
+
+        $dmGroup = DirectMessageGroup::create(['owner_id' => $sender->id]);
+        $dmGroup->participants()->attach([$sender->id, $recipient->id]);
+
+        $message = DirectMessage::factory()->create([
+            'direct_message_group_id' => $dmGroup->id,
+            'user_id' => $sender->id,
+            'content' => 'Hello from DM!',
+        ]);
+
+        $notification = new DirectMessageNotification($message);
+        $data = $notification->toArray($recipient);
+
+        $this->assertEquals($message->id, $data['message_id']);
+        $this->assertEquals($dmGroup->id, $data['dm_group_id']);
+        $this->assertEquals($sender->id, $data['sender_id']);
+        $this->assertEquals($sender->username, $data['sender_username']);
+        $this->assertEquals('Hello from DM!', $data['content']);
+        $this->assertEquals('direct_message', $data['notification_type']);
     }
 }

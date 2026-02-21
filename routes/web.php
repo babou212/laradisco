@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DirectMessageController;
+use App\Http\Controllers\MentionController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PresenceController;
 use App\Http\Controllers\ReactionController;
 use App\Http\Controllers\SetupController;
@@ -39,6 +41,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('direct-message/start', [DirectMessageController::class, 'startOrGetDm'])->name('direct-message.start');
 
     Route::post('presence', [PresenceController::class, 'update'])->name('presence.update');
+
+    // Mentions autocomplete
+    Route::get('api/mentions/search', [MentionController::class, 'search'])->name('api.mentions.search');
+
+    // Notifications
+    Route::get('api/notifications', [NotificationController::class, 'index'])->name('api.notifications.index');
+    Route::post('api/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('api.notifications.markAsRead');
+    Route::post('api/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('api.notifications.markAllAsRead');
 
     // API routes for user data
     Route::get('api/users/{user}', function (User $user) {

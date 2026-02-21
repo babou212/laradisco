@@ -1,5 +1,5 @@
-import type { PresenceChannel } from 'laravel-echo';
 import { usePage } from '@inertiajs/vue3';
+import type { PresenceChannel } from 'laravel-echo';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import echo from '@/lib/echo';

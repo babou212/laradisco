@@ -5,6 +5,7 @@ namespace Tests\Feature\Models;
 use App\Enums\PermissionFlag;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -95,5 +96,14 @@ class RoleModelTest extends TestCase
         ]);
 
         $this->assertIsArray($role->permissions);
+    }
+
+    public function test_role_name_must_be_unique(): void
+    {
+        Role::factory()->create(['name' => 'UniqueRole']);
+
+        $this->expectException(QueryException::class);
+
+        Role::factory()->create(['name' => 'UniqueRole']);
     }
 }

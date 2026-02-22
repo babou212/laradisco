@@ -170,7 +170,7 @@ class VoiceChannelTest extends TestCase
 
     public function test_voice_channels_appear_in_chat_categories(): void
     {
-        $user = User::factory()->create();
+        $user = $this->createUserWithVoicePermission();
         $category = Category::factory()->create();
         Channel::factory()->create(['category_id' => $category->id, 'type' => 'text']);
         Channel::factory()->voice()->create(['category_id' => $category->id]);

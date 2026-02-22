@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { MessageSquare } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
-import type { OnlineUser, User } from '@/types';
+import type { OnlineUser, User } from '@/types/user';
 
 type Props = {
     user: OnlineUser | null;
@@ -202,6 +202,31 @@ const handleClose = () => {
                     <p class="mt-1 text-sm text-popover-foreground">
                         {{ memberSince }}
                     </p>
+                </div>
+
+                <!-- Roles -->
+                <div
+                    v-if="!loading && fullUser?.roles?.length"
+                    class="rounded-lg bg-background/50 p-3"
+                >
+                    <h3
+                        class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                    >
+                        Roles
+                    </h3>
+                    <div class="mt-2 flex flex-wrap gap-1.5">
+                        <span
+                            v-for="role in fullUser.roles"
+                            :key="role.id"
+                            class="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-medium text-popover-foreground"
+                        >
+                            <span
+                                class="size-2.5 rounded-full"
+                                :style="{ backgroundColor: role.color }"
+                            ></span>
+                            {{ role.name }}
+                        </span>
+                    </div>
                 </div>
 
                 <!-- Send Message Button -->

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Channel;
 use App\Models\Message;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -14,9 +15,18 @@ class MessageReplyTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_user_can_reply_to_message(): void
+    private function createUserWithPermissions(): User
     {
         $user = User::factory()->create();
+        $role = Role::factory()->everyone()->create();
+        $user->roles()->attach($role);
+
+        return $user;
+    }
+
+    public function test_user_can_reply_to_message(): void
+    {
+        $user = $this->createUserWithPermissions();
         $category = Category::factory()->create();
         $channel = Channel::factory()->create(['category_id' => $category->id]);
 
@@ -43,7 +53,7 @@ class MessageReplyTest extends TestCase
 
     public function test_reply_loads_with_original_message(): void
     {
-        $user = User::factory()->create();
+        $user = $this->createUserWithPermissions();
         $category = Category::factory()->create();
         $channel = Channel::factory()->create(['category_id' => $category->id]);
 
@@ -76,7 +86,7 @@ class MessageReplyTest extends TestCase
 
     public function test_reply_to_id_must_exist(): void
     {
-        $user = User::factory()->create();
+        $user = $this->createUserWithPermissions();
         $category = Category::factory()->create();
         $channel = Channel::factory()->create(['category_id' => $category->id]);
 
@@ -90,7 +100,7 @@ class MessageReplyTest extends TestCase
 
     public function test_reply_to_id_is_optional(): void
     {
-        $user = User::factory()->create();
+        $user = $this->createUserWithPermissions();
         $category = Category::factory()->create();
         $channel = Channel::factory()->create(['category_id' => $category->id]);
 

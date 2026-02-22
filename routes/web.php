@@ -57,7 +57,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // API routes for user data
     Route::get('api/users/{user}', function (User $user) {
-        return response()->json($user);
+        $user->load(['roles' => function ($query) {
+            $query->orderByDesc('position');
+        }]);
+
+        return response()->json([
+            ...$user->toArray(),
+            'roles' => $user->roles->unique('id')->values()->map(fn ($role) => [
+                'id' => $role->id,
+                'name' => $role->name,
+                'color' => $role->color,
+                'position' => $role->position,
+            ]),
+        ]);
     })->name('api.users.show');
 
     Route::get('search', [App\Http\Controllers\SearchController::class, 'index'])->name('search');

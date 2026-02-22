@@ -9,8 +9,15 @@ export type User = {
     [key: string]: unknown;
 };
 
+export type AuthPermissions = {
+    canInviteMembers: boolean;
+    canManageRoles: boolean;
+    canManageChannels: boolean;
+};
+
 export type Auth = {
     user: User;
+    permissions?: AuthPermissions;
 };
 
 export type TwoFactorConfigContent = {

@@ -17,9 +17,18 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Create default roles
-        $everyoneRole = Role::factory()->everyone()->create();
-        $adminRole = Role::factory()->admin()->create();
-        $moderatorRole = Role::factory()->moderator()->create();
+        $everyoneRole = Role::firstOrCreate(
+            ['name' => 'everyone'],
+            Role::factory()->everyone()->make()->toArray()
+        );
+        $adminRole = Role::firstOrCreate(
+            ['name' => 'Admin'],
+            Role::factory()->admin()->make()->toArray()
+        );
+        $moderatorRole = Role::firstOrCreate(
+            ['name' => 'Moderator'],
+            Role::factory()->moderator()->make()->toArray()
+        );
 
         // Create admin user
         $admin = User::factory()->create([

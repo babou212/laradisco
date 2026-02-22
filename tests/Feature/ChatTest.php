@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\Channel;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -37,6 +38,8 @@ class ChatTest extends TestCase
     public function test_users_can_send_messages_to_channels()
     {
         $user = User::factory()->create();
+        $role = Role::factory()->everyone()->create();
+        $user->roles()->attach($role);
         $category = Category::factory()->create();
         $channel = Channel::factory()->create(['category_id' => $category->id]);
 
@@ -56,6 +59,8 @@ class ChatTest extends TestCase
     public function test_message_content_is_required()
     {
         $user = User::factory()->create();
+        $role = Role::factory()->everyone()->create();
+        $user->roles()->attach($role);
         $category = Category::factory()->create();
         $channel = Channel::factory()->create(['category_id' => $category->id]);
 

@@ -37,11 +37,21 @@ type MessagesData = {
     prev_page_url?: string | null;
 };
 
+type ChannelPermissions = {
+    canSendMessages: boolean;
+    canManageMessages: boolean;
+    canPinMessages: boolean;
+    canAddReactions: boolean;
+    canAttachFiles: boolean;
+    canMentionEveryone: boolean;
+};
+
 type Props = {
     channel?: ChannelData;
     messages?: MessagesData;
     channelId?: number;
     isDm?: boolean;
+    channelPermissions?: ChannelPermissions;
 };
 
 type PageProps = {
@@ -505,6 +515,15 @@ const emitTyping = () => {
                             :show-emoji-picker="
                                 emojiPickerMessageId === message.id
                             "
+                            :can-manage-messages="
+                                channelPermissions?.canManageMessages ?? false
+                            "
+                            :can-add-reactions="
+                                channelPermissions?.canAddReactions ?? true
+                            "
+                            :can-send-messages="
+                                channelPermissions?.canSendMessages ?? true
+                            "
                             @start-edit="startEdit(message)"
                             @cancel-edit="cancelEdit"
                             @save-edit="saveEdit(message)"
@@ -529,11 +548,18 @@ const emitTyping = () => {
         <TypingIndicator :typing-users="typingUsers" />
 
         <MessageInput
+            v-if="isDm || channelPermissions?.canSendMessages !== false"
             :channel-name="channel?.name"
             :replying-to="replyingToMessage"
             @send="sendMessage"
             @typing="emitTyping"
             @cancel-reply="replyingToMessage = null"
         />
+        <div
+            v-else
+            class="border-t border-border bg-muted/50 px-4 py-3 text-center text-sm text-muted-foreground"
+        >
+            You do not have permission to send messages in this channel.
+        </div>
     </div>
 </template>

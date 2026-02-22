@@ -42,6 +42,9 @@ interface Props {
     isEditing: boolean;
     editContent: string;
     showEmojiPicker: boolean;
+    canManageMessages?: boolean;
+    canAddReactions?: boolean;
+    canSendMessages?: boolean;
 }
 
 interface Emits {
@@ -60,6 +63,14 @@ const emit = defineEmits<Emits>();
 
 const page = usePage();
 const currentUser = computed(() => page.props.auth.user);
+
+const isOwnMessage = computed(
+    () => props.message.user.id === currentUser.value.id,
+);
+const canEdit = computed(() => isOwnMessage.value);
+const canDelete = computed(() => isOwnMessage.value || props.canManageMessages);
+const canReact = computed(() => props.canAddReactions !== false);
+const canReply = computed(() => props.canSendMessages !== false);
 
 const groupedReactions = computed(() => {
     const map = new Map<
@@ -304,13 +315,15 @@ const renderedContentWithoutYoutube = computed(() => {
                 <button
                     v-for="group in groupedReactions"
                     :key="group.emoji"
+                    :disabled="!canReact"
                     class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors"
-                    :class="
+                    :class="[
                         group.userReacted
                             ? 'border-primary/50 bg-primary/10 text-primary'
-                            : 'border-border bg-accent/50 text-muted-foreground hover:bg-accent'
-                    "
-                    @click="emit('toggleReaction', group.emoji)"
+                            : 'border-border bg-accent/50 text-muted-foreground hover:bg-accent',
+                        !canReact && 'cursor-not-allowed opacity-60',
+                    ]"
+                    @click="canReact && emit('toggleReaction', group.emoji)"
                 >
                     <span>{{ group.emoji }}</span>
                     <span>{{ group.count }}</span>
@@ -320,10 +333,11 @@ const renderedContentWithoutYoutube = computed(() => {
 
         <!-- Action buttons (hover) -->
         <div
-            v-if="!isEditing"
+            v-if="!isEditing && (canReact || canReply || canEdit || canDelete)"
             class="absolute -top-3 right-2 hidden gap-0.5 rounded border border-border bg-background p-0.5 shadow-sm group-hover:flex"
         >
             <button
+                v-if="canReact"
                 data-reaction-button
                 class="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 title="Add reaction"
@@ -332,28 +346,29 @@ const renderedContentWithoutYoutube = computed(() => {
                 <SmilePlus :size="16" />
             </button>
             <button
+                v-if="canReply"
                 class="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 title="Reply"
                 @click="emit('reply')"
             >
                 <CornerDownRight :size="16" />
             </button>
-            <template v-if="message.user.id === currentUser.id">
-                <button
-                    class="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                    title="Edit message"
-                    @click="emit('startEdit')"
-                >
-                    <Pencil :size="16" />
-                </button>
-                <button
-                    class="rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                    title="Delete message"
-                    @click="emit('delete')"
-                >
-                    <Trash2 :size="16" />
-                </button>
-            </template>
+            <button
+                v-if="canEdit"
+                class="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                title="Edit message"
+                @click="emit('startEdit')"
+            >
+                <Pencil :size="16" />
+            </button>
+            <button
+                v-if="canDelete"
+                class="rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                title="Delete message"
+                @click="emit('delete')"
+            >
+                <Trash2 :size="16" />
+            </button>
         </div>
 
         <!-- Emoji picker dropdown -->

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\PermissionFlag;
 use App\Enums\UserStatusType;
 use App\Models\Mention;
 use App\Models\Message;
@@ -12,6 +13,10 @@ use Illuminate\Support\Facades\Notification;
 
 class MentionService
 {
+    public function __construct(
+        private readonly PermissionService $permissionService,
+    ) {}
+
     /**
      * Parse mentions from message content and create mention records + notifications.
      *
@@ -23,23 +28,27 @@ class MentionService
         $mentions = collect();
 
         if (preg_match('/@everyone\b/', $content)) {
-            $mention = $message->mentions()->create([
-                'user_id' => null,
-                'type' => 'everyone',
-            ]);
-            $mentions->push($mention);
-            $this->notifyEveryone($message);
+            if ($this->permissionService->userCanInChannel($message->user, $message->channel, PermissionFlag::MentionEveryone)) {
+                $mention = $message->mentions()->create([
+                    'user_id' => null,
+                    'type' => 'everyone',
+                ]);
+                $mentions->push($mention);
+                $this->notifyEveryone($message);
+            }
 
             return $mentions;
         }
 
         if (preg_match('/@here\b/', $content)) {
-            $mention = $message->mentions()->create([
-                'user_id' => null,
-                'type' => 'here',
-            ]);
-            $mentions->push($mention);
-            $this->notifyHere($message);
+            if ($this->permissionService->userCanInChannel($message->user, $message->channel, PermissionFlag::MentionEveryone)) {
+                $mention = $message->mentions()->create([
+                    'user_id' => null,
+                    'type' => 'here',
+                ]);
+                $mentions->push($mention);
+                $this->notifyHere($message);
+            }
 
             return $mentions;
         }

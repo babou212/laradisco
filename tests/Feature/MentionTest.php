@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PermissionFlag;
 use App\Enums\UserStatusType;
 use App\Models\Category;
 use App\Models\Channel;
 use App\Models\Message;
+use App\Models\Role;
 use App\Models\User;
 use App\Notifications\MentionNotification;
 use App\Services\MentionService;
@@ -17,9 +19,18 @@ class MentionTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function createChannelSetup(): array
+    private function createChannelSetup(array $extraPermissions = []): array
     {
         $user = User::factory()->create();
+        $permissions = array_map(
+            fn (PermissionFlag $p) => $p->value,
+            PermissionFlag::defaultEveryonePermissions()
+        );
+        foreach ($extraPermissions as $perm) {
+            $permissions[] = $perm->value;
+        }
+        $role = Role::factory()->create(['permissions' => $permissions]);
+        $user->roles()->attach($role);
         $category = Category::factory()->create();
         $channel = Channel::factory()->create(['category_id' => $category->id]);
 
@@ -48,7 +59,7 @@ class MentionTest extends TestCase
 
     public function test_sending_message_with_everyone_mention_creates_mention_record(): void
     {
-        [$sender, $channel] = $this->createChannelSetup();
+        [$sender, $channel] = $this->createChannelSetup([PermissionFlag::MentionEveryone]);
         User::factory()->count(3)->create();
 
         Notification::fake();
@@ -66,7 +77,7 @@ class MentionTest extends TestCase
 
     public function test_sending_message_with_here_mention_creates_mention_record(): void
     {
-        [$sender, $channel] = $this->createChannelSetup();
+        [$sender, $channel] = $this->createChannelSetup([PermissionFlag::MentionEveryone]);
 
         Notification::fake();
 
@@ -112,7 +123,7 @@ class MentionTest extends TestCase
 
     public function test_everyone_mention_notifies_all_other_users(): void
     {
-        [$sender, $channel] = $this->createChannelSetup();
+        [$sender, $channel] = $this->createChannelSetup([PermissionFlag::MentionEveryone]);
         $users = User::factory()->count(3)->create();
 
         Notification::fake();
@@ -131,7 +142,7 @@ class MentionTest extends TestCase
 
     public function test_here_mention_notifies_only_online_users(): void
     {
-        [$sender, $channel] = $this->createChannelSetup();
+        [$sender, $channel] = $this->createChannelSetup([PermissionFlag::MentionEveryone]);
 
         $onlineUser = User::factory()->create(['status' => UserStatusType::Online]);
         $idleUser = User::factory()->create(['status' => UserStatusType::Idle]);

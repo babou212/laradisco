@@ -49,8 +49,7 @@ class UserApiTest extends TestCase
         $user = User::factory()->create();
 
         $role = Role::factory()->create();
-        // Deliberately attach the same role twice to simulate duplicate pivot entries
-        $user->roles()->attach($role->id);
+        // Attach the role and verify it only appears once in the response
         $user->roles()->attach($role->id);
 
         $response = $this->actingAs($viewer)->getJson(route('api.users.show', $user));

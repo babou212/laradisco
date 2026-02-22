@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\PermissionFlag;
+use App\Services\PermissionService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -12,7 +14,10 @@ class StoreMessageRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        $channel = $this->route('channel');
+        $permissionService = app(PermissionService::class);
+
+        return $permissionService->userCanInChannel($this->user(), $channel, PermissionFlag::SendMessages);
     }
 
     /**

@@ -1,5 +1,12 @@
 export type UserStatusType = 'online' | 'idle' | 'dnd' | 'offline';
 
+export interface UserRole {
+    id: number;
+    name: string;
+    color: string;
+    position: number;
+}
+
 export interface User {
     id: number;
     username: string;
@@ -12,6 +19,7 @@ export interface User {
     last_seen_at: string | null;
     created_at: string;
     updated_at: string;
+    roles?: UserRole[];
 }
 
 export interface OnlineUser {

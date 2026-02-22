@@ -37,17 +37,24 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
-                'permissions' => $request->user() ? [
-                    'canInviteMembers' => $request->user()->isAdministrator() || $request->user()->hasPermission(PermissionFlag::InviteMembers),
+                'user' => $user,
+                'permissions' => $user ? [
+                    'canInviteMembers' => $user->isAdministrator() || $user->hasPermission(PermissionFlag::InviteMembers),
+                    'canManageRoles' => $user->isAdministrator() || $user->hasPermission(PermissionFlag::ManageRoles),
+                    'canManageChannels' => $user->isAdministrator() || $user->hasPermission(PermissionFlag::ManageChannels),
+                    'canManageServer' => $user->isAdministrator() || $user->hasPermission(PermissionFlag::ManageServer),
+                    'canManageMessages' => $user->isAdministrator() || $user->hasPermission(PermissionFlag::ManageMessages),
+                    'isAdministrator' => $user->isAdministrator(),
                 ] : [],
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'members' => fn () => $request->user()
+            'members' => fn () => $user
                 ? User::query()
                     ->select('id', 'username', 'name', 'nickname', 'avatar_path', 'custom_status')
                     ->orderBy('username')

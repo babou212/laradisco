@@ -1,27 +1,20 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Settings;
 
-use App\Enums\ChannelType;
 use App\Enums\PermissionFlag;
-use App\Models\Channel;
-use App\Services\PermissionService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class JoinVoiceChannelRequest extends FormRequest
+class StoreCategoryRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        /** @var Channel $channel */
-        $channel = $this->route('channel');
-        $permissionService = app(PermissionService::class);
-
-        return $channel->type === ChannelType::Voice
-            && $permissionService->userCanInChannel($this->user(), $channel, PermissionFlag::Connect);
+        return $this->user()->isAdministrator()
+            || $this->user()->hasPermission(PermissionFlag::ManageChannels);
     }
 
     /**
@@ -31,7 +24,9 @@ class JoinVoiceChannelRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [];
+        return [
+            'name' => ['required', 'string', 'max:100'],
+        ];
     }
 
     /**
@@ -41,6 +36,8 @@ class JoinVoiceChannelRequest extends FormRequest
      */
     public function messages(): array
     {
-        return [];
+        return [
+            'name.required' => 'Category name is required.',
+        ];
     }
 }

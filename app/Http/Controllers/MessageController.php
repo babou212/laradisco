@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PermissionFlag;
 use App\Events\MessageDeleted;
 use App\Events\MessageEdited;
 use App\Events\MessageSent;
@@ -10,6 +11,7 @@ use App\Http\Requests\UpdateMessageRequest;
 use App\Models\Channel;
 use App\Models\Message;
 use App\Services\MentionService;
+use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,6 +20,7 @@ class MessageController extends Controller
 {
     public function __construct(
         public MentionService $mentionService,
+        public PermissionService $permissionService,
     ) {}
 
     public function store(StoreMessageRequest $request, Channel $channel): RedirectResponse
@@ -54,8 +57,11 @@ class MessageController extends Controller
 
     public function destroy(Request $request, Channel $channel, Message $message): JsonResponse
     {
-        if ($request->user()->id !== $message->user_id) {
-            abort(403);
+        $isOwner = $request->user()->id === $message->user_id;
+        $canManage = $this->permissionService->userCanInChannel($request->user(), $channel, PermissionFlag::ManageMessages);
+
+        if (! $isOwner && ! $canManage) {
+            abort(403, 'You do not have permission to delete this message.');
         }
 
         $messageId = $message->id;

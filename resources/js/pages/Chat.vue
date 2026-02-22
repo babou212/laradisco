@@ -24,6 +24,15 @@ type Props = {
         id: number;
         name: string;
         topic: string | null;
+        is_private: boolean;
+        permissions: {
+            canSendMessages: boolean;
+            canManageMessages: boolean;
+            canPinMessages: boolean;
+            canAddReactions: boolean;
+            canAttachFiles: boolean;
+            canMentionEveryone: boolean;
+        };
     };
     messages?: any;
 };
@@ -96,6 +105,7 @@ onMounted(() => {
             :channel="selectedChannel"
             :messages="messages"
             :channel-id="selectedChannelId"
+            :channel-permissions="currentChannel?.permissions"
         />
 
         <!-- Right Sidebar: Online Users or Search Results -->

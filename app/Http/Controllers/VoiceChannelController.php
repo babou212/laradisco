@@ -27,7 +27,7 @@ class VoiceChannelController extends Controller
 
         $token = $this->liveKitService->generateToken($user, $roomName);
 
-        // Track the participant in cache
+        // Track the participant in cache (TTL as a safety net for unclean disconnects)
         $cacheKey = "voice_channel:{$channel->id}:participants";
         $participants = Cache::get($cacheKey, []);
         $participants[$user->id] = [
@@ -36,7 +36,7 @@ class VoiceChannelController extends Controller
             'display_name' => $user->display_name,
             'avatar_path' => $user->avatar_path,
         ];
-        Cache::put($cacheKey, $participants);
+        Cache::put($cacheKey, $participants, now()->addHours(2));
 
         VoiceChannelJoined::dispatch($channel, $user);
 
@@ -60,7 +60,7 @@ class VoiceChannelController extends Controller
         $cacheKey = "voice_channel:{$channel->id}:participants";
         $participants = Cache::get($cacheKey, []);
         unset($participants[$user->id]);
-        Cache::put($cacheKey, $participants);
+        Cache::put($cacheKey, $participants, now()->addHours(2));
 
         VoiceChannelLeft::dispatch($channel, $user);
 

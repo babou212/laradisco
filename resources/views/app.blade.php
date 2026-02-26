@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         {{-- Inject Reverb WebSocket config for runtime use by Laravel Echo --}}
-        <script>
+        <script @cspNonce>
             window.__reverb = {!! json_encode([
                 'key' => config('reverb.apps.apps.0.key', env('REVERB_APP_KEY', '')),
                 'host' => config('reverb.apps.apps.0.options.host', env('REVERB_HOST', 'localhost')),
@@ -15,7 +15,7 @@
         </script>
 
         {{-- Inline script to apply theme immediately and prevent flash --}}
-        <script>
+        <script @cspNonce>
             (function() {
                 var darkThemes = ['default-dark','dracula','nord-dark','midnight','cyberpunk','monokai','emerald','solarized-dark','crimson'];
                 var theme = localStorage.getItem('theme') || '{{ $theme ?? "default" }}';

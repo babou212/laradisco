@@ -111,6 +111,7 @@ onUnmounted(() => {
     allVoiceChannelIds.value.forEach((id) => {
         voiceStore.unsubscribeFromChannelPresence(id);
     });
+    voiceStore.leaveChannel();
 });
 
 watch(

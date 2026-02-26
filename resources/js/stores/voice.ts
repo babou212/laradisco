@@ -403,6 +403,23 @@ export const useVoiceStore = defineStore('voice', () => {
                 VOICE_SESSION_KEY,
                 JSON.stringify(currentChannel.value),
             );
+
+            const channelId = currentChannel.value.id;
+            const xsrfCookie = document.cookie
+                .split('; ')
+                .find((row) => row.startsWith('XSRF-TOKEN='))
+                ?.split('=')[1];
+            if (xsrfCookie) {
+                fetch(`/channels/${channelId}/voice/leave`, {
+                    method: 'POST',
+                    keepalive: true,
+                    headers: {
+                        'X-XSRF-TOKEN': decodeURIComponent(xsrfCookie),
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json',
+                    },
+                }).catch(() => {});
+            }
         }
 
         // Disconnect from LiveKit synchronously (best-effort cleanup)

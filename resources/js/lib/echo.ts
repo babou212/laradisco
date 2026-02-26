@@ -44,7 +44,7 @@ export const echo = new Echo({
     wsPort: config.forceTLS ? undefined : config.port,
     wssPort: config.forceTLS ? config.port : undefined,
     forceTLS: config.forceTLS,
-    enabledTransports: config.forceTLS ? ['wss'] : ['ws'],
+    enabledTransports: ['ws', 'wss'],
     disableStats: true,
     authEndpoint: '/broadcasting/auth',
 });

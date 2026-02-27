@@ -51,7 +51,7 @@ class PresenceController extends Controller
         );
 
         // Broadcast presence update to all connected users
-        broadcast(new UserPresenceUpdated(
+        event(new UserPresenceUpdated(
             $user,
             $status,
             $validated['custom_status'] ?? null

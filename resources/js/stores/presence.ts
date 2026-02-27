@@ -125,9 +125,7 @@ export const usePresenceStore = defineStore('presence', () => {
 
         presenceChannel
             .here((users: OnlineUser[]) => {
-                const apiUserIds = new Set(
-                    onlineUsers.value.map((u) => u.id),
-                );
+                const apiUserIds = new Set(onlineUsers.value.map((u) => u.id));
                 const merged = [...onlineUsers.value];
 
                 for (const user of users) {

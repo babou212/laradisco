@@ -65,6 +65,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -78,6 +87,11 @@ jobs:
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist
 
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -89,11 +103,6 @@ jobs:
           npm ci
           npm run build
 
-      - name: Prepare environment
-        run: |
-          cp .env.example .env
-          php artisan key:generate
-
       - name: Run tests
         env:
           DB_CONNECTION: pgsql
@@ -102,6 +111,7 @@ jobs:
           DB_DATABASE: laradisco_test
           DB_USERNAME: test
           DB_PASSWORD: test
+          REDIS_HOST: 127.0.0.1
         run: php artisan test
 
   build:

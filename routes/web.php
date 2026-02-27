@@ -45,7 +45,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('direct-message/{dmGroup}/typing', [TypingController::class, 'dmTyping'])->name('direct-message.typing');
     Route::post('direct-message/start', [DirectMessageController::class, 'startOrGetDm'])->name('direct-message.start');
 
+    Route::get('api/presence', [PresenceController::class, 'index'])->name('presence.index');
     Route::post('presence', [PresenceController::class, 'update'])->name('presence.update');
+    Route::post('presence/heartbeat', [PresenceController::class, 'heartbeat'])->name('presence.heartbeat');
 
     // Mentions autocomplete
     Route::get('api/mentions/search', [MentionController::class, 'search'])->name('api.mentions.search');

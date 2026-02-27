@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Enums\UserStatusType;
 use App\Services\LiveKitService;
+use App\Services\PresenceService;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -50,6 +52,17 @@ class AppServiceProvider extends ServiceProvider
             // Reset status to online at the start of every new session
             // so the presence channel auth returns the correct status.
             $user->update(['status' => UserStatusType::Online->value]);
+
+            // Register in Redis-backed presence so all pods see this user
+            app(PresenceService::class)->register($user);
+        });
+
+        Event::listen(Logout::class, function (Logout $event): void {
+            if ($event->user) {
+                /** @var \App\Models\User $user */
+                $user = $event->user;
+                app(PresenceService::class)->unregister($user);
+            }
         });
     }
 

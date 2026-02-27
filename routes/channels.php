@@ -4,6 +4,7 @@ use App\Enums\PermissionFlag;
 use App\Models\Channel;
 use App\Models\DirectMessageGroup;
 use App\Models\User;
+use App\Services\PresenceService;
 use Illuminate\Support\Facades\Broadcast;
 
 // User's private channel for notifications, presence updates
@@ -56,8 +57,10 @@ Broadcast::channel('direct-message.{groupId}', function (User $user, int $groupI
     ];
 });
 
-// Global online users presence (optional - for member list)
+// Global online users presence
 Broadcast::channel('online', function (User $user) {
+    app(PresenceService::class)->register($user);
+
     return [
         'id' => $user->id,
         'username' => $user->username,

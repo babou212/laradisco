@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\UserStatusType;
 use App\Events\UserPresenceUpdated;
 use App\Models\User;
+use App\Services\PresenceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
@@ -34,6 +35,7 @@ class PresenceTest extends TestCase
     public function test_updating_presence_broadcasts_event(): void
     {
         Event::fake();
+        $this->mock(PresenceService::class)->shouldIgnoreMissing();
 
         $user = User::factory()->create();
 

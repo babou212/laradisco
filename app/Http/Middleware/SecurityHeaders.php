@@ -27,7 +27,7 @@ class SecurityHeaders
         $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
-        $response->headers->set('Permissions-Policy', 'geolocation=(), microphone=("self"`), camera=()');
+        $response->headers->set('Permissions-Policy', 'geolocation=(), microphone=(self), camera=()');
 
         // Only add HSTS if we're on HTTPS (Istio terminates TLS)
         if ($request->secure() || $request->header('X-Forwarded-Proto') === 'https') {

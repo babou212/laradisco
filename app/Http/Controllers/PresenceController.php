@@ -69,4 +69,25 @@ class PresenceController extends Controller
 
         return response()->json(['ok' => true]);
     }
+
+    /**
+     * Mark the authenticated user as offline (called via sendBeacon on tab close).
+     */
+    public function offline(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json(['ok' => false], 401);
+        }
+
+        $this->presenceService->unregister($user);
+
+        event(new UserPresenceUpdated(
+            $user,
+            UserStatusType::Offline,
+        ));
+
+        return response()->json(['ok' => true]);
+    }
 }

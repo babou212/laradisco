@@ -182,8 +182,8 @@ class PresenceTest extends TestCase
 
         $channels = $event->broadcastOn();
         $this->assertCount(1, $channels);
-        $this->assertInstanceOf(\Illuminate\Broadcasting\PresenceChannel::class, $channels[0]);
-        $this->assertSame('presence-online', $channels[0]->name);
+        $this->assertInstanceOf(\Illuminate\Broadcasting\PrivateChannel::class, $channels[0]);
+        $this->assertSame('private-presence', $channels[0]->name);
     }
 
     public function test_members_shared_prop_includes_all_users(): void

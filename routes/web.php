@@ -48,6 +48,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('api/presence', [PresenceController::class, 'index'])->name('presence.index');
     Route::post('presence', [PresenceController::class, 'update'])->name('presence.update');
     Route::post('presence/heartbeat', [PresenceController::class, 'heartbeat'])->name('presence.heartbeat');
+    Route::post('presence/offline', [PresenceController::class, 'offline'])->name('presence.offline');
 
     // Mentions autocomplete
     Route::get('api/mentions/search', [MentionController::class, 'search'])->name('api.mentions.search');

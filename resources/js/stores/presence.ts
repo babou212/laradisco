@@ -1,23 +1,19 @@
 import { usePage } from '@inertiajs/vue3';
-import type { PresenceChannel } from 'laravel-echo';
+import type { Channel } from 'laravel-echo';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import echo from '@/lib/echo';
 import type { OnlineUser, UserStatusType } from '@/types';
 
-const HEARTBEAT_INTERVAL_MS = 60_000; // 60 seconds
-const SYNC_INTERVAL_MS = 120_000; // 2 minutes — periodic full re-sync
+const HEARTBEAT_INTERVAL_MS = 60_000;
+const SYNC_INTERVAL_MS = 120_000;
 
 export const usePresenceStore = defineStore('presence', () => {
-    // Users currently known to be online (from API + WebSocket updates)
     const onlineUsers = ref<OnlineUser[]>([]);
-    const isConnected = ref(false);
-    let presenceChannel: PresenceChannel | null = null;
+    let channel: Channel | null = null;
     let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
     let syncTimer: ReturnType<typeof setInterval> | null = null;
 
-    // All members merged with live presence data.
-    // Server-loaded members come from Inertia shared props;
     const allMembers = computed<OnlineUser[]>(() => {
         const page = usePage();
         const serverMembers = (page.props.members ?? []) as OnlineUser[];
@@ -38,10 +34,6 @@ export const usePresenceStore = defineStore('presence', () => {
         });
     });
 
-    /**
-     * Fetch the authoritative online-users list from the Redis-backed API.
-     * This works across all Reverb pods, unlike the per-instance .here() list.
-     */
     const fetchOnlineUsers = async () => {
         try {
             const response = await fetch('/api/presence', {
@@ -57,13 +49,10 @@ export const usePresenceStore = defineStore('presence', () => {
                 status: u.status || 'online',
             }));
         } catch {
-            // Silently fail — WebSocket events will still provide updates
+            // Will retry on next sync interval
         }
     };
 
-    /**
-     * Send a heartbeat to keep this user's Redis presence entry alive.
-     */
     const sendHeartbeat = async () => {
         try {
             await fetch('/presence/heartbeat', {
@@ -85,106 +74,52 @@ export const usePresenceStore = defineStore('presence', () => {
         }
     };
 
-    const startTimers = () => {
-        stopTimers();
+    /**
+     * Apply an incremental presence update from a broadcast event.
+     */
+    const applyPresenceUpdate = (data: any) => {
+        const idx = onlineUsers.value.findIndex((u) => u.id === data.user_id);
+
+        if (data.status === 'offline') {
+            if (idx !== -1) {
+                onlineUsers.value.splice(idx, 1);
+            }
+        } else if (idx !== -1) {
+            onlineUsers.value[idx].status = data.status;
+            onlineUsers.value[idx].custom_status = data.custom_status;
+        } else {
+            onlineUsers.value.push({
+                id: data.user_id,
+                username: data.username,
+                display_name: data.display_name ?? data.username,
+                avatar_path: data.avatar_path ?? null,
+                status: data.status,
+                custom_status: data.custom_status,
+            });
+        }
+    };
+
+    const connect = async () => {
+        if (channel) return;
+
+        await fetchOnlineUsers();
+
+        channel = echo.private('presence');
+
+        channel.listen('.user.presence.updated', applyPresenceUpdate);
+
+        window.addEventListener('beforeunload', () => {
+            navigator.sendBeacon('/presence/offline');
+        });
+
+        if (heartbeatTimer) clearInterval(heartbeatTimer);
+        if (syncTimer) clearInterval(syncTimer);
         heartbeatTimer = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
         syncTimer = setInterval(fetchOnlineUsers, SYNC_INTERVAL_MS);
     };
 
-    const stopTimers = () => {
-        if (heartbeatTimer) {
-            clearInterval(heartbeatTimer);
-            heartbeatTimer = null;
-        }
-        if (syncTimer) {
-            clearInterval(syncTimer);
-            syncTimer = null;
-        }
-    };
-
-    const connect = () => {
-        // If already connected and the channel is still alive, skip
-        if (presenceChannel && isConnected.value) {
-            return;
-        }
-
-        // Clean up any stale channel reference before reconnecting
-        if (presenceChannel) {
-            try {
-                echo.leave('online');
-            } catch {
-                // Channel may already be gone
-            }
-            presenceChannel = null;
-            isConnected.value = false;
-        }
-
-        fetchOnlineUsers();
-
-        presenceChannel = echo.join('online') as PresenceChannel;
-
-        presenceChannel
-            .here((users: OnlineUser[]) => {
-                const apiUserIds = new Set(onlineUsers.value.map((u) => u.id));
-                const merged = [...onlineUsers.value];
-
-                for (const user of users) {
-                    if (!apiUserIds.has(user.id)) {
-                        merged.push({
-                            ...user,
-                            status: user.status || 'online',
-                        });
-                    }
-                }
-
-                onlineUsers.value = merged;
-                isConnected.value = true;
-            })
-            .joining((user: OnlineUser) => {
-                const exists = onlineUsers.value.find((u) => u.id === user.id);
-                if (!exists) {
-                    onlineUsers.value.push({
-                        ...user,
-                        status: user.status || 'online',
-                    });
-                }
-            })
-            .leaving((user: OnlineUser) => {
-                onlineUsers.value = onlineUsers.value.filter(
-                    (u) => u.id !== user.id,
-                );
-            })
-            .listen('.user.presence.updated', (data: any) => {
-                const user = onlineUsers.value.find(
-                    (u) => u.id === data.user_id,
-                );
-                if (user) {
-                    user.status = data.status;
-                    user.custom_status = data.custom_status;
-                }
-            });
-
-        startTimers();
-    };
-
-    const disconnect = () => {
-        stopTimers();
-
-        if (presenceChannel) {
-            echo.leave('online');
-            presenceChannel = null;
-            onlineUsers.value = [];
-            isConnected.value = false;
-        }
-    };
-
-    const isUserOnline = (userId: number): boolean => {
-        return onlineUsers.value.some((u) => u.id === userId);
-    };
-
     const getUserStatus = (userId: number): OnlineUser | undefined => {
-        const member = allMembers.value.find((u) => u.id === userId);
-        return member;
+        return allMembers.value.find((u) => u.id === userId);
     };
 
     const updateUserStatus = (
@@ -202,10 +137,7 @@ export const usePresenceStore = defineStore('presence', () => {
     return {
         onlineUsers,
         allMembers,
-        isConnected,
         connect,
-        disconnect,
-        isUserOnline,
         getUserStatus,
         updateUserStatus,
     };

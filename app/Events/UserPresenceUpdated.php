@@ -5,7 +5,7 @@ namespace App\Events;
 use App\Enums\UserStatusType;
 use App\Models\User;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -31,7 +31,7 @@ class UserPresenceUpdated implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new PresenceChannel('online'),
+            new PrivateChannel('presence'),
         ];
     }
 
@@ -51,6 +51,8 @@ class UserPresenceUpdated implements ShouldBroadcastNow
         return [
             'user_id' => $this->user->id,
             'username' => $this->user->username,
+            'display_name' => $this->user->display_name,
+            'avatar_path' => $this->user->avatar_path,
             'status' => $this->status->value,
             'custom_status' => $this->customStatus,
         ];

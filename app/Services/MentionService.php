@@ -88,30 +88,37 @@ class MentionService
      */
     protected function notifyEveryone(Message $message): void
     {
-        $users = User::query()
+        User::query()
             ->where('id', '!=', $message->user_id)
-            ->get();
-
-        Notification::send(
-            $users,
-            new MentionNotification($message, 'everyone')
-        );
+            ->select(['id', 'name', 'email', 'username'])
+            ->cursor()
+            ->chunk(100)
+            ->each(function ($chunk) use ($message) {
+                Notification::send(
+                    $chunk,
+                    new MentionNotification($message, 'everyone')
+                );
+            });
     }
 
     /**
      * Notify all non-offline users (@here).
+     * Uses cursor to avoid loading all users into memory.
      */
     protected function notifyHere(Message $message): void
     {
-        $users = User::query()
+        User::query()
             ->where('status', '!=', UserStatusType::Offline)
             ->where('id', '!=', $message->user_id)
-            ->get();
-
-        Notification::send(
-            $users,
-            new MentionNotification($message, 'here')
-        );
+            ->select(['id', 'name', 'email', 'username'])
+            ->cursor()
+            ->chunk(100)
+            ->each(function ($chunk) use ($message) {
+                Notification::send(
+                    $chunk,
+                    new MentionNotification($message, 'here')
+                );
+            });
     }
 
     /**

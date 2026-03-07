@@ -105,4 +105,40 @@ class PresenceService
 
         return $online;
     }
+
+    /**
+     * Sweep stale presence entries from Redis and return their user data.
+     *
+     * @return array<int, array{id: int, username: string, display_name: string, avatar_path: string|null, status: string, custom_status: string|null}>
+     */
+    public function sweepStale(): array
+    {
+        $all = Redis::hGetAll(self::HASH_KEY);
+
+        if (empty($all)) {
+            return [];
+        }
+
+        $cutoff = now()->subSeconds(self::HEARTBEAT_TTL)->timestamp;
+        $staleUsers = [];
+        $staleKeys = [];
+
+        foreach ($all as $userId => $json) {
+            $data = json_decode($json, true);
+
+            if (! $data || $data['last_heartbeat'] < $cutoff) {
+                $staleKeys[] = $userId;
+                if ($data) {
+                    unset($data['last_heartbeat']);
+                    $staleUsers[] = $data;
+                }
+            }
+        }
+
+        if (! empty($staleKeys)) {
+            Redis::hDel(self::HASH_KEY, ...$staleKeys);
+        }
+
+        return $staleUsers;
+    }
 }

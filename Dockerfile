@@ -1,8 +1,7 @@
 # =============================================================================
 # Multi-stage Dockerfile for Laradisco
 # Stage 1: Install PHP dependencies (Composer)
-# Stage 2: Build frontend assets (Node.js + PHP)
-# Stage 3: Production image (FrankenPHP + Laravel Octane)
+# Stage 2: Production image (FrankenPHP + Laravel Octane)
 # =============================================================================
 
 # ---------------------------------------------------------------------------
@@ -22,39 +21,7 @@ RUN composer install \
     --ignore-platform-reqs
 
 # ---------------------------------------------------------------------------
-# Stage 2: Build frontend assets
-# ---------------------------------------------------------------------------
-FROM php:8.5-alpine AS frontend
-
-WORKDIR /app
-
-# Install Node.js and NPM
-RUN apk add --no-cache nodejs npm
-
-COPY package.json package-lock.json* ./
-RUN npm ci
-
-# Copy application files (needed for artisan)
-COPY . .
-
-# Setup environment for build
-RUN cp .env.example .env && \
-    sed -i 's/DB_CONNECTION=pgsql/DB_CONNECTION=sqlite/' .env && \
-    sed -i 's/DB_DATABASE=laradisco/DB_DATABASE=\/app\/database\/database.sqlite/' .env && \
-    sed -i 's/SESSION_DRIVER=database/SESSION_DRIVER=array/' .env && \
-    mkdir -p database && touch database/database.sqlite
-
-# Copy vendor directory from composer stage
-COPY --from=composer /app/vendor ./vendor
-
-RUN php artisan key:generate
-RUN php artisan wayfinder:generate --with-form -v
-
-# Build assets (requires PHP for wayfinder)
-RUN npm run build
-
-# ---------------------------------------------------------------------------
-# Stage 3: Production image
+# Stage 2: Production image
 # ---------------------------------------------------------------------------
 FROM dunglas/frankenphp:1-php8.5-alpine
 
@@ -105,14 +72,21 @@ COPY docker/php/php-prod.ini /usr/local/etc/php/conf.d/99-production.ini
 # Copy application code
 COPY . .
 
-# Copy built frontend assets from stage 2
-COPY --from=frontend /app/public/build public/build
-
-# Copy vendor from stage 1
+# Copy vendor from composer stage
 COPY --from=composer /app/vendor vendor
 
 # Run composer post-install scripts (package discovery, etc.)
 RUN php artisan package:discover --ansi || true
+
+# Generate wayfinder routes
+RUN cp .env.example .env && \
+    sed -i 's/DB_CONNECTION=pgsql/DB_CONNECTION=sqlite/' .env && \
+    sed -i 's/DB_DATABASE=laradisco/DB_DATABASE=\/app\/database\/database.sqlite/' .env && \
+    sed -i 's/SESSION_DRIVER=database/SESSION_DRIVER=array/' .env && \
+    mkdir -p database && touch database/database.sqlite && \
+    php artisan key:generate && \
+    php artisan wayfinder:generate --with-form -v && \
+    rm -f .env database/database.sqlite
 
 # Optimize for production
 RUN php artisan route:cache || true \

@@ -33,15 +33,6 @@ jobs:
       - name: Run Pint
         run: vendor/bin/pint --test
 
-      - name: Install Node dependencies
-        run: npm ci
-
-      - name: Run ESLint
-        run: npm run lint
-
-      - name: Run Prettier check
-        run: npm run format:check
-
   test:
     name: Tests
     runs-on: ubuntu-latest

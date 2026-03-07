@@ -8,12 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Laravel\Scout\Searchable;
 
 class DirectMessage extends Model
 {
     /** @use HasFactory<\Database\Factories\DirectMessageFactory> */
-    use ClearsCaches, HasFactory, Searchable, SoftDeletes;
+    use ClearsCaches, HasFactory, SoftDeletes;
 
     /**
      * @var list<string>
@@ -74,26 +73,5 @@ class DirectMessage extends Model
                 cache()->forget("user.{$participant->id}.dm_groups");
             }
         }
-    }
-
-    /**
-     * Get the indexable data array for the model.
-     *
-     * @return array<string, mixed>
-     */
-    public function toSearchableArray(): array
-    {
-        // Eager load group and participants to avoid N+1 during indexing
-        $this->loadMissing('group.participants');
-
-        return [
-            'id' => $this->id,
-            'content' => $this->content,
-            'direct_message_group_id' => $this->direct_message_group_id,
-            'user_id' => $this->user_id,
-            'created_at' => $this->created_at->timestamp,
-            // Flatten participant IDs for array filtering
-            'participant_ids' => $this->group?->participants->unique()->pluck('id')->values()->toArray() ?? [],
-        ];
     }
 }

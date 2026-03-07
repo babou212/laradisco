@@ -7,12 +7,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Laravel\Scout\Searchable;
 
 class Channel extends Model
 {
     /** @use HasFactory<\Database\Factories\ChannelFactory> */
-    use HasFactory, Searchable;
+    use HasFactory;
 
     /**
      * @var list<string>
@@ -45,22 +44,6 @@ class Channel extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
-    }
-
-    /**
-     * Get the indexable data array for the model.
-     *
-     * @return array<string, mixed>
-     */
-    public function toSearchableArray(): array
-    {
-        return [
-            'id' => $this->id,
-            'name' => $this->name,
-            'topic' => $this->topic,
-            'type' => $this->type,
-            'is_private' => $this->is_private,
-        ];
     }
 
     /**

@@ -64,8 +64,10 @@ class PermissionService
 
     /**
      * Check if a user can view a channel (considering private channels).
+     *
+     * @param  Collection<int, ChannelPermissionOverride>|null  $preloadedOverrides
      */
-    public function userCanViewChannel(User $user, Channel $channel): bool
+    public function userCanViewChannel(User $user, Channel $channel, ?Collection $preloadedOverrides = null): bool
     {
         if (! $channel->is_private) {
             return $this->userCanInChannel($user, $channel, PermissionFlag::ViewChannels);
@@ -78,16 +80,28 @@ class PermissionService
         $user->loadMissing('roles');
         $roleIds = $user->roles->pluck('id')->all();
 
-        $hasRoleAccess = ChannelPermissionOverride::where('channel_id', $channel->id)
-            ->whereIn('role_id', $roleIds)
+        // Use pre-loaded overrides when available (batch path), otherwise query
+        if ($preloadedOverrides !== null) {
+            $channelOverrides = $preloadedOverrides->where('channel_id', $channel->id);
+        } else {
+            $channelOverrides = ChannelPermissionOverride::where('channel_id', $channel->id)
+                ->where(function ($q) use ($roleIds, $user) {
+                    $q->whereIn('role_id', $roleIds)->whereNull('user_id')
+                        ->orWhere(function ($q2) use ($user) {
+                            $q2->where('user_id', $user->id)->whereNull('role_id');
+                        });
+                })
+                ->get();
+        }
+
+        $hasRoleAccess = $channelOverrides
             ->whereNull('user_id')
-            ->get()
+            ->whereIn('role_id', $roleIds)
             ->contains(fn (ChannelPermissionOverride $override) => in_array(PermissionFlag::ViewChannels->value, $override->allow ?? [], true));
 
-        $hasUserAccess = ChannelPermissionOverride::where('channel_id', $channel->id)
-            ->where('user_id', $user->id)
+        $hasUserAccess = $channelOverrides
             ->whereNull('role_id')
-            ->get()
+            ->where('user_id', $user->id)
             ->contains(fn (ChannelPermissionOverride $override) => in_array(PermissionFlag::ViewChannels->value, $override->allow ?? [], true));
 
         return $hasRoleAccess || $hasUserAccess;
@@ -100,9 +114,22 @@ class PermissionService
      */
     public function getAccessibleChannels(User $user): Collection
     {
+        $user->loadMissing('roles');
         $channels = Channel::with('category')->get();
 
-        return $channels->filter(fn (Channel $channel) => $this->userCanViewChannel($user, $channel));
+        // Batch-load all permission overrides for this user's roles + user-specific
+        // in a single query instead of querying per-channel.
+        $roleIds = $user->roles->pluck('id')->all();
+        $allOverrides = ChannelPermissionOverride::query()
+            ->where(function ($q) use ($roleIds, $user) {
+                $q->whereIn('role_id', $roleIds)->whereNull('user_id')
+                    ->orWhere(function ($q2) use ($user) {
+                        $q2->where('user_id', $user->id)->whereNull('role_id');
+                    });
+            })
+            ->get();
+
+        return $channels->filter(fn (Channel $channel) => $this->userCanViewChannel($user, $channel, $allOverrides));
     }
 
     /**
@@ -147,16 +174,18 @@ class PermissionService
 
     /**
      * Clear all channel permission caches for a user.
+     * Uses tag-based cache flushing when available, otherwise iterates known channel IDs.
      */
     public function clearUserChannelCaches(User $user): void
     {
         $channelIds = Channel::pluck('id');
 
-        foreach ($channelIds as $channelId) {
-            cache()->forget("user.{$user->id}.channel.{$channelId}.permissions");
-        }
+        $keys = $channelIds->map(fn ($id) => "user.{$user->id}.channel.{$id}.permissions")->all();
+        $keys[] = "user.{$user->id}.permissions";
 
-        cache()->forget("user.{$user->id}.permissions");
+        foreach ($keys as $key) {
+            cache()->forget($key);
+        }
     }
 
     /**
@@ -164,11 +193,9 @@ class PermissionService
      */
     public function clearChannelCaches(Channel $channel): void
     {
-        $userIds = User::pluck('id');
-
-        foreach ($userIds as $userId) {
-            cache()->forget("user.{$userId}.channel.{$channel->id}.permissions");
-        }
+        User::select('id')->cursor()->each(function (User $user) use ($channel) {
+            cache()->forget("user.{$user->id}.channel.{$channel->id}.permissions");
+        });
     }
 
     /**

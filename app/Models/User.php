@@ -11,12 +11,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
-use Laravel\Scout\Searchable;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, Searchable, TwoFactorAuthenticatable;
+    use HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable;
 
     /**
      * The attributes that are mass assignable.
@@ -34,8 +33,6 @@ class User extends Authenticatable
         'custom_status',
         'must_setup',
         'status',
-        'theme',
-        'notification_preferences',
         'last_seen_at',
     ];
 
@@ -53,21 +50,6 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the indexable data array for the model.
-     *
-     * @return array<string, mixed>
-     */
-    public function toSearchableArray(): array
-    {
-        return [
-            'id' => $this->id,
-            'username' => $this->username,
-            'name' => $this->name,
-            'nickname' => $this->nickname,
-        ];
-    }
-
-    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -78,7 +60,6 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'must_setup' => 'boolean',
-            'notification_preferences' => 'array',
             'two_factor_confirmed_at' => 'datetime',
             'last_seen_at' => 'datetime',
         ];

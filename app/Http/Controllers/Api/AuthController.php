@@ -2,27 +2,40 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Concerns\ApiResponse;
+use App\Enums\UserStatusType;
+use App\Events\UserPresenceUpdated;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\ForgotPasswordRequest;
+use App\Http\Requests\Api\LoginRequest;
+use App\Http\Requests\Api\ResetPasswordRequest;
+use App\Http\Requests\Api\TwoFactorChallengeRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Notifications\PasswordResetCodeNotification;
+use App\Services\PresenceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
+use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 
 class AuthController extends Controller
 {
+    use ApiResponse;
+
     /**
      * Issue a new API token for the native client.
+     *
+     * If the user has two-factor authentication enabled, a challenge token
+     * is returned instead of an API token, requiring a second step.
      */
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
-            'device_name' => ['required', 'string'],
-        ]);
-
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('email', $request->validated('email'))->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
@@ -30,21 +43,94 @@ class AuthController extends Controller
             ]);
         }
 
-        // Revoke any existing tokens for this device
-        $user->tokens()->where('name', $request->device_name)->delete();
+        if ($user->two_factor_secret && $user->two_factor_confirmed_at) {
+            $challengeToken = Str::random(64);
 
-        $token = $user->createToken($request->device_name)->plainTextToken;
+            Cache::put(
+                "two_factor_challenge:{$challengeToken}",
+                ['user_id' => $user->id, 'device_name' => $request->device_name],
+                now()->addMinutes(5),
+            );
 
-        return response()->json([
+            return $this->successResponse([
+                'two_factor' => true,
+                'challenge_token' => $challengeToken,
+            ], 'Two-factor authentication required');
+        }
+
+        return $this->issueToken($user, $request->device_name);
+    }
+
+    /**
+     * Verify a two-factor authentication code and issue an API token.
+     */
+    public function twoFactorChallenge(TwoFactorChallengeRequest $request): JsonResponse
+    {
+        $challenge = Cache::pull("two_factor_challenge:{$request->validated('challenge_token')}");
+
+        if (! $challenge) {
+            throw ValidationException::withMessages([
+                'code' => ['The two-factor challenge has expired. Please log in again.'],
+            ]);
+        }
+
+        $user = User::findOrFail($challenge['user_id']);
+
+        if ($request->filled('code')) {
+            $valid = app(TwoFactorAuthenticationProvider::class)->verify(
+                decrypt($user->two_factor_secret),
+                $request->code,
+            );
+
+            if (! $valid) {
+                throw ValidationException::withMessages([
+                    'code' => ['The provided two-factor code is invalid.'],
+                ]);
+            }
+        } elseif ($request->filled('recovery_code')) {
+            $codes = json_decode(decrypt($user->two_factor_recovery_codes), true);
+            $matchIndex = collect($codes)->search(fn ($c) => hash_equals($c, $request->recovery_code));
+
+            if ($matchIndex === false) {
+                throw ValidationException::withMessages([
+                    'recovery_code' => ['The provided recovery code is invalid.'],
+                ]);
+            }
+
+            unset($codes[$matchIndex]);
+            $user->forceFill([
+                'two_factor_recovery_codes' => encrypt(json_encode(array_values($codes))),
+            ])->save();
+        } else {
+            throw ValidationException::withMessages([
+                'code' => ['A two-factor code or recovery code is required.'],
+            ]);
+        }
+
+        return $this->issueToken($user, $challenge['device_name']);
+    }
+
+    /**
+     * Issue a Sanctum token and set the user online.
+     */
+    private function issueToken(User $user, string $deviceName): JsonResponse
+    {
+        $user->tokens()->where('name', $deviceName)->delete();
+
+        $token = $user->createToken($deviceName)->plainTextToken;
+
+        $user->update(['status' => UserStatusType::Online->value]);
+        app(PresenceService::class)->register($user);
+        event(new UserPresenceUpdated($user, UserStatusType::Online, $user->custom_status));
+
+        $user->load(['roles' => fn ($query) => $query->orderByDesc('position')]);
+
+        request()->setUserResolver(fn () => $user);
+
+        return $this->successResponse([
             'token' => $token,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'username' => $user->username,
-                'email' => $user->email,
-                'avatar_path' => $user->avatar_path,
-            ],
-        ]);
+            'user' => new UserResource($user),
+        ], 'Authenticated successfully');
     }
 
     /**
@@ -52,9 +138,14 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
 
-        return response()->json(['message' => 'Logged out successfully.']);
+        app(PresenceService::class)->unregister($user);
+        event(new UserPresenceUpdated($user, UserStatusType::Offline));
+
+        $user->currentAccessToken()->delete();
+
+        return $this->successResponse(message: 'Logged out successfully');
     }
 
     /**
@@ -65,14 +156,65 @@ class AuthController extends Controller
         $user = $request->user();
         $user->load(['roles' => fn ($query) => $query->orderByDesc('position')]);
 
-        return response()->json([
-            ...$user->toArray(),
-            'roles' => $user->roles->unique('id')->values()->map(fn ($role) => [
-                'id' => $role->id,
-                'name' => $role->name,
-                'color' => $role->color,
-                'position' => $role->position,
-            ]),
-        ]);
+        return $this->successResponse(new UserResource($user));
+    }
+
+    /**
+     * Send a password reset code to the user's email.
+     *
+     * Generates a 6-digit code stored in cache for 15 minutes.
+     * Does NOT modify the user's password.
+     */
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    {
+        $user = User::where('email', $request->validated('email'))->first();
+
+        if ($user) {
+            $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+            Cache::put(
+                "password_reset:{$user->id}",
+                ['code' => Hash::make($code), 'email' => $user->email],
+                now()->addMinutes(15),
+            );
+
+            $user->notify(new PasswordResetCodeNotification($code));
+        }
+
+        return $this->successResponse(
+            message: 'If an account with that email exists, a reset code has been sent.',
+        );
+    }
+
+    /**
+     * Reset the user's password using a valid reset code.
+     */
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
+    {
+        $user = User::where('email', $request->validated('email'))->first();
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'code' => ['The reset code is invalid or has expired.'],
+            ]);
+        }
+
+        $cached = Cache::get("password_reset:{$user->id}");
+
+        if (! $cached || ! Hash::check($request->code, $cached['code'])) {
+            throw ValidationException::withMessages([
+                'code' => ['The reset code is invalid or has expired.'],
+            ]);
+        }
+
+        Cache::forget("password_reset:{$user->id}");
+
+        $user->forceFill([
+            'password' => Hash::make($request->password),
+        ])->save();
+
+        return $this->successResponse(
+            message: 'Your password has been reset successfully. You can now sign in.',
+        );
     }
 }

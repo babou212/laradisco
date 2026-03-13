@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Http\Resources\DirectMessageResource;
 use App\Models\DirectMessage;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
@@ -21,7 +22,10 @@ class DirectMessageEdited implements ShouldBroadcast
     /**
      * Create a new event instance.
      */
-    public function __construct(public DirectMessage $message) {}
+    public function __construct(public DirectMessage $message)
+    {
+        $this->message->load('user');
+    }
 
     /**
      * Get the channels the event should broadcast on.
@@ -51,7 +55,7 @@ class DirectMessageEdited implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'message' => $this->message,
+            'message' => new DirectMessageResource($this->message),
         ];
     }
 }

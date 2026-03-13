@@ -13,6 +13,7 @@ use App\Http\Requests\Api\StoreChannelMessageRequest;
 use App\Http\Requests\Api\UpdateChannelMessageRequest;
 use App\Http\Resources\MessageResource;
 use App\Models\Channel;
+use App\Models\EncryptedSearchToken;
 use App\Models\Message;
 use App\Services\MentionService;
 use App\Services\PermissionService;
@@ -57,13 +58,29 @@ class MessageController extends Controller
             'user_id' => $request->user()->id,
             'content' => $request->validated('content'),
             'reply_to_id' => $request->validated('reply_to_id'),
+            'is_encrypted' => $request->validated('is_encrypted', false),
+            'sender_device_id' => $request->validated('sender_device_id'),
         ]);
 
         $message->load(['user', 'replyTo.user']);
 
         broadcast(new MessageSent($message))->toOthers();
 
-        $this->mentionService->processMentions($message);
+        if (! $message->is_encrypted) {
+            $this->mentionService->processMentions($message);
+        } else {
+            $this->mentionService->processMentionsFromMetadata(
+                $message,
+                $request->validated('mention_user_ids', []),
+                $request->validated('mention_everyone', false),
+                $request->validated('mention_here', false),
+            );
+        }
+
+        $searchTokens = $request->validated('search_tokens', []);
+        if (! empty($searchTokens)) {
+            EncryptedSearchToken::insertTokensForMessage('channel', $channel->id, $message->id, $searchTokens);
+        }
 
         return $this->createdResponse(
             new MessageResource($message),
@@ -87,9 +104,16 @@ class MessageController extends Controller
 
         $message->update([
             'content' => $request->validated('content'),
+            'is_encrypted' => $request->validated('is_encrypted', $message->is_encrypted),
+            'sender_device_id' => $request->validated('sender_device_id', $message->sender_device_id),
             'is_edited' => true,
             'edited_at' => now(),
         ]);
+
+        $searchTokens = $request->validated('search_tokens', []);
+        if (! empty($searchTokens)) {
+            EncryptedSearchToken::replaceTokensForMessage('channel', $channel->id, $message->id, $searchTokens);
+        }
 
         broadcast(new MessageEdited($message))->toOthers();
 
@@ -118,6 +142,9 @@ class MessageController extends Controller
         }
 
         $messageId = $message->id;
+
+        EncryptedSearchToken::deleteTokensForMessage($messageId);
+
         $message->delete();
 
         broadcast(new MessageDeleted($messageId, $channel->id))->toOthers();

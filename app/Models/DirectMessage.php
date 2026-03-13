@@ -21,6 +21,8 @@ class DirectMessage extends Model
         'direct_message_group_id',
         'user_id',
         'content',
+        'is_encrypted',
+        'sender_device_id',
         'is_edited',
         'edited_at',
     ];
@@ -31,6 +33,7 @@ class DirectMessage extends Model
     protected function casts(): array
     {
         return [
+            'is_encrypted' => 'boolean',
             'is_edited' => 'boolean',
             'edited_at' => 'datetime',
         ];

@@ -55,7 +55,7 @@ class DeviceController extends Controller
         if (! sodium_crypto_sign_verify_detached($signatureBytes, $deviceIdentityKeyBytes, $identityKeyBytes)) {
             return $this->errorResponse(
                 'Device identity key signature does not match your registered identity key. '
-                . 'You may need to re-setup E2EE.',
+                .'You may need to re-setup E2EE.',
                 Response::HTTP_UNPROCESSABLE_ENTITY,
             );
         }

@@ -145,6 +145,7 @@ class MentionService
                 $mentions->push($mention);
                 $this->notifyEveryone($message);
             }
+
             return $mentions;
         }
 
@@ -157,6 +158,7 @@ class MentionService
                 $mentions->push($mention);
                 $this->notifyHere($message);
             }
+
             return $mentions;
         }
 

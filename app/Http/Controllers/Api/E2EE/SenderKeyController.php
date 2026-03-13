@@ -173,7 +173,6 @@ class SenderKeyController extends Controller
      * Request sender key distributions from online channel members.
      * Broadcasts a SenderKeyNeeded event on the channel so that other
      * online clients redistribute their sender keys to the requesting device.
-     *
      */
     public function requestKeys(Request $request, Channel $channel): JsonResponse
     {

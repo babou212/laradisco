@@ -4,7 +4,6 @@ namespace App\Concerns;
 
 /**
  * Safely base64-encodes values that may be PHP stream resources.
- *
  */
 trait EncodesPostgresBinary
 {

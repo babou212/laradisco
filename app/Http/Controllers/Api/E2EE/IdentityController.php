@@ -9,7 +9,6 @@ use App\Models\ChannelSenderKey;
 use App\Models\DevicePrekey;
 use App\Models\DmSenderKey;
 use App\Models\DmSenderKeyDistribution;
-use App\Models\E2eeAuditLog;
 use App\Models\SenderKeyDistribution;
 use App\Models\User;
 use App\Models\UserDevice;

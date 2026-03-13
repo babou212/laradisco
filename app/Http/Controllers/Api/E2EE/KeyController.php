@@ -14,7 +14,6 @@ use App\Services\E2eeAuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Symfony\Component\HttpFoundation\Response;
 
 class KeyController extends Controller
 {

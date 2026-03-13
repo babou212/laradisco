@@ -2,10 +2,10 @@
 
 use App\Http\Controllers\Api\E2EE\AuditLogController;
 use App\Http\Controllers\Api\E2EE\DeviceController;
+use App\Http\Controllers\Api\E2EE\DmSenderKeyController;
 use App\Http\Controllers\Api\E2EE\IdentityController;
 use App\Http\Controllers\Api\E2EE\KeyBackupController;
 use App\Http\Controllers\Api\E2EE\KeyController;
-use App\Http\Controllers\Api\E2EE\DmSenderKeyController;
 use App\Http\Controllers\Api\E2EE\SearchController;
 use App\Http\Controllers\Api\E2EE\SenderKeyController;
 use Illuminate\Support\Facades\Route;

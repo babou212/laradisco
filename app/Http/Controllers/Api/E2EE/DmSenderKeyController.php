@@ -41,15 +41,15 @@ class DmSenderKeyController extends Controller
             return $this->forbiddenResponse('Invalid sender device for this user.');
         }
 
-        DmSenderKey::updateOrCreate(
+        DmSenderKey::upsert(
             [
                 'dm_group_id' => $dmGroup->id,
                 'user_id' => $user->id,
                 'device_id' => $validated['device_id'],
-            ],
-            [
                 'distribution_id' => $validated['distribution_id'],
             ],
+            ['dm_group_id', 'user_id', 'device_id'],
+            ['distribution_id'],
         );
 
         if (! empty($validated['distributions'])) {
@@ -66,20 +66,20 @@ class DmSenderKeyController extends Controller
                     return $this->forbiddenResponse('Invalid recipient device for this user.');
                 }
 
-                DmSenderKeyDistribution::updateOrCreate(
+                DmSenderKeyDistribution::upsert(
                     [
                         'dm_group_id' => $dmGroup->id,
                         'sender_device_id' => $validated['device_id'],
                         'distribution_id' => $validated['distribution_id'],
                         'recipient_device_id' => $dist['recipient_device_id'],
-                    ],
-                    [
                         'sender_user_id' => $user->id,
                         'recipient_user_id' => $dist['recipient_user_id'],
                         'encrypted_distribution' => $dist['encrypted_distribution'],
                         'ephemeral_public_key' => $dist['ephemeral_public_key'],
                         'nonce' => $dist['nonce'],
                     ],
+                    ['dm_group_id', 'sender_device_id', 'distribution_id', 'recipient_device_id'],
+                    ['sender_user_id', 'recipient_user_id', 'encrypted_distribution', 'ephemeral_public_key', 'nonce'],
                 );
             }
 

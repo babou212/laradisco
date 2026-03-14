@@ -39,7 +39,7 @@ class SenderKeyController extends Controller
 
         $validated = $request->validated();
 
-        $senderDevice = UserDevice::where('id', $validated['device_id'])
+        $senderDevice = UserDevice::where('device_id', $validated['device_id'])
             ->where('user_id', $user->id)
             ->first();
 
@@ -54,7 +54,7 @@ class SenderKeyController extends Controller
                     return $this->forbiddenResponse('Invalid recipient user for key distribution.');
                 }
 
-                $recipientDevice = UserDevice::where('id', $dist['recipient_device_id'])
+                $recipientDevice = UserDevice::where('device_id', $dist['recipient_device_id'])
                     ->where('user_id', $recipientUser->id)
                     ->first();
                 if (! $recipientDevice) {
@@ -67,33 +67,33 @@ class SenderKeyController extends Controller
             }
         }
 
-        ChannelSenderKey::updateOrCreate(
+        ChannelSenderKey::upsert(
             [
                 'channel_id' => $channel->id,
                 'user_id' => $user->id,
                 'device_id' => $validated['device_id'],
-            ],
-            [
                 'distribution_id' => $validated['distribution_id'],
             ],
+            ['channel_id', 'user_id', 'device_id'],
+            ['distribution_id'],
         );
 
         if (! empty($validated['distributions'])) {
             foreach ($validated['distributions'] as $dist) {
-                SenderKeyDistribution::updateOrCreate(
+                SenderKeyDistribution::upsert(
                     [
                         'channel_id' => $channel->id,
                         'sender_device_id' => $validated['device_id'],
                         'distribution_id' => $validated['distribution_id'],
                         'recipient_device_id' => $dist['recipient_device_id'],
-                    ],
-                    [
                         'sender_user_id' => $user->id,
                         'recipient_user_id' => $dist['recipient_user_id'],
                         'encrypted_distribution' => $dist['encrypted_distribution'],
                         'ephemeral_public_key' => $dist['ephemeral_public_key'],
                         'nonce' => $dist['nonce'],
                     ],
+                    ['channel_id', 'sender_device_id', 'distribution_id', 'recipient_device_id'],
+                    ['sender_user_id', 'recipient_user_id', 'encrypted_distribution', 'ephemeral_public_key', 'nonce'],
                 );
             }
 

@@ -78,7 +78,8 @@ class IdentityController extends Controller
 
     /**
      * Reset all E2EE data for the authenticated user.
-     * Wipes identity key, devices, pre-keys, sender keys, backup, and audit log.
+     * Wipes identity key, devices, pre-keys, sender keys, and backup data,
+     * then records an `identity_reset` event in the audit log.
      * After calling this, the user can re-register their identity.
      */
     public function reset(Request $request): JsonResponse

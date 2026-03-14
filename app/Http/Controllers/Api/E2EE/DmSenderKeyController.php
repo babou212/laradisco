@@ -33,6 +33,14 @@ class DmSenderKeyController extends Controller
 
         $validated = $request->validated();
 
+        $senderDevice = UserDevice::where('id', $validated['device_id'])
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (! $senderDevice) {
+            return $this->forbiddenResponse('Invalid sender device for this user.');
+        }
+
         DmSenderKey::updateOrCreate(
             [
                 'dm_group_id' => $dmGroup->id,
@@ -46,6 +54,18 @@ class DmSenderKeyController extends Controller
 
         if (! empty($validated['distributions'])) {
             foreach ($validated['distributions'] as $dist) {
+                if (! $dmGroup->participants()->where('users.id', $dist['recipient_user_id'])->exists()) {
+                    return $this->forbiddenResponse('Recipient is not a participant in this DM group.');
+                }
+
+                $recipientDevice = UserDevice::where('id', $dist['recipient_device_id'])
+                    ->where('user_id', $dist['recipient_user_id'])
+                    ->first();
+
+                if (! $recipientDevice) {
+                    return $this->forbiddenResponse('Invalid recipient device for this user.');
+                }
+
                 DmSenderKeyDistribution::updateOrCreate(
                     [
                         'dm_group_id' => $dmGroup->id,

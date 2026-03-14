@@ -74,15 +74,18 @@ class EncryptedSearchToken extends Model
         int $messageId,
         array $tokens,
     ): void {
-        static::where('message_id', $messageId)->delete();
+        static::deleteTokensForMessage($conversationType, $conversationId, $messageId);
         static::insertTokensForMessage($conversationType, $conversationId, $messageId, $tokens);
     }
 
     /**
      * Delete all tokens for a message.
      */
-    public static function deleteTokensForMessage(int $messageId): void
+    public static function deleteTokensForMessage(string $conversationType, int $conversationId, int $messageId): void
     {
-        static::where('message_id', $messageId)->delete();
+        static::where('conversation_type', $conversationType)
+            ->where('conversation_id', $conversationId)
+            ->where('message_id', $messageId)
+            ->delete();
     }
 }

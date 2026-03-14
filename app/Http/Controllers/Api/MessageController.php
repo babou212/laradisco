@@ -110,8 +110,8 @@ class MessageController extends Controller
             'edited_at' => now(),
         ]);
 
-        $searchTokens = $request->validated('search_tokens', []);
-        if (! empty($searchTokens)) {
+        $searchTokens = $request->validated('search_tokens', null);
+        if ($searchTokens !== null) {
             EncryptedSearchToken::replaceTokensForMessage('channel', $channel->id, $message->id, $searchTokens);
         }
 
@@ -143,7 +143,7 @@ class MessageController extends Controller
 
         $messageId = $message->id;
 
-        EncryptedSearchToken::deleteTokensForMessage($messageId);
+        EncryptedSearchToken::deleteTokensForMessage('channel', $channel->id, $messageId);
 
         $message->delete();
 

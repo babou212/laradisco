@@ -30,4 +30,9 @@ return new class extends Migration
             $table->index(['recipient_user_id', 'recipient_device_id', 'channel_id'], 'skd_recipient_channel');
         });
     }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('sender_key_distributions');
+    }
 };

@@ -40,7 +40,12 @@ class KeyController extends Controller
         $devices = UserDevice::where('user_id', $user->id)
             ->where('is_active', true)
             ->select(['device_id', 'device_name', 'device_identity_key'])
-            ->get();
+            ->get()
+            ->map(fn (UserDevice $device) => [
+                'device_id' => $device->device_id,
+                'device_name' => $device->device_name,
+                'device_identity_key' => $device->device_identity_key,
+            ]);
 
         return $this->successResponse($devices);
     }

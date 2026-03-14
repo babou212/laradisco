@@ -11,6 +11,7 @@ use App\Models\Channel;
 use App\Models\ChannelSenderKey;
 use App\Models\SenderKeyDistribution;
 use App\Models\User;
+use App\Models\ChannelPermissionOverride;
 use App\Models\UserDevice;
 use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
@@ -151,12 +152,14 @@ class SenderKeyController extends Controller
             return $this->forbiddenResponse('You do not have access to this channel.');
         }
 
+        $channelOverrides = ChannelPermissionOverride::where('channel_id', $channel->id)->get();
+
         $usersWithDevices = User::whereHas('activeDevices')
-            ->with('activeDevices:id,user_id,device_id,device_identity_key')
+            ->with(['activeDevices:id,user_id,device_id,device_identity_key', 'roles'])
             ->get();
 
         $memberBundles = $usersWithDevices
-            ->filter(fn (User $u) => $this->permissionService->userCanViewChannel($u, $channel))
+            ->filter(fn (User $u) => $this->permissionService->userCanViewChannel($u, $channel, $channelOverrides))
             ->map(fn (User $u) => [
                 'user_id' => $u->id,
                 'devices' => $u->activeDevices->map(fn (UserDevice $d) => [

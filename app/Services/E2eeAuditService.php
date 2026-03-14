@@ -20,9 +20,10 @@ class E2eeAuditService
         ?array $metadata = null,
     ): E2eeAuditLog {
         return DB::transaction(function () use ($userId, $eventType, $deviceId, $publicKey, $signature, $metadata) {
+            DB::table('users')->where('id', $userId)->lockForUpdate()->first();
+
             $previousEntry = E2eeAuditLog::where('user_id', $userId)
                 ->orderByDesc('id')
-                ->lockForUpdate()
                 ->first();
 
             $previousHash = $previousEntry?->entry_hash;
@@ -36,6 +37,8 @@ class E2eeAuditService
                 (string) $publicKey,
                 $timestamp->toISOString(),
                 (string) $previousHash,
+                (string) $signature,
+                json_encode($metadata),
             ]));
 
             return E2eeAuditLog::create([

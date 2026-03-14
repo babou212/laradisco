@@ -146,8 +146,8 @@ class DirectMessageController extends Controller
             'edited_at' => now(),
         ]);
 
-        $searchTokens = $request->validated('search_tokens', []);
-        if (! empty($searchTokens)) {
+        $searchTokens = $request->validated('search_tokens', null);
+        if ($searchTokens !== null) {
             EncryptedSearchToken::replaceTokensForMessage('dm', $dmGroup->id, $message->id, $searchTokens);
         }
 
@@ -180,7 +180,7 @@ class DirectMessageController extends Controller
 
         $messageId = $message->id;
 
-        EncryptedSearchToken::deleteTokensForMessage($messageId);
+        EncryptedSearchToken::deleteTokensForMessage('dm', $dmGroup->id, $messageId);
 
         $message->delete();
 

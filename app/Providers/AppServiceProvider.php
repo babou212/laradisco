@@ -19,7 +19,6 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
-
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -55,6 +54,10 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::define('manage-members', function (User $user): bool {
             return $user->isAdministrator() || $user->hasPermission(PermissionFlag::ManageRoles);
+        });
+
+        Gate::define('viewPulse', function (?User $user): bool {
+            return true; // Protected by oauth2-proxy at infrastructure level
         });
     }
 

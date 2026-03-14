@@ -6,6 +6,8 @@
 ARG BASE_IMAGE=ghcr.io/babou212/laradisco:latest
 FROM ${BASE_IMAGE}
 
+ENV AUTORUN_ENABLED="false"
+
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD php /var/www/html/artisan horizon:status | grep -q running || exit 1
 

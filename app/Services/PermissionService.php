@@ -114,22 +114,28 @@ class PermissionService
      */
     public function getAccessibleChannels(User $user): Collection
     {
-        $user->loadMissing('roles');
-        $channels = Channel::with('category')->get();
+        $cacheKey = "user.{$user->id}.accessible_channels";
 
-        // Batch-load all permission overrides for this user's roles + user-specific
-        // in a single query instead of querying per-channel.
-        $roleIds = $user->roles->pluck('id')->all();
-        $allOverrides = ChannelPermissionOverride::query()
-            ->where(function ($q) use ($roleIds, $user) {
-                $q->whereIn('role_id', $roleIds)->whereNull('user_id')
-                    ->orWhere(function ($q2) use ($user) {
-                        $q2->where('user_id', $user->id)->whereNull('role_id');
-                    });
-            })
-            ->get();
+        $channelIds = cache()->remember($cacheKey, now()->addMinutes(5), function () use ($user) {
+            $user->loadMissing('roles');
+            $channels = Channel::with('category')->get();
 
-        return $channels->filter(fn (Channel $channel) => $this->userCanViewChannel($user, $channel, $allOverrides));
+            $roleIds = $user->roles->pluck('id')->all();
+            $allOverrides = ChannelPermissionOverride::query()
+                ->where(function ($q) use ($roleIds, $user) {
+                    $q->whereIn('role_id', $roleIds)->whereNull('user_id')
+                        ->orWhere(function ($q2) use ($user) {
+                            $q2->where('user_id', $user->id)->whereNull('role_id');
+                        });
+                })
+                ->get();
+
+            return $channels->filter(fn (Channel $channel) => $this->userCanViewChannel($user, $channel, $allOverrides))
+                ->pluck('id')
+                ->all();
+        });
+
+        return Channel::with('category')->whereIn('id', $channelIds)->get();
     }
 
     /**
@@ -182,6 +188,7 @@ class PermissionService
 
         $keys = $channelIds->map(fn ($id) => "user.{$user->id}.channel.{$id}.permissions")->all();
         $keys[] = "user.{$user->id}.permissions";
+        $keys[] = "user.{$user->id}.accessible_channels";
 
         foreach ($keys as $key) {
             cache()->forget($key);
@@ -195,6 +202,7 @@ class PermissionService
     {
         User::select('id')->cursor()->each(function (User $user) use ($channel) {
             cache()->forget("user.{$user->id}.channel.{$channel->id}.permissions");
+            cache()->forget("user.{$user->id}.accessible_channels");
         });
     }
 

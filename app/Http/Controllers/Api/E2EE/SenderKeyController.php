@@ -97,11 +97,15 @@ class SenderKeyController extends Controller
                 );
             }
 
-            broadcast(new SenderKeyDistributed(
-                channelId: $channel->id,
-                senderUserId: $user->id,
-                senderDeviceId: $validated['device_id'],
-            ))->toOthers();
+            try {
+                broadcast(new SenderKeyDistributed(
+                    channelId: $channel->id,
+                    senderUserId: $user->id,
+                    senderDeviceId: $validated['device_id'],
+                ))->toOthers();
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         return $this->createdResponse([
@@ -218,11 +222,15 @@ class SenderKeyController extends Controller
             return $this->errorResponse('device_id is required.', 422);
         }
 
-        broadcast(new SenderKeyNeeded(
-            channelId: $channel->id,
-            requestingUserId: $user->id,
-            requestingDeviceId: $deviceId,
-        ))->toOthers();
+        try {
+            broadcast(new SenderKeyNeeded(
+                channelId: $channel->id,
+                requestingUserId: $user->id,
+                requestingDeviceId: $deviceId,
+            ))->toOthers();
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return $this->successResponse([
             'channel_id' => $channel->id,

@@ -1,56 +1,31 @@
 # =============================================================================
 # Local development Dockerfile for FrankenPHP + Laravel Octane
+# Based on serversideup/docker-php
 # Used by compose.yaml for the laravel.test service
 # =============================================================================
 
-FROM dunglas/frankenphp:1-php8.5-alpine
+FROM serversideup/php:8.5-frankenphp
 
-# Install system dependencies
-RUN apk add --no-cache \
-    libpq-dev \
-    libzip-dev \
-    icu-dev \
-    oniguruma-dev \
-    freetype-dev \
-    libjpeg-turbo-dev \
-    libpng-dev \
-    linux-headers \
+# Switch to root to install additional extensions & dev tools
+USER root
+
+# Install additional PHP extensions not included by default
+# Pre-installed: opcache, pcntl, pdo_mysql, pdo_pgsql, redis, zip, mbstring
+RUN install-php-extensions intl gd bcmath sockets pgsql
+
+# Install dev tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs \
     npm \
-    shadow \
-    bash \
-    curl \
     git \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) \
-        pdo_pgsql \
-        pgsql \
-        zip \
-        intl \
-        gd \
-        pcntl \
-        bcmath \
-        sockets \
-        mbstring \
-    && apk del --no-cache
-
-# Install Redis extension
-RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
-    && apk del .build-deps
-
-# Install Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-
-# Create sail user for local dev (matches host UID/GID)
-ARG WWWGROUP=1000
-ARG WWWUSER=1000
-RUN addgroup -g ${WWWGROUP} -S sail || true \
-    && adduser -u ${WWWUSER} -G sail -S sail -s /bin/bash || true
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
 
-EXPOSE 80 443 443/udp 5173
+EXPOSE 8080 8443 5173
 
-CMD sh -c "npm install && npm run build && php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=80 --admin-port=2019 --watch"
+# Switch back to unprivileged user
+USER www-data
+
+CMD sh -c "npm install && npm run build && php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080 --watch"

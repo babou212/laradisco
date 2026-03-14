@@ -8,17 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class UserKeyBackup extends Model
 {
     /**
-     * Binary columns that must not be JSON-serialized.
-     *
-     * @var list<string>
-     */
-    protected $hidden = [
-        'encrypted_bundle',
-        'salt',
-        'nonce',
-    ];
-
-    /**
      * @var list<string>
      */
     protected $fillable = [

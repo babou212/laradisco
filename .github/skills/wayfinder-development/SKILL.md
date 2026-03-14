@@ -67,15 +67,6 @@ show(1, { query: { page: 1 } }) // "/posts/1?page=1"
 
 </code-snippet>
 
-## Wayfinder + Inertia
-
-Use Wayfinder with the `<Form>` component:
-<code-snippet name="Wayfinder Form (Vue)" lang="vue">
-
-<Form v-bind="store.form()"><input name="title" /></Form>
-
-</code-snippet>
-
 ## Verification
 
 1. Run `php artisan wayfinder:generate` to regenerate routes if Vite plugin isn't installed

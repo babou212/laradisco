@@ -42,7 +42,7 @@ class MessageController extends Controller
         }
 
         $messages = $channel->messages()
-            ->with(['user', 'attachments', 'reactions', 'replyTo.user'])
+            ->with(['user:id,username,name,nickname,avatar_path,status,custom_status', 'attachments', 'reactions', 'replyTo.user:id,username,name,nickname,avatar_path,status,custom_status'])
             ->orderBy('created_at', 'asc')
             ->cursorPaginate(50);
 
@@ -62,7 +62,7 @@ class MessageController extends Controller
             'sender_device_id' => $request->validated('sender_device_id'),
         ]);
 
-        $message->load(['user', 'replyTo.user']);
+        $message->load(['user:id,username,name,nickname,avatar_path,status,custom_status', 'replyTo.user:id,username,name,nickname,avatar_path,status,custom_status']);
 
         broadcast(new MessageSent($message))->toOthers();
 

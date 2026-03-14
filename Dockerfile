@@ -1,7 +1,7 @@
 # =============================================================================
 # Multi-stage Dockerfile for Laradisco
 # Stage 1: Install PHP dependencies (Composer)
-# Stage 2: Production image (FrankenPHP + Laravel Octane)
+# Stage 2: Production image (serversideup/php FrankenPHP + Laravel Octane)
 # =============================================================================
 
 # ---------------------------------------------------------------------------
@@ -23,37 +23,14 @@ RUN composer install \
 # ---------------------------------------------------------------------------
 # Stage 2: Production image
 # ---------------------------------------------------------------------------
-FROM dunglas/frankenphp:1-php8.5-alpine
+FROM serversideup/php:8.5-frankenphp
 
-# Install system dependencies
-RUN apk add --no-cache \
-    libpq-dev \
-    libzip-dev \
-    icu-dev \
-    oniguruma-dev \
-    freetype-dev \
-    libjpeg-turbo-dev \
-    libpng-dev \
-    curl \
-    linux-headers \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) \
-        pdo_pgsql \
-        pgsql \
-        zip \
-        intl \
-        gd \
-        pcntl \
-        bcmath \
-        sockets \
-        mbstring \
-    && apk del --no-cache
+# Switch to root to install additional extensions & configure
+USER root
 
-# Install Redis extension
-RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
-    && apk del .build-deps
+# Install additional PHP extensions not included by default
+# Pre-installed: opcache, pcntl, pdo_mysql, pdo_pgsql, redis, zip, mbstring
+RUN install-php-extensions intl gd bcmath sockets pgsql
 
 # Create required directories
 RUN mkdir -p \
@@ -66,14 +43,24 @@ RUN mkdir -p \
 
 WORKDIR /var/www/html
 
-# Copy PHP production config
+# Copy PHP production config (loads after serversideup defaults)
 COPY docker/php/php-prod.ini /usr/local/etc/php/conf.d/99-production.ini
 
 # Copy application code
-COPY . .
+COPY --chown=www-data:www-data . .
 
 # Copy vendor from composer stage
-COPY --from=composer /app/vendor vendor
+COPY --from=composer --chown=www-data:www-data /app/vendor vendor
+
+# Set permissions on directories that need to be writable at runtime
+RUN chown -R www-data:www-data \
+    /var/log/php \
+    storage \
+    bootstrap/cache \
+    public
+
+# Switch back to unprivileged user
+USER www-data
 
 # Run composer post-install scripts (package discovery, etc.)
 RUN php artisan package:discover --ansi || true
@@ -89,23 +76,20 @@ RUN cp .env.example .env && \
     rm -f .env database/database.sqlite
 
 # Optimize for production
-RUN php artisan route:cache || true \
+RUN php artisan config:cache || true \
+    && php artisan route:cache || true \
     && php artisan view:cache || true \
     && php artisan event:cache || true
 
-# Set permissions
-RUN chown -R www-data:www-data \
-    storage \
-    bootstrap/cache \
-    public
+# Environment configuration
+ENV AUTORUN_ENABLED="true"
+ENV PHP_OPCACHE_ENABLE="1"
+ENV OCTANE_SERVER="frankenphp"
+ENV FRANKENPHP_CONFIG="worker ./public/index.php"
 
-# FrankenPHP environment
-ENV SERVER_NAME=":80"
-ENV OCTANE_SERVER=frankenphp
-
-EXPOSE 80
+EXPOSE 8080 8443
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost/up || exit 1
+    CMD ["healthcheck-octane"]
 
-CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=80", "--admin-port=2019"]
+CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--port=8080"]

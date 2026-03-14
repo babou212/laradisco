@@ -6,6 +6,8 @@
 ARG BASE_IMAGE=ghcr.io/babou212/laradisco:latest
 FROM ${BASE_IMAGE}
 
+ENV AUTORUN_ENABLED="false"
+
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

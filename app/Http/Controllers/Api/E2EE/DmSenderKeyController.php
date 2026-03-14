@@ -83,11 +83,15 @@ class DmSenderKeyController extends Controller
                 );
             }
 
-            broadcast(new DmSenderKeyDistributed(
-                dmGroupId: $dmGroup->id,
-                senderUserId: $user->id,
-                senderDeviceId: $validated['device_id'],
-            ))->toOthers();
+            try {
+                broadcast(new DmSenderKeyDistributed(
+                    dmGroupId: $dmGroup->id,
+                    senderUserId: $user->id,
+                    senderDeviceId: $validated['device_id'],
+                ))->toOthers();
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         return $this->createdResponse([
@@ -196,11 +200,15 @@ class DmSenderKeyController extends Controller
             return $this->errorResponse('device_id is required.', 422);
         }
 
-        broadcast(new DmSenderKeyNeeded(
-            dmGroupId: $dmGroup->id,
-            requestingUserId: $user->id,
-            requestingDeviceId: $deviceId,
-        ))->toOthers();
+        try {
+            broadcast(new DmSenderKeyNeeded(
+                dmGroupId: $dmGroup->id,
+                requestingUserId: $user->id,
+                requestingDeviceId: $deviceId,
+            ))->toOthers();
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return $this->successResponse([
             'dm_group_id' => $dmGroup->id,

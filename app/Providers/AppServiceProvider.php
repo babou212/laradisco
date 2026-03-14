@@ -56,6 +56,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('manage-members', function (User $user): bool {
             return $user->isAdministrator() || $user->hasPermission(PermissionFlag::ManageRoles);
         });
+
+        Gate::define('viewPulse', function (?User $user): bool {
+            return true; // Protected by oauth2-proxy at infrastructure level
+        });
     }
 
     /**

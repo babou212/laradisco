@@ -34,7 +34,7 @@ class DirectMessageController extends Controller
         $user = $request->user();
 
         $dmGroups = $user->directMessageGroups()
-            ->with(['participants', 'lastMessage.user'])
+            ->with(['participants:id,username,name,nickname,avatar_path,status,custom_status', 'lastMessage.user:id,username,name,nickname,avatar_path,status,custom_status'])
             ->orderBy('last_message_at', 'desc')
             ->get();
 
@@ -57,12 +57,12 @@ class DirectMessageController extends Controller
             ->first();
 
         $messages = $dmGroup->messages()
-            ->with(['user', 'reactions'])
+            ->with(['user:id,username,name,nickname,avatar_path,status,custom_status', 'reactions'])
             ->orderBy('created_at', 'asc')
             ->cursorPaginate(50);
 
         return $this->successResponse([
-            'dm_group' => new DirectMessageGroupResource($dmGroup->load('participants')),
+            'dm_group' => new DirectMessageGroupResource($dmGroup->load('participants:id,username,name,nickname,avatar_path,status,custom_status')),
             'messages' => DirectMessageResource::collection($messages->items()),
             'pagination' => [
                 'next_cursor' => $messages->nextCursor()?->encode(),
@@ -88,7 +88,7 @@ class DirectMessageController extends Controller
 
         $dmGroup->update(['last_message_at' => now()]);
 
-        $message->load('user');
+        $message->load('user:id,username,name,nickname,avatar_path,status,custom_status');
 
         $dmGroup->loadMissing('participants');
 

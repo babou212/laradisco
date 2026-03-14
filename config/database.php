@@ -147,61 +147,74 @@ return [
         'client' => env('REDIS_CLIENT', 'phpredis'),
 
         'options' => [
-            'cluster' => env('REDIS_CLUSTER', 'redis'),
+            'replication' => env('REDIS_SENTINEL_SERVICE') ? 'sentinel' : null,
+            'service' => env('REDIS_SENTINEL_SERVICE', 'mymaster'),
             'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-database-'),
             'persistent' => env('REDIS_PERSISTENT', true),
+            'parameters' => [
+                'password' => env('REDIS_PASSWORD'),
+                'database' => 0,
+            ],
         ],
 
-        'default' => [
+        'default' => env('REDIS_SENTINEL_SERVICE') ? [
+            [
+                'host' => env('REDIS_SENTINEL_HOST', '127.0.0.1'),
+                'port' => env('REDIS_SENTINEL_PORT', 26379),
+            ],
+            'database' => env('REDIS_DB', '0'),
+        ] : [
             'url' => env('REDIS_URL'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_DB', '0'),
-            'max_retries' => env('REDIS_MAX_RETRIES', 3),
-            'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
-            'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
-            'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
         ],
 
-        'cache' => [
+        'cache' => env('REDIS_SENTINEL_SERVICE') ? [
+            [
+                'host' => env('REDIS_SENTINEL_HOST', '127.0.0.1'),
+                'port' => env('REDIS_SENTINEL_PORT', 26379),
+            ],
+            'database' => env('REDIS_CACHE_DB', '1'),
+        ] : [
             'url' => env('REDIS_URL'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_CACHE_DB', '1'),
-            'max_retries' => env('REDIS_MAX_RETRIES', 3),
-            'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
-            'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
-            'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
         ],
 
-        'session' => [
+        'session' => env('REDIS_SENTINEL_SERVICE') ? [
+            [
+                'host' => env('REDIS_SENTINEL_HOST', '127.0.0.1'),
+                'port' => env('REDIS_SENTINEL_PORT', 26379),
+            ],
+            'database' => env('REDIS_SESSION_DB', '2'),
+        ] : [
             'url' => env('REDIS_URL'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_SESSION_DB', '2'),
-            'max_retries' => env('REDIS_MAX_RETRIES', 3),
-            'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
-            'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
-            'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
         ],
 
-        'queue' => [
+        'queue' => env('REDIS_SENTINEL_SERVICE') ? [
+            [
+                'host' => env('REDIS_SENTINEL_HOST', '127.0.0.1'),
+                'port' => env('REDIS_SENTINEL_PORT', 26379),
+            ],
+            'database' => env('REDIS_QUEUE_DB', '3'),
+        ] : [
             'url' => env('REDIS_URL'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_QUEUE_DB', '3'),
-            'max_retries' => env('REDIS_MAX_RETRIES', 3),
-            'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
-            'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
-            'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
         ],
 
     ],

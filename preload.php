@@ -7,10 +7,9 @@
  * so every Octane worker shares the same pre-compiled opcodes. This reduces
  * per-worker memory usage and eliminates file stat calls on first load.
  */
+$classmap = __DIR__.'/vendor/composer/autoload_classmap.php';
 
-$classmap = __DIR__ . '/vendor/composer/autoload_classmap.php';
-
-if (!file_exists($classmap)) {
+if (! file_exists($classmap)) {
     return;
 }
 

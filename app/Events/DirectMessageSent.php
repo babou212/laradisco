@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Http\Resources\DirectMessageResource;
 use App\Models\DirectMessage;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
@@ -54,7 +55,7 @@ class DirectMessageSent implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'message' => $this->message,
+            'message' => new DirectMessageResource($this->message),
         ];
     }
 }

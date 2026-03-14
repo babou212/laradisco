@@ -16,6 +16,7 @@ use App\Http\Resources\DirectMessageGroupResource;
 use App\Http\Resources\DirectMessageResource;
 use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
+use App\Models\EncryptedSearchToken;
 use App\Notifications\DirectMessageNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -81,6 +82,8 @@ class DirectMessageController extends Controller
         $message = $dmGroup->messages()->create([
             'user_id' => $user->id,
             'content' => $request->validated('content'),
+            'is_encrypted' => $request->validated('is_encrypted', false),
+            'sender_device_id' => $request->validated('sender_device_id'),
         ]);
 
         $dmGroup->update(['last_message_at' => now()]);
@@ -102,6 +105,11 @@ class DirectMessageController extends Controller
                 $recipients,
                 new DirectMessageNotification($message)
             );
+        }
+
+        $searchTokens = $request->validated('search_tokens', []);
+        if (! empty($searchTokens)) {
+            EncryptedSearchToken::insertTokensForMessage('dm', $dmGroup->id, $message->id, $searchTokens);
         }
 
         return $this->createdResponse(
@@ -132,9 +140,16 @@ class DirectMessageController extends Controller
 
         $message->update([
             'content' => $request->validated('content'),
+            'is_encrypted' => $request->validated('is_encrypted', $message->is_encrypted),
+            'sender_device_id' => $request->validated('sender_device_id', $message->sender_device_id),
             'is_edited' => true,
             'edited_at' => now(),
         ]);
+
+        $searchTokens = $request->validated('search_tokens', null);
+        if ($searchTokens !== null) {
+            EncryptedSearchToken::replaceTokensForMessage('dm', $dmGroup->id, $message->id, $searchTokens);
+        }
 
         broadcast(new DirectMessageEdited($message))->toOthers();
 
@@ -164,6 +179,9 @@ class DirectMessageController extends Controller
         }
 
         $messageId = $message->id;
+
+        EncryptedSearchToken::deleteTokensForMessage('dm', $dmGroup->id, $messageId);
+
         $message->delete();
 
         broadcast(new DirectMessageDeleted($messageId, $dmGroup->id))->toOthers();

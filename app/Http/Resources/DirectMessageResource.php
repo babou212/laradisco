@@ -19,6 +19,8 @@ class DirectMessageResource extends JsonResource
             'dm_group_id' => $this->dm_group_id ?? $this->direct_message_group_id,
             'user_id' => $this->user_id,
             'content' => $this->content,
+            'is_encrypted' => $this->is_encrypted ?? false,
+            'sender_device_id' => $this->sender_device_id,
             'is_edited' => $this->is_edited ?? false,
             'edited_at' => $this->edited_at?->toISOString(),
             'user' => new UserSummaryResource($this->whenLoaded('user')),

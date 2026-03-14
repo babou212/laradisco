@@ -57,6 +57,8 @@ class MentionNotification extends Notification implements ShouldQueue
             'sender_username' => $this->message->user?->username,
             'sender_avatar' => $this->message->user?->avatar_path,
             'content' => $this->message->content,
+            'is_encrypted' => (bool) $this->message->is_encrypted,
+            'sender_device_id' => $this->message->sender_device_id,
             'mention_type' => $this->mentionType,
         ];
     }

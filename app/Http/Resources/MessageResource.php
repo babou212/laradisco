@@ -19,6 +19,8 @@ class MessageResource extends JsonResource
             'channel_id' => $this->channel_id,
             'user_id' => $this->user_id,
             'content' => $this->content,
+            'is_encrypted' => $this->is_encrypted ?? false,
+            'sender_device_id' => $this->sender_device_id,
             'is_edited' => $this->is_edited ?? false,
             'edited_at' => $this->edited_at?->toISOString(),
             'reply_to_id' => $this->reply_to_id,

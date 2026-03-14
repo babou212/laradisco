@@ -23,6 +23,8 @@ class Message extends Model
         'thread_id',
         'reply_to_id',
         'content',
+        'is_encrypted',
+        'sender_device_id',
         'is_pinned',
         'is_edited',
         'edited_at',
@@ -34,6 +36,7 @@ class Message extends Model
     protected function casts(): array
     {
         return [
+            'is_encrypted' => 'boolean',
             'is_pinned' => 'boolean',
             'is_edited' => 'boolean',
             'edited_at' => 'datetime',

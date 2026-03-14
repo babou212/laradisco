@@ -4,18 +4,6 @@ use App\Http\Controllers\Api\MentionController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| These routes are used by the native desktop/mobile clients.
-| They use Sanctum token authentication and return JSON responses.
-|
-| All routes are prefixed with /v1 for API versioning.
-|
-*/
-
 Route::prefix('v1')->group(function () {
 
     Route::get('/ping', fn () => response()->json([
@@ -63,6 +51,10 @@ Route::prefix('v1')->group(function () {
         Route::get('/users/{user}', [UserController::class, 'show'])->name('api.users.show');
 
         Route::get('/mentions/search', [MentionController::class, 'search'])->name('api.mentions.search');
+
+        Route::prefix('e2ee')->as('api.e2ee.')->group(
+            base_path('routes/api/e2ee.php'),
+        );
     });
 
 });

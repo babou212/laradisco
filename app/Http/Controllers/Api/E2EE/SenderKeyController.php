@@ -8,10 +8,10 @@ use App\Events\SenderKeyNeeded;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\E2EE\DistributeSenderKeysRequest;
 use App\Models\Channel;
+use App\Models\ChannelPermissionOverride;
 use App\Models\ChannelSenderKey;
 use App\Models\SenderKeyDistribution;
 use App\Models\User;
-use App\Models\ChannelPermissionOverride;
 use App\Models\UserDevice;
 use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
@@ -38,6 +38,34 @@ class SenderKeyController extends Controller
         }
 
         $validated = $request->validated();
+
+        $senderDevice = UserDevice::where('id', $validated['device_id'])
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (! $senderDevice) {
+            return $this->forbiddenResponse('You cannot distribute keys from this device.');
+        }
+
+        if (! empty($validated['distributions'])) {
+            foreach ($validated['distributions'] as $dist) {
+                $recipientUser = User::find($dist['recipient_user_id']);
+                if (! $recipientUser) {
+                    return $this->forbiddenResponse('Invalid recipient user for key distribution.');
+                }
+
+                $recipientDevice = UserDevice::where('id', $dist['recipient_device_id'])
+                    ->where('user_id', $recipientUser->id)
+                    ->first();
+                if (! $recipientDevice) {
+                    return $this->forbiddenResponse('Invalid recipient device for key distribution.');
+                }
+
+                if (! $this->permissionService->userCanViewChannel($recipientUser, $channel)) {
+                    return $this->forbiddenResponse('Recipient does not have access to this channel.');
+                }
+            }
+        }
 
         ChannelSenderKey::updateOrCreate(
             [

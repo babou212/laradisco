@@ -8,6 +8,7 @@ use App\Http\Requests\Api\E2EE\RegisterDeviceRequest;
 use App\Models\DevicePrekey;
 use App\Models\DmSenderKey;
 use App\Models\DmSenderKeyDistribution;
+use App\Models\SenderKeyDistribution;
 use App\Models\UserDevice;
 use App\Models\UserIdentityKey;
 use App\Services\E2eeAuditService;
@@ -168,6 +169,14 @@ class DeviceController extends Controller
             ->delete();
 
         DmSenderKeyDistribution::where('recipient_device_id', $deviceId)
+            ->where('recipient_user_id', $request->user()->id)
+            ->delete();
+
+        SenderKeyDistribution::where('sender_device_id', $deviceId)
+            ->where('sender_user_id', $request->user()->id)
+            ->delete();
+
+        SenderKeyDistribution::where('recipient_device_id', $deviceId)
             ->where('recipient_user_id', $request->user()->id)
             ->delete();
 

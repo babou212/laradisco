@@ -33,7 +33,7 @@ class DmSenderKeyController extends Controller
 
         $validated = $request->validated();
 
-        $senderDevice = UserDevice::where('id', $validated['device_id'])
+        $senderDevice = UserDevice::where('device_id', $validated['device_id'])
             ->where('user_id', $user->id)
             ->first();
 
@@ -58,7 +58,7 @@ class DmSenderKeyController extends Controller
                     return $this->forbiddenResponse('Recipient is not a participant in this DM group.');
                 }
 
-                $recipientDevice = UserDevice::where('id', $dist['recipient_device_id'])
+                $recipientDevice = UserDevice::where('device_id', $dist['recipient_device_id'])
                     ->where('user_id', $dist['recipient_user_id'])
                     ->first();
 

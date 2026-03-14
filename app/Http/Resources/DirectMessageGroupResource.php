@@ -33,6 +33,8 @@ class DirectMessageGroupResource extends JsonResource
                 'content' => $lastMessage->content,
                 'created_at' => $lastMessage->created_at?->toISOString(),
                 'user_id' => $lastMessage->user_id,
+                'is_encrypted' => (bool) $lastMessage->is_encrypted,
+                'sender_device_id' => $lastMessage->sender_device_id,
             ] : null,
             'last_message_at' => $this->last_message_at?->toISOString(),
             'created_at' => $this->created_at?->toISOString(),

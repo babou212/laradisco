@@ -147,23 +147,10 @@ return [
         'client' => env('REDIS_CLIENT', 'phpredis'),
 
         'options' => [
-            'replication' => env('REDIS_SENTINEL_SERVICE') ? 'sentinel' : null,
-            'service' => env('REDIS_SENTINEL_SERVICE', 'mymaster'),
             'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-database-'),
-            'persistent' => env('REDIS_PERSISTENT', true),
-            'parameters' => [
-                'password' => env('REDIS_PASSWORD'),
-                'database' => 0,
-            ],
         ],
 
-        'default' => env('REDIS_SENTINEL_SERVICE') ? [
-            [
-                'host' => env('REDIS_SENTINEL_HOST', '127.0.0.1'),
-                'port' => env('REDIS_SENTINEL_PORT', 26379),
-            ],
-            'database' => env('REDIS_DB', '0'),
-        ] : [
+        'default' => [
             'url' => env('REDIS_URL'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
@@ -172,13 +159,7 @@ return [
             'database' => env('REDIS_DB', '0'),
         ],
 
-        'cache' => env('REDIS_SENTINEL_SERVICE') ? [
-            [
-                'host' => env('REDIS_SENTINEL_HOST', '127.0.0.1'),
-                'port' => env('REDIS_SENTINEL_PORT', 26379),
-            ],
-            'database' => env('REDIS_CACHE_DB', '1'),
-        ] : [
+        'cache' => [
             'url' => env('REDIS_URL'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
@@ -187,13 +168,7 @@ return [
             'database' => env('REDIS_CACHE_DB', '1'),
         ],
 
-        'session' => env('REDIS_SENTINEL_SERVICE') ? [
-            [
-                'host' => env('REDIS_SENTINEL_HOST', '127.0.0.1'),
-                'port' => env('REDIS_SENTINEL_PORT', 26379),
-            ],
-            'database' => env('REDIS_SESSION_DB', '2'),
-        ] : [
+        'session' => [
             'url' => env('REDIS_URL'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
@@ -202,13 +177,7 @@ return [
             'database' => env('REDIS_SESSION_DB', '2'),
         ],
 
-        'queue' => env('REDIS_SENTINEL_SERVICE') ? [
-            [
-                'host' => env('REDIS_SENTINEL_HOST', '127.0.0.1'),
-                'port' => env('REDIS_SENTINEL_PORT', 26379),
-            ],
-            'database' => env('REDIS_QUEUE_DB', '3'),
-        ] : [
+        'queue' => [
             'url' => env('REDIS_URL'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),

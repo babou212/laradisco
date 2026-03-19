@@ -25,8 +25,11 @@ class EncryptedSearchToken extends Model
 
     /**
      * Scope: find tokens matching a set of trapdoors in a conversation.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder<self> $query
+     * @return \Illuminate\Database\Eloquent\Builder<self>
      */
-    public function scopeForConversation($query, string $type, int $id)
+    public function scopeForConversation(\Illuminate\Database\Eloquent\Builder $query, string $type, int $id): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('conversation_type', $type)
             ->where('conversation_id', $id);
@@ -34,14 +37,20 @@ class EncryptedSearchToken extends Model
 
     /**
      * Scope: match against one or more trapdoor tokens.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder<self> $query
+     * @param array<int, string> $tokens
+     * @return \Illuminate\Database\Eloquent\Builder<self>
      */
-    public function scopeMatchingTokens($query, array $tokens)
+    public function scopeMatchingTokens(\Illuminate\Database\Eloquent\Builder $query, array $tokens): \Illuminate\Database\Eloquent\Builder
     {
         return $query->whereIn('token', $tokens);
     }
 
     /**
      * Bulk insert search tokens for a message.
+     *
+     * @param array<int, string> $tokens
      */
     public static function insertTokensForMessage(
         string $conversationType,
@@ -67,6 +76,8 @@ class EncryptedSearchToken extends Model
 
     /**
      * Replace all tokens for a message (used on edit).
+     *
+     * @param array<int, string> $tokens
      */
     public static function replaceTokensForMessage(
         string $conversationType,

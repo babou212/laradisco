@@ -12,6 +12,7 @@ class StoreChannelOverrideRequest extends FormRequest
         return true; // Authorization handled by ChannelPolicy
     }
 
+    /** @return array<string, mixed> */
     public function rules(): array
     {
         $validPerms = implode(',', array_map(
@@ -29,7 +30,7 @@ class StoreChannelOverrideRequest extends FormRequest
         ];
     }
 
-    public function withValidator($validator): void
+    public function withValidator(\Illuminate\Validation\Validator $validator): void
     {
         $validator->after(function ($validator) {
             if (empty($this->input('role_id')) && empty($this->input('user_id'))) {

@@ -54,7 +54,7 @@ class MentionService
         }
 
         preg_match_all('/@(\w+)/', $content, $matches);
-        $usernames = array_unique($matches[1] ?? []);
+        $usernames = array_unique($matches[1]);
 
         if (empty($usernames)) {
             return $mentions;
@@ -127,6 +127,7 @@ class MentionService
      * and passes them as separate unencrypted metadata.
      *
      * @param  array<int>  $mentionUserIds
+     * @return Collection<int, Mention>
      */
     public function processMentionsFromMetadata(
         Message $message,
@@ -200,7 +201,7 @@ class MentionService
 
         preg_match_all('/@(\w+)/', $content, $matches);
         $usernames = array_values(array_unique(
-            array_filter($matches[1] ?? [], fn (string $u) => $u !== 'everyone' && $u !== 'here')
+            array_filter($matches[1], fn (string $u) => $u !== 'everyone' && $u !== 'here')
         ));
 
         return [

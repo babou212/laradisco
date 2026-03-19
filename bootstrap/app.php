@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureJsonAccept;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\UpdateUserLastSeen;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -20,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
+
+        $middleware->append(SecurityHeaders::class);
 
         $middleware->api(append: [
             EnsureJsonAccept::class,

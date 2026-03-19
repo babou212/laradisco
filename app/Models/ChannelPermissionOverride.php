@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property list<string> $allow
+ * @property list<string> $deny
+ */
 class ChannelPermissionOverride extends Model
 {
     /** @use HasFactory<\Database\Factories\ChannelPermissionOverrideFactory> */

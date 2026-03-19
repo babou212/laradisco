@@ -38,6 +38,7 @@ class SenderKeyNeeded implements ShouldBroadcast
         ];
     }
 
+    /** @return array<string, mixed> */
     public function broadcastWith(): array
     {
         return [

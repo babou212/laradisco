@@ -9,6 +9,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 trait ApiResponse
 {
+    /**
+     * @param  array<string, mixed>  $meta
+     */
     protected function successResponse(
         mixed $data = null,
         ?string $message = null,
@@ -21,7 +24,7 @@ trait ApiResponse
             $response['message'] = $message;
         }
 
-        if ($data instanceof JsonResource || $data instanceof ResourceCollection) {
+        if ($data instanceof ResourceCollection || $data instanceof JsonResource) {
             return $data->additional(array_filter([
                 'message' => $message,
                 'meta' => $meta ?: null,
@@ -74,6 +77,8 @@ trait ApiResponse
 
     /**
      * Return an error response.
+     *
+     * @param  array<string, mixed>  $errors
      */
     protected function errorResponse(
         string $message = 'An error occurred',
@@ -115,6 +120,8 @@ trait ApiResponse
 
     /**
      * Return a validation error (HTTP 422).
+     *
+     * @param  array<string, mixed>  $errors
      */
     protected function validationErrorResponse(string $message = 'Validation failed', array $errors = []): JsonResponse
     {

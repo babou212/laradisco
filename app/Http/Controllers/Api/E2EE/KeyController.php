@@ -68,6 +68,7 @@ class KeyController extends Controller
             ->where('is_active', true)
             ->get();
 
+        /** @var list<array<string, mixed>> $bundles */
         $bundles = DB::transaction(function () use ($devices) {
             return $devices->map(function (UserDevice $device) {
                 $oneTimePrekey = DevicePrekey::where('device_id', $device->device_id)
@@ -94,7 +95,7 @@ class KeyController extends Controller
                         'public_key' => $oneTimePrekey->public_key,
                     ] : null,
                 ];
-            });
+            })->all();
         });
 
         return $this->successResponse([

@@ -53,6 +53,8 @@ class DeviceController extends Controller
             );
         }
 
+        /** @var non-empty-string $signatureBytes */
+        /** @var non-empty-string $identityKeyBytes */
         if (! sodium_crypto_sign_verify_detached($signatureBytes, $deviceIdentityKeyBytes, $identityKeyBytes)) {
             return $this->errorResponse(
                 'Device identity key signature does not match your registered identity key. '

@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property ChannelType $type
+ * @property array<string, bool>|null $channelPermissions
+ */
 class Channel extends Model
 {
     /** @use HasFactory<\Database\Factories\ChannelFactory> */

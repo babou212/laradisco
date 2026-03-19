@@ -35,8 +35,7 @@ class VoiceChannelController extends Controller
         $voiceParticipants = [];
 
         foreach ($accessibleChannels as $channel) {
-            $type = $channel->type instanceof ChannelType ? $channel->type : null;
-            if ($type === ChannelType::Voice || $channel->type === 'voice') {
+            if ($channel->type === ChannelType::Voice) {
                 $cached = Cache::get("voice_channel:{$channel->id}:participants", []);
                 $voiceParticipants[$channel->id] = array_values($cached);
             }

@@ -143,7 +143,7 @@ class User extends Authenticatable
     /**
      * Check if the user has a specific permission through any of their roles.
      */
-    public function hasPermission(PermissionFlag $permission, $resource = null): bool
+    public function hasPermission(PermissionFlag $permission, mixed $resource = null): bool
     {
         $cacheKey = "user.{$this->id}.permissions";
 

@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin \App\Models\Channel */
 class ChannelResource extends JsonResource
 {
     /**
@@ -18,7 +19,7 @@ class ChannelResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'topic' => $this->topic,
-            'type' => $this->type instanceof \App\Enums\ChannelType ? $this->type->value : $this->type,
+            'type' => $this->type->value,
             'is_private' => $this->is_private,
             'category_id' => $this->category_id,
             'position' => $this->position,

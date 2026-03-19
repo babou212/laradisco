@@ -74,6 +74,7 @@ class AuthController extends Controller
             ]);
         }
 
+        /** @var User $user */
         $user = User::findOrFail($challenge['user_id']);
 
         if ($request->filled('code')) {
@@ -88,8 +89,9 @@ class AuthController extends Controller
                 ]);
             }
         } elseif ($request->filled('recovery_code')) {
+            /** @var list<string> $codes */
             $codes = json_decode(decrypt($user->two_factor_recovery_codes), true);
-            $matchIndex = collect($codes)->search(fn ($c) => hash_equals($c, $request->recovery_code));
+            $matchIndex = collect($codes)->search(fn (string $c) => hash_equals($c, $request->recovery_code));
 
             if ($matchIndex === false) {
                 throw ValidationException::withMessages([

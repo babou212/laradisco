@@ -44,6 +44,8 @@ class UserTyping implements ShouldBroadcastNow
 
     /**
      * Get the data to broadcast.
+     *
+     * @return array<string, mixed>
      */
     public function broadcastWith(): array
     {

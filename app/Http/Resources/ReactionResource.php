@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin \App\Models\MessageReaction */
 class ReactionResource extends JsonResource
 {
     /**
@@ -18,7 +19,7 @@ class ReactionResource extends JsonResource
             'id' => $this->id,
             'user_id' => $this->user_id,
             'emoji' => $this->emoji,
-            'message_id' => $this->message_id ?? $this->reactable_id,
+            'message_id' => $this->message_id,
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

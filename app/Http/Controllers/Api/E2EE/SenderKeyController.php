@@ -49,6 +49,7 @@ class SenderKeyController extends Controller
 
         if (! empty($validated['distributions'])) {
             foreach ($validated['distributions'] as $dist) {
+                /** @var User|null $recipientUser */
                 $recipientUser = User::find($dist['recipient_user_id']);
                 if (! $recipientUser) {
                     return $this->forbiddenResponse('Invalid recipient user for key distribution.');

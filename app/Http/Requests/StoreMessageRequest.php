@@ -14,6 +14,7 @@ class StoreMessageRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        /** @var \App\Models\Channel $channel */
         $channel = $this->route('channel');
         $permissionService = app(PermissionService::class);
 

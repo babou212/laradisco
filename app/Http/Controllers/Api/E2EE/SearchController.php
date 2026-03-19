@@ -38,11 +38,13 @@ class SearchController extends Controller
         $beforeId = $validated['before_id'] ?? null;
 
         if ($conversationType === 'channel') {
+            /** @var Channel|null $channel */
             $channel = Channel::find($conversationId);
             if (! $channel || ! $this->permissionService->userCanViewChannel($user, $channel)) {
                 return $this->forbiddenResponse('You do not have access to this channel.');
             }
         } elseif ($conversationType === 'dm') {
+            /** @var DirectMessageGroup|null $dmGroup */
             $dmGroup = DirectMessageGroup::find($conversationId);
             if (! $dmGroup || ! $dmGroup->participants()->where('users.id', $user->id)->exists()) {
                 return $this->forbiddenResponse('You do not have access to this conversation.');

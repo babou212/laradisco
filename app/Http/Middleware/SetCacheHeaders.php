@@ -29,6 +29,9 @@ class SetCacheHeaders
         }
 
         $content = $response->getContent();
+        if ($content === false) {
+            return $response;
+        }
         $etag = '"'.hash('xxh128', $content).'"';
 
         $response->header('ETag', $etag);

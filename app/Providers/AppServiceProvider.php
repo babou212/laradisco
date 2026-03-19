@@ -83,15 +83,14 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Event::listen(Logout::class, function (Logout $event): void {
-            if ($event->user) {
-                $user = $event->user;
-                app(PresenceService::class)->unregister($user);
+            /** @var \App\Models\User $user */
+            $user = $event->user;
+            app(PresenceService::class)->unregister($user);
 
-                event(new \App\Events\UserPresenceUpdated(
-                    $user,
-                    UserStatusType::Offline,
-                ));
-            }
+            event(new \App\Events\UserPresenceUpdated(
+                $user,
+                UserStatusType::Offline,
+            ));
         });
     }
 

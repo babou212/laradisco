@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin \App\Models\DirectMessageGroup */
 class DirectMessageGroupResource extends JsonResource
 {
     /**
@@ -27,7 +28,7 @@ class DirectMessageGroupResource extends JsonResource
 
         return [
             'id' => $this->id,
-            'name' => $this->name ?? $otherParticipant?->username ?? 'Unknown',
+            'name' => $this->name ?? $otherParticipant->username ?? 'Unknown',
             'other_user' => $otherParticipant ? new UserSummaryResource($otherParticipant) : null,
             'last_message' => $lastMessage ? [
                 'content' => $lastMessage->content,

@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin \App\Models\Role */
 class RoleResource extends JsonResource
 {
     /**
@@ -23,7 +24,7 @@ class RoleResource extends JsonResource
             'is_default' => $this->is_default,
             'is_mentionable' => $this->is_mentionable,
             'permissions' => $this->permissions,
-            'users_count' => $this->when($this->users_count !== null, $this->users_count),
+            'users_count' => $this->when(isset($this->users_count), $this->users_count),
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

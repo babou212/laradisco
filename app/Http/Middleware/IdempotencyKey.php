@@ -31,7 +31,7 @@ class IdempotencyKey
             return $next($request);
         }
 
-        $userId = $request->user()?->id ?? 'anonymous';
+        $userId = $request->user()->id ?? 'anonymous';
         $cacheKey = "idempotency:{$userId}:{$idempotencyKey}";
 
         $cached = Cache::get($cacheKey);

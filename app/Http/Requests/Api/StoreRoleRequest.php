@@ -12,6 +12,7 @@ class StoreRoleRequest extends FormRequest
         return true; // Authorization handled by RolePolicy
     }
 
+    /** @return array<string, mixed> */
     public function rules(): array
     {
         $validPerms = implode(',', array_map(

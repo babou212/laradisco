@@ -10,6 +10,8 @@ class E2eeAuditService
     /**
      * Append an entry to the audit log with hash chaining.
      * Uses a transaction with a lock to prevent race conditions and chain forks.
+     *
+     * @param  array<string, mixed>|null  $metadata
      */
     public function logEvent(
         int $userId,

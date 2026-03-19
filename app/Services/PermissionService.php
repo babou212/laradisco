@@ -209,7 +209,7 @@ class PermissionService
     /**
      * Apply overrides (deny then allow) to a base permission set.
      *
-     * @param  list<string>  $permissions
+     * @param  array<int, string>  $permissions
      * @param  Collection<int, ChannelPermissionOverride>  $overrides
      * @return list<string>
      */

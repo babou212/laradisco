@@ -115,12 +115,8 @@ class TwoFactorController extends Controller
     public function confirm(ConfirmTwoFactorRequest $request): JsonResponse
     {
         $user = $request->user();
-        $confirmed = app(ConfirmTwoFactorAuthentication::class)($user, $request->validated('code'));
+        app(ConfirmTwoFactorAuthentication::class)($user, $request->validated('code'));
 
-        if ($confirmed === null) {
-            return $this->successResponse(message: 'Two-factor authentication confirmed successfully');
-        }
-
-        return $this->validationErrorResponse('Invalid confirmation code.');
+        return $this->successResponse(message: 'Two-factor authentication confirmed successfully');
     }
 }

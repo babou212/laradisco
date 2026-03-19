@@ -15,12 +15,13 @@ class PasswordResetCodeNotification extends Notification implements ShouldQueue
         private readonly string $code,
     ) {}
 
+    /** @return array<int, string> */
     public function via(object $notifiable): array
     {
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(\App\Models\User $notifiable): MailMessage
     {
         return (new MailMessage)
             ->subject('Password Reset Code')

@@ -11,6 +11,7 @@ class StoreChannelRequest extends FormRequest
         return true; // Authorization handled by ChannelPolicy
     }
 
+    /** @return array<string, mixed> */
     public function rules(): array
     {
         return [

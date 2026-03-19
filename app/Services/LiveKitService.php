@@ -57,10 +57,8 @@ class LiveKitService
 
     /**
      * List participants in a room.
-     *
-     * @return array<int, mixed>
      */
-    public function listParticipants(string $roomName): array
+    public function listParticipants(string $roomName): \Livekit\ListParticipantsResponse
     {
         $svc = $this->getRoomServiceClient();
 

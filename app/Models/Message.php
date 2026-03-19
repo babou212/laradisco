@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property \Illuminate\Support\Carbon|null $edited_at
+ */
 class Message extends Model
 {
     /** @use HasFactory<\Database\Factories\MessageFactory> */

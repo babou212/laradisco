@@ -8,11 +8,13 @@ class StoreDirectMessageRequest extends FormRequest
 {
     public function authorize(): bool
     {
+        /** @var \App\Models\DirectMessageGroup $dmGroup */
         $dmGroup = $this->route('dmGroup');
 
         return $dmGroup->participants()->where('users.id', $this->user()->id)->exists();
     }
 
+    /** @return array<string, mixed> */
     public function rules(): array
     {
         return [

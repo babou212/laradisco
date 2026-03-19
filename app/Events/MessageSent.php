@@ -40,6 +40,8 @@ class MessageSent implements ShouldBroadcast
 
     /**
      * Get the data to broadcast.
+     *
+     * @return array<string, mixed>
      */
     public function broadcastWith(): array
     {

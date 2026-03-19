@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property \Illuminate\Support\Carbon|null $last_message_at
+ */
 class DirectMessageGroup extends Model
 {
     /** @use HasFactory<\Database\Factories\DirectMessageGroupFactory> */
@@ -59,7 +62,10 @@ class DirectMessageGroup extends Model
         return $this->hasMany(DirectMessage::class);
     }
 
-    public function lastMessage()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne<DirectMessage, $this>
+     */
+    public function lastMessage(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(DirectMessage::class)->latestOfMany();
     }

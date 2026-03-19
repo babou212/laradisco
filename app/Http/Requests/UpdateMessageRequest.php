@@ -12,7 +12,10 @@ class UpdateMessageRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->id === $this->route('message')->user_id;
+        /** @var \App\Models\Message $message */
+        $message = $this->route('message');
+
+        return $this->user()->id === $message->user_id;
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\ChannelPermissionOverrideFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class ChannelPermissionOverride extends Model
 {
-    /** @use HasFactory<\Database\Factories\ChannelPermissionOverrideFactory> */
+    /** @use HasFactory<ChannelPermissionOverrideFactory> */
     use HasFactory;
 
     /**

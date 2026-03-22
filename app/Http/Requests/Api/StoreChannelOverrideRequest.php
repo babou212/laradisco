@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api;
 
 use App\Enums\PermissionFlag;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class StoreChannelOverrideRequest extends FormRequest
 {
@@ -30,7 +31,7 @@ class StoreChannelOverrideRequest extends FormRequest
         ];
     }
 
-    public function withValidator(\Illuminate\Validation\Validator $validator): void
+    public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator) {
             if (empty($this->input('role_id')) && empty($this->input('user_id'))) {

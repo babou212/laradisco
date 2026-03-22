@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\DirectMessage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\DirectMessage */
+/** @mixin DirectMessage */
 class DirectMessageResource extends JsonResource
 {
     /**
@@ -22,6 +23,7 @@ class DirectMessageResource extends JsonResource
             'content' => $this->content,
             'is_encrypted' => $this->is_encrypted ?? false,
             'sender_device_id' => $this->sender_device_id,
+            'is_pinned' => $this->is_pinned ?? false,
             'is_edited' => $this->is_edited ?? false,
             'edited_at' => $this->edited_at?->toISOString(),
             'user' => new UserSummaryResource($this->whenLoaded('user')),

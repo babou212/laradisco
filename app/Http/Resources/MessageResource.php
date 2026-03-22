@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Message;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\Message */
+/** @mixin Message */
 class MessageResource extends JsonResource
 {
     /**
@@ -22,9 +23,12 @@ class MessageResource extends JsonResource
             'content' => $this->content,
             'is_encrypted' => $this->is_encrypted ?? false,
             'sender_device_id' => $this->sender_device_id,
+            'is_pinned' => $this->is_pinned ?? false,
             'is_edited' => $this->is_edited ?? false,
             'edited_at' => $this->edited_at?->toISOString(),
             'reply_to_id' => $this->reply_to_id,
+            'thread_id' => $this->thread_id,
+            'thread' => new ThreadResource($this->whenLoaded('threadStarted')),
             'user' => new UserSummaryResource($this->whenLoaded('user')),
             'reply_to' => new self($this->whenLoaded('replyTo')),
             'reactions' => ReactionResource::collection($this->whenLoaded('reactions')),

@@ -4,11 +4,12 @@ namespace Database\Factories;
 
 use App\Models\Channel;
 use App\Models\Message;
+use App\Models\Thread;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Thread>
+ * @extends Factory<Thread>
  */
 class ThreadFactory extends Factory
 {

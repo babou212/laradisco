@@ -2,12 +2,13 @@
 
 namespace Database\Factories;
 
+use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\DirectMessage>
+ * @extends Factory<DirectMessage>
  */
 class DirectMessageFactory extends Factory
 {

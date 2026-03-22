@@ -2,18 +2,21 @@
 
 namespace App\Models;
 
+use Database\Factories\DirectMessageGroupFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 /**
- * @property \Illuminate\Support\Carbon|null $last_message_at
+ * @property Carbon|null $last_message_at
  */
 class DirectMessageGroup extends Model
 {
-    /** @use HasFactory<\Database\Factories\DirectMessageGroupFactory> */
+    /** @use HasFactory<DirectMessageGroupFactory> */
     use HasFactory;
 
     /**
@@ -63,9 +66,9 @@ class DirectMessageGroup extends Model
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne<DirectMessage, $this>
+     * @return HasOne<DirectMessage, $this>
      */
-    public function lastMessage(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function lastMessage(): HasOne
     {
         return $this->hasOne(DirectMessage::class)->latestOfMany();
     }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class EncryptedSearchToken extends Model
@@ -26,10 +27,10 @@ class EncryptedSearchToken extends Model
     /**
      * Scope: find tokens matching a set of trapdoors in a conversation.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder<self>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<self>
+     * @param  Builder<self>  $query
+     * @return Builder<self>
      */
-    public function scopeForConversation(\Illuminate\Database\Eloquent\Builder $query, string $type, int $id): \Illuminate\Database\Eloquent\Builder
+    public function scopeForConversation(Builder $query, string $type, int $id): Builder
     {
         return $query->where('conversation_type', $type)
             ->where('conversation_id', $id);
@@ -38,11 +39,11 @@ class EncryptedSearchToken extends Model
     /**
      * Scope: match against one or more trapdoor tokens.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder<self>  $query
+     * @param  Builder<self>  $query
      * @param  array<int, string>  $tokens
-     * @return \Illuminate\Database\Eloquent\Builder<self>
+     * @return Builder<self>
      */
-    public function scopeMatchingTokens(\Illuminate\Database\Eloquent\Builder $query, array $tokens): \Illuminate\Database\Eloquent\Builder
+    public function scopeMatchingTokens(Builder $query, array $tokens): Builder
     {
         return $query->whereIn('token', $tokens);
     }

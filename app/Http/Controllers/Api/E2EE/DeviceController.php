@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\E2EE;
 use App\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\E2EE\RegisterDeviceRequest;
+use App\Models\ChannelSenderKey;
 use App\Models\DevicePrekey;
 use App\Models\DmSenderKey;
 use App\Models\DmSenderKeyDistribution;
@@ -158,7 +159,7 @@ class DeviceController extends Controller
             ->where('user_id', $request->user()->id)
             ->update(['used' => true]);
 
-        \App\Models\ChannelSenderKey::where('user_id', $request->user()->id)
+        ChannelSenderKey::where('user_id', $request->user()->id)
             ->where('device_id', $deviceId)
             ->delete();
 

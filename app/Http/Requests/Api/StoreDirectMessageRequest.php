@@ -2,13 +2,14 @@
 
 namespace App\Http\Requests\Api;
 
+use App\Models\DirectMessageGroup;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreDirectMessageRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        /** @var \App\Models\DirectMessageGroup $dmGroup */
+        /** @var DirectMessageGroup $dmGroup */
         $dmGroup = $this->route('dmGroup');
 
         return $dmGroup->participants()->where('users.id', $this->user()->id)->exists();

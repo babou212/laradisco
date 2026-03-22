@@ -3,18 +3,20 @@
 namespace App\Models;
 
 use App\Concerns\ClearsCaches;
+use Database\Factories\DirectMessageFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 /**
- * @property \Illuminate\Support\Carbon|null $edited_at
+ * @property Carbon|null $edited_at
  */
 class DirectMessage extends Model
 {
-    /** @use HasFactory<\Database\Factories\DirectMessageFactory> */
+    /** @use HasFactory<DirectMessageFactory> */
     use ClearsCaches, HasFactory, SoftDeletes;
 
     /**
@@ -26,6 +28,7 @@ class DirectMessage extends Model
         'content',
         'is_encrypted',
         'sender_device_id',
+        'is_pinned',
         'is_edited',
         'edited_at',
     ];
@@ -37,6 +40,7 @@ class DirectMessage extends Model
     {
         return [
             'is_encrypted' => 'boolean',
+            'is_pinned' => 'boolean',
             'is_edited' => 'boolean',
             'edited_at' => 'datetime',
         ];

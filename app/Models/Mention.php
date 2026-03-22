@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use Database\Factories\MentionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Mention extends Model
 {
-    /** @use HasFactory<\Database\Factories\MentionFactory> */
+    /** @use HasFactory<MentionFactory> */
     use HasFactory;
 
     /**

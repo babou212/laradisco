@@ -5,11 +5,9 @@ namespace App\Http\Controllers\Api\E2EE;
 use App\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\E2EE\RegisterIdentityRequest;
-use App\Models\ChannelSenderKey;
-use App\Models\DevicePrekey;
-use App\Models\DmSenderKey;
-use App\Models\DmSenderKeyDistribution;
-use App\Models\SenderKeyDistribution;
+use App\Models\MlsKeyPackage;
+use App\Models\MlsMessage;
+use App\Models\MlsWelcomeMessage;
 use App\Models\User;
 use App\Models\UserDevice;
 use App\Models\UserIdentityKey;
@@ -78,7 +76,7 @@ class IdentityController extends Controller
 
     /**
      * Reset all E2EE data for the authenticated user.
-     * Wipes identity key, devices, pre-keys, sender keys, and backup data,
+     * Wipes identity key, devices, MLS data, and backup data,
      * then records an `identity_reset` event in the audit log.
      * After calling this, the user can re-register their identity.
      */
@@ -91,15 +89,9 @@ class IdentityController extends Controller
         }
 
         DB::transaction(function () use ($user) {
-            SenderKeyDistribution::where('sender_user_id', $user->id)->delete();
-            SenderKeyDistribution::where('recipient_user_id', $user->id)->delete();
-            DmSenderKeyDistribution::where('sender_user_id', $user->id)->delete();
-            DmSenderKeyDistribution::where('recipient_user_id', $user->id)->delete();
-
-            ChannelSenderKey::where('user_id', $user->id)->delete();
-            DmSenderKey::where('user_id', $user->id)->delete();
-
-            DevicePrekey::where('user_id', $user->id)->delete();
+            MlsKeyPackage::where('user_id', $user->id)->delete();
+            MlsMessage::where('sender_user_id', $user->id)->delete();
+            MlsWelcomeMessage::where('recipient_user_id', $user->id)->delete();
 
             UserDevice::where('user_id', $user->id)->delete();
 

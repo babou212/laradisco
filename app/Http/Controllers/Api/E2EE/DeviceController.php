@@ -4,12 +4,7 @@ namespace App\Http\Controllers\Api\E2EE;
 
 use App\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\E2EE\RegisterDeviceRequest;
-use App\Models\ChannelSenderKey;
-use App\Models\DevicePrekey;
-use App\Models\DmSenderKey;
-use App\Models\DmSenderKeyDistribution;
-use App\Models\SenderKeyDistribution;
+use App\Models\MlsKeyPackage;
 use App\Models\UserDevice;
 use App\Models\UserIdentityKey;
 use App\Services\E2eeAuditService;
@@ -29,37 +24,24 @@ class DeviceController extends Controller
     /**
      * Register a new device with its key material.
      */
-    public function register(RegisterDeviceRequest $request): JsonResponse
+    public function register(Request $request): JsonResponse
     {
         $user = $request->user();
-        $validated = $request->validated();
+        $validated = $request->validate([
+            'device_id' => ['required', 'string', 'uuid'],
+            'device_name' => ['nullable', 'string', 'max:255'],
+            'device_identity_key' => ['nullable', 'string'],
+            'identity_signature' => ['nullable', 'string'],
+            'key_packages' => ['sometimes', 'array', 'max:100'],
+            'key_packages.*.key_package_bytes' => ['required_with:key_packages', 'string'],
+            'key_packages.*.key_package_hash' => ['required_with:key_packages', 'string'],
+        ]);
 
         $identityKey = UserIdentityKey::where('user_id', $user->id)->first();
 
         if (! $identityKey) {
             return $this->errorResponse(
                 'You must register an identity key before registering a device.',
-                Response::HTTP_UNPROCESSABLE_ENTITY,
-            );
-        }
-
-        $deviceIdentityKeyBytes = base64_decode($validated['device_identity_key'], true);
-        $signatureBytes = base64_decode($validated['identity_signature'], true);
-        $identityKeyBytes = base64_decode($identityKey->identity_key, true);
-
-        if ($deviceIdentityKeyBytes === false || $signatureBytes === false || $identityKeyBytes === false) {
-            return $this->errorResponse(
-                'Invalid base64 encoding in key material.',
-                Response::HTTP_UNPROCESSABLE_ENTITY,
-            );
-        }
-
-        /** @var non-empty-string $signatureBytes */
-        /** @var non-empty-string $identityKeyBytes */
-        if (! sodium_crypto_sign_verify_detached($signatureBytes, $deviceIdentityKeyBytes, $identityKeyBytes)) {
-            return $this->errorResponse(
-                'Device identity key signature does not match your registered identity key. '
-                .'You may need to re-setup E2EE.',
                 Response::HTTP_UNPROCESSABLE_ENTITY,
             );
         }
@@ -87,27 +69,24 @@ class DeviceController extends Controller
         }
 
         DB::transaction(function () use ($user, $validated) {
-            $device = UserDevice::create([
+            UserDevice::create([
                 'user_id' => $user->id,
                 'device_id' => $validated['device_id'],
                 'device_name' => $validated['device_name'] ?? null,
-                'device_identity_key' => $validated['device_identity_key'],
-                'identity_signature' => $validated['identity_signature'],
-                'signed_prekey' => $validated['signed_prekey'],
-                'signed_prekey_id' => $validated['signed_prekey_id'],
-                'signed_prekey_signature' => $validated['signed_prekey_signature'],
-                'signed_prekey_timestamp' => now(),
+                'device_identity_key' => $validated['device_identity_key'] ?? null,
+                'identity_signature' => $validated['identity_signature'] ?? null,
                 'is_active' => true,
             ]);
 
-            foreach ($validated['one_time_prekeys'] as $prekey) {
-                DevicePrekey::create([
-                    'device_id' => $validated['device_id'],
-                    'user_id' => $user->id,
-                    'prekey_id' => $prekey['prekey_id'],
-                    'public_key' => $prekey['public_key'],
-                    'created_at' => now(),
-                ]);
+            if (! empty($validated['key_packages'])) {
+                foreach ($validated['key_packages'] as $kp) {
+                    MlsKeyPackage::create([
+                        'user_id' => $user->id,
+                        'device_id' => $validated['device_id'],
+                        'key_package_bytes' => $kp['key_package_bytes'],
+                        'key_package_hash' => $kp['key_package_hash'],
+                    ]);
+                }
             }
         });
 
@@ -115,8 +94,6 @@ class DeviceController extends Controller
             userId: $user->id,
             eventType: 'device_registered',
             deviceId: $validated['device_id'],
-            publicKey: $validated['device_identity_key'],
-            signature: $validated['identity_signature'],
             metadata: ['device_name' => $validated['device_name'] ?? null],
         );
 
@@ -155,32 +132,8 @@ class DeviceController extends Controller
 
         $device->update(['is_active' => false]);
 
-        DevicePrekey::where('device_id', $deviceId)
+        MlsKeyPackage::where('device_id', $deviceId)
             ->where('user_id', $request->user()->id)
-            ->update(['used' => true]);
-
-        ChannelSenderKey::where('user_id', $request->user()->id)
-            ->where('device_id', $deviceId)
-            ->delete();
-
-        DmSenderKey::where('user_id', $request->user()->id)
-            ->where('device_id', $deviceId)
-            ->delete();
-
-        DmSenderKeyDistribution::where('sender_device_id', $deviceId)
-            ->where('sender_user_id', $request->user()->id)
-            ->delete();
-
-        DmSenderKeyDistribution::where('recipient_device_id', $deviceId)
-            ->where('recipient_user_id', $request->user()->id)
-            ->delete();
-
-        SenderKeyDistribution::where('sender_device_id', $deviceId)
-            ->where('sender_user_id', $request->user()->id)
-            ->delete();
-
-        SenderKeyDistribution::where('recipient_device_id', $deviceId)
-            ->where('recipient_user_id', $request->user()->id)
             ->delete();
 
         $this->auditService->logEvent(

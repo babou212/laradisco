@@ -19,9 +19,11 @@ return new class extends Migration
             $table->text('signed_prekey_signature')->change();
         });
 
-        Schema::table('device_prekeys', function (Blueprint $table) {
-            $table->text('public_key')->change();
-        });
+        if (Schema::hasTable('device_prekeys')) {
+            Schema::table('device_prekeys', function (Blueprint $table) {
+                $table->text('public_key')->change();
+            });
+        }
 
         Schema::table('user_key_backups', function (Blueprint $table) {
             $table->text('encrypted_bundle')->change();
@@ -48,9 +50,11 @@ return new class extends Migration
             $table->binary('signed_prekey_signature')->change();
         });
 
-        Schema::table('device_prekeys', function (Blueprint $table) {
-            $table->binary('public_key')->change();
-        });
+        if (Schema::hasTable('device_prekeys')) {
+            Schema::table('device_prekeys', function (Blueprint $table) {
+                $table->binary('public_key')->change();
+            });
+        }
 
         Schema::table('user_key_backups', function (Blueprint $table) {
             $table->binary('encrypted_bundle')->change();

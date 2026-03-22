@@ -32,6 +32,7 @@ class DirectMessageGroupResource extends JsonResource
             'name' => $this->name ?? $otherParticipant->username ?? 'Unknown',
             'other_user' => $otherParticipant ? new UserSummaryResource($otherParticipant) : null,
             'last_message' => $lastMessage ? [
+                'id' => $lastMessage->id,
                 'content' => $lastMessage->content,
                 'created_at' => $lastMessage->created_at?->toISOString(),
                 'user_id' => $lastMessage->user_id,

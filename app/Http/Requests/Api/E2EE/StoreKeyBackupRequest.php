@@ -21,9 +21,9 @@ class StoreKeyBackupRequest extends FormRequest
             'salt' => ['required', 'string', 'min:32', 'max:128'],
             'nonce' => ['required', 'string', 'min:12', 'max:64'],
             'argon2_params' => ['required', 'array'],
-            'argon2_params.memory' => ['required', 'integer', 'min:1024'],
-            'argon2_params.iterations' => ['required', 'integer', 'min:1'],
-            'argon2_params.parallelism' => ['required', 'integer', 'min:1'],
+            'argon2_params.memory' => ['required', 'integer', 'min:65536', 'max:1048576'],
+            'argon2_params.iterations' => ['required', 'integer', 'min:2', 'max:20'],
+            'argon2_params.parallelism' => ['required', 'integer', 'min:1', 'max:8'],
         ];
     }
 }

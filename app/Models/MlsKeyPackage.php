@@ -2,32 +2,19 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class UserDevice extends Model
+class MlsKeyPackage extends Model
 {
-    /**
-     * Binary columns that must not be JSON-serialized.
-     *
-     * @var list<string>
-     */
-    protected $hidden = [
-        'device_identity_key',
-        'identity_signature',
-    ];
-
-    /**
-     * @var list<string>
-     */
+    /** @var list<string> */
     protected $fillable = [
         'user_id',
         'device_id',
-        'device_name',
-        'device_identity_key',
-        'identity_signature',
-        'last_seen_at',
-        'is_active',
+        'key_package_bytes',
+        'key_package_hash',
+        'consumed_at',
     ];
 
     /**
@@ -36,8 +23,7 @@ class UserDevice extends Model
     protected function casts(): array
     {
         return [
-            'last_seen_at' => 'datetime',
-            'is_active' => 'boolean',
+            'consumed_at' => 'datetime',
         ];
     }
 
@@ -47,5 +33,14 @@ class UserDevice extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * @param  Builder<MlsKeyPackage>  $query
+     * @return Builder<MlsKeyPackage>
+     */
+    public function scopeAvailable(Builder $query): Builder
+    {
+        return $query->whereNull('consumed_at');
     }
 }

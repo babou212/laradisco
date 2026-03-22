@@ -4,21 +4,18 @@ namespace App\Enums;
 
 enum PermissionFlag: string
 {
-    // General Server Permissions
     case ManageChannels = 'manage_channels';
     case ManageRoles = 'manage_roles';
     case ManageServer = 'manage_server';
     case ViewAuditLog = 'view_audit_log';
     case ManageEmojis = 'manage_emojis';
 
-    // Membership Permissions
     case KickMembers = 'kick_members';
     case BanMembers = 'ban_members';
     case InviteMembers = 'invite_members';
     case ChangeNickname = 'change_nickname';
     case ManageNicknames = 'manage_nicknames';
 
-    // Text Channel Permissions
     case ViewChannels = 'view_channels';
     case SendMessages = 'send_messages';
     case SendThreadMessages = 'send_thread_messages';
@@ -32,7 +29,6 @@ enum PermissionFlag: string
     case ReadMessageHistory = 'read_message_history';
     case PinMessages = 'pin_messages';
 
-    // Voice Channel Permissions (Phase 2)
     case Connect = 'connect';
     case Speak = 'speak';
     case Video = 'video';
@@ -40,7 +36,6 @@ enum PermissionFlag: string
     case DeafenMembers = 'deafen_members';
     case MoveMembers = 'move_members';
 
-    // Admin
     case Administrator = 'administrator';
 
     /**

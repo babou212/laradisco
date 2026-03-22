@@ -79,7 +79,9 @@ class DeviceController extends Controller
             ]);
 
             if (! empty($validated['key_packages'])) {
-                $uniquePackages = collect($validated['key_packages'])
+                /** @var array<int, array{key_package_hash: string, key_package_bytes: string}> $keyPackages */
+                $keyPackages = $validated['key_packages'];
+                $uniquePackages = collect($keyPackages)
                     ->unique('key_package_hash')
                     ->all();
 

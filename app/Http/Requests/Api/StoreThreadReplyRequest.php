@@ -16,7 +16,6 @@ class StoreThreadReplyRequest extends FormRequest
     {
         return [
             'content' => ['required', 'string', 'min:1', 'max:16000'],
-            'is_encrypted' => ['sometimes', 'boolean'],
             'sender_device_id' => ['nullable', 'string', 'uuid'],
             'mention_user_ids' => ['sometimes', 'array', 'max:50'],
             'mention_user_ids.*' => ['integer', 'exists:users,id'],

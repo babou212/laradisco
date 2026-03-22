@@ -5,6 +5,7 @@ use App\Models\Channel;
 use App\Models\DirectMessageGroup;
 use App\Models\Thread;
 use App\Models\User;
+use App\Services\PermissionService;
 use Illuminate\Support\Facades\Broadcast;
 
 Broadcast::channel('App.Models.User.{id}', function (User $user, int $id) {
@@ -62,7 +63,7 @@ Broadcast::channel('thread.{threadId}', function (User $user, int $threadId) {
 
     $channel = Channel::find($thread->channel_id);
 
-    if (! $channel || ! $user->hasPermission(PermissionFlag::ViewChannels, $channel)) {
+    if (! $channel || ! app(PermissionService::class)->userCanViewChannel($user, $channel)) {
         return false;
     }
 

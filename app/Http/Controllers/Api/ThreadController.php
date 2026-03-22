@@ -78,7 +78,8 @@ class ThreadController extends Controller
                 'reactions',
             ])
             ->orderBy('created_at', 'asc')
-            ->cursorPaginate(50);
+            ->cursorPaginate(50)
+            ->through(fn (Message $message) => new MessageResource($message));
 
         return $this->successResponse($messages);
     }
@@ -92,10 +93,6 @@ class ThreadController extends Controller
             return $this->notFoundResponse('Message not found in this channel.');
         }
 
-        if (! $this->permissionService->userCanInChannel($request->user(), $channel, PermissionFlag::SendMessages)) {
-            return $this->forbiddenResponse('You do not have permission to send messages in this channel.');
-        }
-
         if ($message->thread_id !== null) {
             return $this->errorResponse('Cannot start a thread from a thread reply.', Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -105,6 +102,10 @@ class ThreadController extends Controller
         $thread = $message->threadStarted;
 
         if (! $thread) {
+            if (! $this->permissionService->userCanInChannel($user, $channel, PermissionFlag::CreateThreads)) {
+                return $this->forbiddenResponse('You do not have permission to create threads in this channel.');
+            }
+
             $threadName = mb_substr(strip_tags($message->content), 0, 50);
 
             $thread = Thread::create([
@@ -118,6 +119,10 @@ class ThreadController extends Controller
 
             $followerIds = array_unique([$user->id, $message->user_id]);
             $thread->followers()->attach($followerIds);
+        } else {
+            if (! $this->permissionService->userCanInChannel($user, $channel, PermissionFlag::SendThreadMessages)) {
+                return $this->forbiddenResponse('You do not have permission to send messages in threads.');
+            }
         }
 
         if ($thread->is_locked) {
@@ -137,9 +142,7 @@ class ThreadController extends Controller
         $thread->increment('message_count');
         $thread->update(['last_message_at' => now()]);
 
-        if (! $thread->followers()->where('user_id', $user->id)->exists()) {
-            $thread->followers()->attach($user->id);
-        }
+        $thread->followers()->syncWithoutDetaching([$user->id]);
 
         $this->mentionService->processMentionsFromMetadata(
             $reply,

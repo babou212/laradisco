@@ -20,6 +20,7 @@ use App\Services\PresenceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -194,22 +195,36 @@ class AuthController extends Controller
             ]);
         }
 
-        $user = User::create([
-            'name' => $request->validated('name'),
-            'username' => $request->validated('username'),
-            'email' => $request->validated('email'),
-            'password' => $request->validated('password'),
-        ]);
+        $user = DB::transaction(function () use ($request, $invite) {
+            $claimed = InviteLink::where('id', $invite->id)
+                ->whereNull('used_at')
+                ->where('expires_at', '>', now())
+                ->update([
+                    'used_at' => now(),
+                ]);
 
-        $everyoneRole = Role::where('name', 'everyone')->first();
-        if ($everyoneRole) {
-            $user->roles()->attach($everyoneRole->id);
-        }
+            if (! $claimed) {
+                throw ValidationException::withMessages([
+                    'invite_token' => ['This invite link is invalid or has expired.'],
+                ]);
+            }
 
-        $invite->update([
-            'used_at' => now(),
-            'used_by' => $user->id,
-        ]);
+            $user = User::create([
+                'name' => $request->validated('name'),
+                'username' => $request->validated('username'),
+                'email' => $request->validated('email'),
+                'password' => $request->validated('password'),
+            ]);
+
+            $invite->update(['used_by' => $user->id]);
+
+            $everyoneRole = Role::where('name', 'everyone')->first();
+            if ($everyoneRole) {
+                $user->roles()->attach($everyoneRole->id);
+            }
+
+            return $user;
+        });
 
         return $this->issueToken($user, $request->validated('device_name'));
     }

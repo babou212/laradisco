@@ -1,7 +1,10 @@
 <?php
 
+use App\Http\Middleware\CheckPermission;
 use App\Http\Middleware\EnsureJsonAccept;
+use App\Http\Middleware\IdempotencyKey;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\SetCacheHeaders;
 use App\Http\Middleware\UpdateUserLastSeen;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -30,13 +33,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'permission' => \App\Http\Middleware\CheckPermission::class,
-            'cache.headers' => \App\Http\Middleware\SetCacheHeaders::class,
-            'idempotency' => \App\Http\Middleware\IdempotencyKey::class,
+            'permission' => CheckPermission::class,
+            'cache.headers' => SetCacheHeaders::class,
+            'idempotency' => IdempotencyKey::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->shouldRenderJsonWhen(function ($request, \Throwable $e) {
+        $exceptions->shouldRenderJsonWhen(function ($request, Throwable $e) {
             return $request->is('api/*') || $request->expectsJson();
         });
 

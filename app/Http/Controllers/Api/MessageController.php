@@ -42,9 +42,19 @@ class MessageController extends Controller
         }
 
         $messages = $channel->messages()
-            ->with(['user:id,username,name,nickname,avatar_path,status,custom_status', 'attachments', 'reactions', 'replyTo.user:id,username,name,nickname,avatar_path,status,custom_status'])
+            ->whereNull('thread_id')
+            ->with([
+                'user:id,username,name,nickname,avatar_path,status,custom_status',
+                'attachments',
+                'reactions',
+                'replyTo.user:id,username,name,nickname,avatar_path,status,custom_status',
+                'threadStarted.latestReply.user:id,username,name,nickname,avatar_path,status,custom_status',
+                'threadStarted.followers',
+            ])
             ->orderBy('created_at', 'asc')
             ->cursorPaginate(50);
+
+        $messages->through(fn ($message) => new MessageResource($message));
 
         return $this->successResponse($messages);
     }

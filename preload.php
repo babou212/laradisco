@@ -20,7 +20,7 @@ foreach ($files as $file) {
         if (is_file($file) && str_ends_with($file, '.php')) {
             opcache_compile_file($file);
         }
-    } catch (\Throwable) {
+    } catch (Throwable) {
         // Skip files with unresolvable dependencies at preload time
     }
 }

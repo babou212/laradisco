@@ -3,18 +3,21 @@
 namespace App\Models;
 
 use App\Concerns\ClearsCaches;
+use Database\Factories\MessageFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 /**
- * @property \Illuminate\Support\Carbon|null $edited_at
+ * @property Carbon|null $edited_at
  */
 class Message extends Model
 {
-    /** @use HasFactory<\Database\Factories\MessageFactory> */
+    /** @use HasFactory<MessageFactory> */
     use ClearsCaches, HasFactory, SoftDeletes;
 
     /**
@@ -100,6 +103,16 @@ class Message extends Model
     public function mentions(): HasMany
     {
         return $this->hasMany(Mention::class);
+    }
+
+    /**
+     * The thread started from this message (if any).
+     *
+     * @return HasOne<Thread, $this>
+     */
+    public function threadStarted(): HasOne
+    {
+        return $this->hasOne(Thread::class, 'message_id');
     }
 
     /**

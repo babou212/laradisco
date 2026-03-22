@@ -8,6 +8,7 @@ use Agence104\LiveKit\RoomCreateOptions;
 use Agence104\LiveKit\RoomServiceClient;
 use Agence104\LiveKit\VideoGrant;
 use App\Models\User;
+use Livekit\ListParticipantsResponse;
 
 class LiveKitService
 {
@@ -58,7 +59,7 @@ class LiveKitService
     /**
      * List participants in a room.
      */
-    public function listParticipants(string $roomName): \Livekit\ListParticipantsResponse
+    public function listParticipants(string $roomName): ListParticipantsResponse
     {
         $svc = $this->getRoomServiceClient();
 

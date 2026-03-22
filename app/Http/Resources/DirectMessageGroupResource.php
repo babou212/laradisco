@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\DirectMessageGroup;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\DirectMessageGroup */
+/** @mixin DirectMessageGroup */
 class DirectMessageGroupResource extends JsonResource
 {
     /**

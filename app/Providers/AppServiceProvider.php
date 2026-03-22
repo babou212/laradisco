@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Enums\PermissionFlag;
 use App\Enums\UserStatusType;
+use App\Events\UserPresenceUpdated;
 use App\Models\User;
 use App\Services\LiveKitService;
 use App\Services\PresenceService;
@@ -68,14 +69,14 @@ class AppServiceProvider extends ServiceProvider
     protected function configureAuthListeners(): void
     {
         Event::listen(Login::class, function (Login $event): void {
-            /** @var \App\Models\User $user */
+            /** @var User $user */
             $user = $event->user;
 
             $user->update(['status' => UserStatusType::Online->value]);
 
             app(PresenceService::class)->register($user);
 
-            event(new \App\Events\UserPresenceUpdated(
+            event(new UserPresenceUpdated(
                 $user,
                 UserStatusType::Online,
                 $user->custom_status,
@@ -83,11 +84,11 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Event::listen(Logout::class, function (Logout $event): void {
-            /** @var \App\Models\User $user */
+            /** @var User $user */
             $user = $event->user;
             app(PresenceService::class)->unregister($user);
 
-            event(new \App\Events\UserPresenceUpdated(
+            event(new UserPresenceUpdated(
                 $user,
                 UserStatusType::Offline,
             ));

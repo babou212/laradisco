@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\MentionController;
 use App\Http\Controllers\Api\UserController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -24,8 +26,8 @@ Route::prefix('v1')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
 
-        Route::post('/broadcasting/auth', function (\Illuminate\Http\Request $request) {
-            return \Illuminate\Support\Facades\Broadcast::auth($request);
+        Route::post('/broadcasting/auth', function (Request $request) {
+            return Broadcast::auth($request);
         });
 
         Route::as('api.')->group(

@@ -2,10 +2,12 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\PermissionFlag;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\User */
+/** @mixin User */
 class UserResource extends JsonResource
 {
     /**
@@ -28,11 +30,11 @@ class UserResource extends JsonResource
             'custom_status' => $this->custom_status,
             'roles' => RoleResource::collection($this->whenLoaded('roles')),
             'permissions' => $this->when($this->isCurrentUser($request), fn () => [
-                'canInviteMembers' => $this->isAdministrator() || $this->hasPermission(\App\Enums\PermissionFlag::InviteMembers),
-                'canManageRoles' => $this->isAdministrator() || $this->hasPermission(\App\Enums\PermissionFlag::ManageRoles),
-                'canManageChannels' => $this->isAdministrator() || $this->hasPermission(\App\Enums\PermissionFlag::ManageChannels),
-                'canManageServer' => $this->isAdministrator() || $this->hasPermission(\App\Enums\PermissionFlag::ManageServer),
-                'canManageMessages' => $this->isAdministrator() || $this->hasPermission(\App\Enums\PermissionFlag::ManageMessages),
+                'canInviteMembers' => $this->isAdministrator() || $this->hasPermission(PermissionFlag::InviteMembers),
+                'canManageRoles' => $this->isAdministrator() || $this->hasPermission(PermissionFlag::ManageRoles),
+                'canManageChannels' => $this->isAdministrator() || $this->hasPermission(PermissionFlag::ManageChannels),
+                'canManageServer' => $this->isAdministrator() || $this->hasPermission(PermissionFlag::ManageServer),
+                'canManageMessages' => $this->isAdministrator() || $this->hasPermission(PermissionFlag::ManageMessages),
                 'isAdministrator' => $this->isAdministrator(),
             ]),
             'created_at' => $this->created_at?->toISOString(),

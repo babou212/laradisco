@@ -3,7 +3,9 @@
 use App\Http\Controllers\Api\ChannelController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\PinController;
 use App\Http\Controllers\Api\ReactionController;
+use App\Http\Controllers\Api\ThreadController;
 use App\Http\Controllers\Api\TypingController;
 use App\Http\Controllers\Api\VoiceChannelController;
 use Illuminate\Support\Facades\Route;
@@ -29,7 +31,28 @@ Route::prefix('channels/{channel}')->as('channels.')->group(function () {
 
     Route::post('/messages/{message}/reactions', [ReactionController::class, 'toggle'])->name('messages.reactions.toggle');
 
+    Route::get('/pins', [PinController::class, 'index'])->name('pins.index');
+    Route::post('/messages/{message}/pin', [PinController::class, 'pin'])->name('messages.pin');
+    Route::delete('/messages/{message}/pin', [PinController::class, 'unpin'])->name('messages.unpin');
+
     Route::post('/typing', TypingController::class)->name('typing');
+
+    Route::post('/messages/{message}/thread', [ThreadController::class, 'storeReply'])
+        ->middleware(['throttle:api-messages', 'idempotency'])
+        ->name('messages.thread.store');
+
+    Route::prefix('threads/{thread}')->as('threads.')->group(function () {
+        Route::get('/', [ThreadController::class, 'show'])->name('show');
+        Route::get('/messages', [ThreadController::class, 'messages'])->name('messages');
+        Route::put('/messages/{message}', [ThreadController::class, 'updateReply'])->name('messages.update');
+        Route::delete('/messages/{message}', [ThreadController::class, 'destroyReply'])->name('messages.destroy');
+        Route::post('/follow', [ThreadController::class, 'follow'])->name('follow');
+        Route::delete('/follow', [ThreadController::class, 'unfollow'])->name('unfollow');
+
+        Route::post('/messages/{message}/reactions', [ReactionController::class, 'toggle'])->name('messages.reactions.toggle');
+        Route::post('/messages/{message}/pin', [PinController::class, 'pin'])->name('messages.pin');
+        Route::delete('/messages/{message}/pin', [PinController::class, 'unpin'])->name('messages.unpin');
+    });
 
     Route::post('/voice/join', [VoiceChannelController::class, 'join'])->name('voice.join');
     Route::delete('/voice/membership', [VoiceChannelController::class, 'leave'])->name('voice.leave');

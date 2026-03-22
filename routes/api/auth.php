@@ -11,6 +11,14 @@ Route::post('/two-factor-challenge', [AuthController::class, 'twoFactorChallenge
     ->middleware('throttle:5,1')
     ->name('two-factor-challenge');
 
+Route::get('/invite/{token}', [AuthController::class, 'validateInvite'])
+    ->middleware('throttle:10,1')
+    ->name('invite.validate');
+
+Route::post('/register', [AuthController::class, 'register'])
+    ->middleware('throttle:5,1')
+    ->name('register');
+
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
     ->middleware('throttle:5,1')
     ->name('forgot-password');

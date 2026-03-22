@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ChannelType;
+use Database\Factories\ChannelFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Channel extends Model
 {
-    /** @use HasFactory<\Database\Factories\ChannelFactory> */
+    /** @use HasFactory<ChannelFactory> */
     use HasFactory;
 
     /**

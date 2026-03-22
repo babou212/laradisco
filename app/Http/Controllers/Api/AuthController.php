@@ -8,15 +8,19 @@ use App\Events\UserPresenceUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\ForgotPasswordRequest;
 use App\Http\Requests\Api\LoginRequest;
+use App\Http\Requests\Api\RegisterRequest;
 use App\Http\Requests\Api\ResetPasswordRequest;
 use App\Http\Requests\Api\TwoFactorChallengeRequest;
 use App\Http\Resources\UserResource;
+use App\Models\InviteLink;
+use App\Models\Role;
 use App\Models\User;
 use App\Notifications\PasswordResetCodeNotification;
 use App\Services\PresenceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -159,6 +163,70 @@ class AuthController extends Controller
         $user->load(['roles' => fn ($query) => $query->orderByDesc('position')]);
 
         return $this->successResponse(new UserResource($user));
+    }
+
+    /**
+     * Validate an invite token without consuming it.
+     */
+    public function validateInvite(string $token): JsonResponse
+    {
+        $invite = InviteLink::where('token', $token)->first();
+
+        if (! $invite || ! $invite->isValid()) {
+            return $this->errorResponse('This invite link is invalid or has expired.', 404);
+        }
+
+        return $this->successResponse([
+            'valid' => true,
+            'expires_at' => $invite->expires_at->toISOString(),
+        ]);
+    }
+
+    /**
+     * Register a new user using a valid invite token.
+     */
+    public function register(RegisterRequest $request): JsonResponse
+    {
+        $invite = InviteLink::where('token', $request->validated('invite_token'))->first();
+
+        if (! $invite || ! $invite->isValid()) {
+            throw ValidationException::withMessages([
+                'invite_token' => ['This invite link is invalid or has expired.'],
+            ]);
+        }
+
+        $user = DB::transaction(function () use ($request, $invite) {
+            $claimed = InviteLink::where('id', $invite->id)
+                ->whereNull('used_at')
+                ->where('expires_at', '>', now())
+                ->update([
+                    'used_at' => now(),
+                ]);
+
+            if (! $claimed) {
+                throw ValidationException::withMessages([
+                    'invite_token' => ['This invite link is invalid or has expired.'],
+                ]);
+            }
+
+            $user = User::create([
+                'name' => $request->validated('name'),
+                'username' => $request->validated('username'),
+                'email' => $request->validated('email'),
+                'password' => $request->validated('password'),
+            ]);
+
+            $invite->update(['used_by' => $user->id]);
+
+            $everyoneRole = Role::where('name', 'everyone')->first();
+            if ($everyoneRole) {
+                $user->roles()->attach($everyoneRole->id);
+            }
+
+            return $user;
+        });
+
+        return $this->issueToken($user, $request->validated('device_name'));
     }
 
     /**

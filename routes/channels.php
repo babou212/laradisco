@@ -3,15 +3,15 @@
 use App\Enums\PermissionFlag;
 use App\Models\Channel;
 use App\Models\DirectMessageGroup;
+use App\Models\Thread;
 use App\Models\User;
+use App\Services\PermissionService;
 use Illuminate\Support\Facades\Broadcast;
 
-// User's private channel for notifications, presence updates
 Broadcast::channel('App.Models.User.{id}', function (User $user, int $id) {
     return (int) $user->id === $id;
 });
 
-// Channel presence - returns user data for online presence
 Broadcast::channel('channel.{channelId}', function (User $user, int $channelId) {
     $channel = Channel::find($channelId);
 
@@ -28,7 +28,6 @@ Broadcast::channel('channel.{channelId}', function (User $user, int $channelId) 
     ];
 });
 
-// Voice channel — private channel for join/leave event broadcasts
 Broadcast::channel('voice.channel.{channelId}', function (User $user, int $channelId) {
     $channel = Channel::find($channelId);
 
@@ -39,7 +38,6 @@ Broadcast::channel('voice.channel.{channelId}', function (User $user, int $chann
     return $user->hasPermission(PermissionFlag::Connect, $channel);
 });
 
-// Direct message group presence
 Broadcast::channel('direct-message.{groupId}', function (User $user, int $groupId) {
     $group = DirectMessageGroup::find($groupId);
 
@@ -56,6 +54,26 @@ Broadcast::channel('direct-message.{groupId}', function (User $user, int $groupI
     ];
 });
 
-// Global presence broadcast channel (private, not presence)
-// All authenticated users can subscribe; Redis is the single source of truth.
+Broadcast::channel('thread.{threadId}', function (User $user, int $threadId) {
+    $thread = Thread::find($threadId);
+
+    if (! $thread) {
+        return false;
+    }
+
+    $channel = Channel::find($thread->channel_id);
+
+    if (! $channel || ! app(PermissionService::class)->userCanViewChannel($user, $channel)) {
+        return false;
+    }
+
+    return [
+        'id' => $user->id,
+        'username' => $user->username,
+        'display_name' => $user->display_name,
+        'avatar_path' => $user->avatar_path,
+        'custom_status' => $user->custom_status,
+    ];
+});
+
 Broadcast::channel('presence', fn (User $user) => (bool) $user);

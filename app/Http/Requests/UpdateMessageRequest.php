@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Message;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -12,7 +13,7 @@ class UpdateMessageRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        /** @var \App\Models\Message $message */
+        /** @var Message $message */
         $message = $this->route('message');
 
         return $this->user()->id === $message->user_id;

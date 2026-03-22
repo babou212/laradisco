@@ -2,14 +2,21 @@
 
 namespace App\Models;
 
+use Database\Factories\ThreadFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon|null $last_message_at
+ */
 class Thread extends Model
 {
-    /** @use HasFactory<\Database\Factories\ThreadFactory> */
+    /** @use HasFactory<ThreadFactory> */
     use HasFactory;
 
     /**
@@ -70,5 +77,25 @@ class Thread extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class);
+    }
+
+    /**
+     * The most recent reply in this thread.
+     *
+     * @return HasOne<Message, $this>
+     */
+    public function latestReply(): HasOne
+    {
+        return $this->hasOne(Message::class)->latestOfMany();
+    }
+
+    /**
+     * Users following this thread for notifications.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function followers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'thread_followers')->withTimestamps();
     }
 }

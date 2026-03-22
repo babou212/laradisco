@@ -20,6 +20,7 @@ use App\Models\EncryptedSearchToken;
 use App\Notifications\DirectMessageNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Symfony\Component\HttpFoundation\Response;
 
 class DirectMessageController extends Controller
@@ -101,7 +102,7 @@ class DirectMessageController extends Controller
         $recipients = $dmGroup->participants->where('id', '!=', $user->id);
 
         if ($recipients->isNotEmpty()) {
-            \Illuminate\Support\Facades\Notification::send(
+            Notification::send(
                 $recipients,
                 new DirectMessageNotification($message)
             );

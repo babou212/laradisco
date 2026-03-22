@@ -3,10 +3,11 @@
 namespace Database\Factories;
 
 use App\Models\Message;
+use App\Models\MessageAttachment;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\MessageAttachment>
+ * @extends Factory<MessageAttachment>
  */
 class MessageAttachmentFactory extends Factory
 {

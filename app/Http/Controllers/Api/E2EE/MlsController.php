@@ -13,6 +13,7 @@ use App\Models\MlsMessage;
 use App\Models\MlsWelcomeMessage;
 use App\Models\User;
 use App\Models\UserDevice;
+use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -56,19 +57,16 @@ class MlsController extends Controller
 
         $validated['device_id'] = $device->device_id;
 
-        $created = 0;
-        foreach ($validated['key_packages'] as $kp) {
-            $exists = MlsKeyPackage::where('key_package_hash', $kp['key_package_hash'])->exists();
-            if (! $exists) {
-                MlsKeyPackage::create([
-                    'user_id' => $user->id,
-                    'device_id' => $validated['device_id'],
-                    'key_package_bytes' => $kp['key_package_bytes'],
-                    'key_package_hash' => $kp['key_package_hash'],
-                ]);
-                $created++;
-            }
-        }
+        $rows = array_map(fn ($kp) => [
+            'user_id' => $user->id,
+            'device_id' => $validated['device_id'],
+            'key_package_bytes' => $kp['key_package_bytes'],
+            'key_package_hash' => $kp['key_package_hash'],
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], $validated['key_packages']);
+
+        $created = MlsKeyPackage::insertOrIgnore($rows);
 
         return $this->createdResponse([
             'uploaded' => $created,
@@ -149,6 +147,12 @@ class MlsController extends Controller
         ]);
 
         $user = $request->user();
+
+        $authError = $this->authorizeGroupAccess($user, $groupId);
+        if ($authError) {
+            return $authError;
+        }
+
         $validated = $request->all();
 
         $deviceId = $validated['device_id']
@@ -206,6 +210,11 @@ class MlsController extends Controller
      */
     public function fetchMessages(Request $request, string $groupId): JsonResponse
     {
+        $authError = $this->authorizeGroupAccess($request->user(), $groupId);
+        if ($authError) {
+            return $authError;
+        }
+
         $sinceEpoch = $request->query('since_epoch');
         $sinceId = $request->query('since_id');
         $limit = max(1, min((int) $request->query('limit', 100), 500));
@@ -237,6 +246,11 @@ class MlsController extends Controller
      */
     public function submitWelcome(Request $request, string $groupId): JsonResponse
     {
+        $authError = $this->authorizeGroupAccess($request->user(), $groupId);
+        if ($authError) {
+            return $authError;
+        }
+
         // Accept both single-recipient and multi-recipient formats
         if ($request->has('recipients')) {
             $request->validate([
@@ -262,6 +276,21 @@ class MlsController extends Controller
         }
 
         $ratchetTreeBytes = $request->input('ratchet_tree_bytes');
+
+        // Validate each recipient device belongs to the specified user and is active
+        foreach ($recipients as $index => $recipient) {
+            $deviceExists = UserDevice::where('user_id', $recipient['user_id'])
+                ->where('device_id', $recipient['device_id'])
+                ->where('is_active', true)
+                ->exists();
+
+            if (! $deviceExists) {
+                return $this->errorResponse(
+                    "Recipient at index {$index}: device does not belong to the specified user or is inactive.",
+                    422
+                );
+            }
+        }
 
         foreach ($recipients as $recipient) {
             MlsWelcomeMessage::create([
@@ -295,40 +324,60 @@ class MlsController extends Controller
     public function fetchWelcomes(Request $request): JsonResponse
     {
         $user = $request->user();
-        $deviceId = $request->query('device_id');
+        $deviceId = $request->query('device_id')
+            ?? $request->header('X-Device-Id');
 
-        $query = MlsWelcomeMessage::where('recipient_user_id', $user->id)
-            ->whereNull('consumed_at');
-
-        if ($deviceId) {
-            $query->where('recipient_device_id', $deviceId);
+        if (empty($deviceId)) {
+            return $this->errorResponse('A device_id query parameter or X-Device-Id header is required.', 422);
         }
 
-        $welcomes = $query->get([
-            'id', 'group_id', 'recipient_device_id', 'welcome_bytes', 'ratchet_tree_bytes', 'created_at',
-        ]);
+        $deviceExists = UserDevice::where('user_id', $user->id)
+            ->where('device_id', $deviceId)
+            ->where('is_active', true)
+            ->exists();
 
-        if ($welcomes->isNotEmpty()) {
-            MlsWelcomeMessage::whereIn('id', $welcomes->pluck('id'))
-                ->update(['consumed_at' => now()]);
+        if (! $deviceExists) {
+            return $this->forbiddenResponse('Invalid or inactive device.');
         }
 
-        return $this->successResponse($welcomes);
+        return DB::transaction(function () use ($user, $deviceId) {
+            $welcomes = MlsWelcomeMessage::where('recipient_user_id', $user->id)
+                ->where('recipient_device_id', $deviceId)
+                ->whereNull('consumed_at')
+                ->lockForUpdate()
+                ->get([
+                    'id', 'group_id', 'recipient_device_id', 'welcome_bytes', 'ratchet_tree_bytes', 'created_at',
+                ]);
+
+            if ($welcomes->isNotEmpty()) {
+                MlsWelcomeMessage::whereIn('id', $welcomes->pluck('id'))
+                    ->update(['consumed_at' => now()]);
+            }
+
+            return $this->successResponse($welcomes);
+        });
     }
 
     /**
-     * Get member device bundles for a channel (all users with active devices).
+     * Get member device bundles for a channel (users who can view the channel with active devices).
      */
     public function channelMemberBundles(Request $request, Channel $channel): JsonResponse
     {
+        $permissionService = app(PermissionService::class);
+
+        if (! $permissionService->userCanViewChannel($request->user(), $channel)) {
+            return $this->errorResponse('You do not have access to this channel.', 403);
+        }
+
         $users = User::whereHas('devices', fn ($q) => $q->where('is_active', true))
             ->with(['devices' => fn ($q) => $q->where('is_active', true)->select('user_id', 'device_id')])
-            ->get(['id']);
+            ->get(['id'])
+            ->filter(fn (User $user) => $permissionService->userCanViewChannel($user, $channel));
 
         $result = $users->map(fn ($user) => [
             'user_id' => $user->id,
             'devices' => $user->devices->map(fn ($d) => ['device_id' => $d->device_id])->values(),
-        ]);
+        ])->values();
 
         return $this->successResponse($result);
     }
@@ -338,6 +387,12 @@ class MlsController extends Controller
      */
     public function dmMemberBundles(Request $request, DirectMessageGroup $dmGroup): JsonResponse
     {
+        $user = $request->user();
+
+        if (! $dmGroup->participants()->where('users.id', $user->id)->exists()) {
+            return $this->forbiddenResponse();
+        }
+
         $users = $dmGroup->participants()
             ->whereHas('devices', fn ($q) => $q->where('is_active', true))
             ->with(['devices' => fn ($q) => $q->where('is_active', true)->select('user_id', 'device_id')])
@@ -349,5 +404,39 @@ class MlsController extends Controller
         ]);
 
         return $this->successResponse($result);
+    }
+
+    /**
+     * Authorize that the user has access to the given MLS group.
+     * Returns a JsonResponse on failure, or null if authorized.
+     */
+    private function authorizeGroupAccess(User $user, string $groupId): ?JsonResponse
+    {
+        if (preg_match('/^channel:(\d+)$/', $groupId, $m)) {
+            $channel = Channel::find((int) $m[1]);
+            if (! $channel) {
+                return $this->errorResponse('Unknown group.', 404);
+            }
+            $permissionService = app(PermissionService::class);
+            if (! $permissionService->userCanViewChannel($user, $channel)) {
+                return $this->forbiddenResponse('You do not have access to this group.');
+            }
+
+            return null;
+        }
+
+        if (preg_match('/^dm:(\d+)$/', $groupId, $m)) {
+            $dmGroup = DirectMessageGroup::find((int) $m[1]);
+            if (! $dmGroup) {
+                return $this->errorResponse('Unknown group.', 404);
+            }
+            if (! $dmGroup->participants()->where('users.id', $user->id)->exists()) {
+                return $this->forbiddenResponse('You do not have access to this group.');
+            }
+
+            return null;
+        }
+
+        return $this->errorResponse('Invalid group ID format.', 422);
     }
 }

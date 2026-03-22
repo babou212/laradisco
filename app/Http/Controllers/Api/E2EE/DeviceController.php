@@ -79,13 +79,19 @@ class DeviceController extends Controller
             ]);
 
             if (! empty($validated['key_packages'])) {
-                foreach ($validated['key_packages'] as $kp) {
-                    MlsKeyPackage::create([
-                        'user_id' => $user->id,
-                        'device_id' => $validated['device_id'],
-                        'key_package_bytes' => $kp['key_package_bytes'],
-                        'key_package_hash' => $kp['key_package_hash'],
-                    ]);
+                $uniquePackages = collect($validated['key_packages'])
+                    ->unique('key_package_hash')
+                    ->all();
+
+                foreach ($uniquePackages as $kp) {
+                    MlsKeyPackage::firstOrCreate(
+                        ['key_package_hash' => $kp['key_package_hash']],
+                        [
+                            'user_id' => $user->id,
+                            'device_id' => $validated['device_id'],
+                            'key_package_bytes' => $kp['key_package_bytes'],
+                        ],
+                    );
                 }
             }
         });

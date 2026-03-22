@@ -295,6 +295,13 @@ class MlsController extends Controller
 
             $recipientUser = User::find($recipient['user_id']);
 
+            if (! $recipientUser instanceof User) {
+                return $this->errorResponse(
+                    "Recipient at index {$index}: user not found.",
+                    422
+                );
+            }
+
             if ($channel) {
                 if (! $permissionService->userCanViewChannel($recipientUser, $channel)) {
                     return $this->errorResponse(

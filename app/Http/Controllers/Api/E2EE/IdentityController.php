@@ -6,7 +6,6 @@ use App\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\E2EE\RegisterIdentityRequest;
 use App\Models\MlsKeyPackage;
-use App\Models\MlsMessage;
 use App\Models\MlsWelcomeMessage;
 use App\Models\User;
 use App\Models\UserDevice;
@@ -90,7 +89,6 @@ class IdentityController extends Controller
 
         DB::transaction(function () use ($user) {
             MlsKeyPackage::where('user_id', $user->id)->delete();
-            MlsMessage::where('sender_user_id', $user->id)->delete();
             MlsWelcomeMessage::where('recipient_user_id', $user->id)->delete();
 
             UserDevice::where('user_id', $user->id)->delete();

@@ -7,6 +7,7 @@ use App\Events\MlsMessageReceived;
 use App\Events\MlsWelcomeReady;
 use App\Http\Controllers\Controller;
 use App\Models\Channel;
+use App\Models\ChannelPermissionOverride;
 use App\Models\DirectMessageGroup;
 use App\Models\MlsKeyPackage;
 use App\Models\MlsMessage;
@@ -27,7 +28,7 @@ class MlsController extends Controller
      */
     public function uploadKeyPackages(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'device_id' => ['sometimes', 'string', 'uuid'],
             'key_packages' => ['required', 'array', 'min:1', 'max:100'],
             'key_packages.*.key_package_bytes' => ['required', 'string'],
@@ -35,31 +36,26 @@ class MlsController extends Controller
         ]);
 
         $user = $request->user();
-        $validated = $request->all();
 
         $deviceId = $validated['device_id']
             ?? $request->header('X-Device-Id');
 
-        $deviceQuery = UserDevice::where('user_id', $user->id)
-            ->where('is_active', true);
-
-        if (! empty($deviceId)) {
-            $deviceQuery->where('device_id', $deviceId);
-        } else {
-            $deviceQuery->latest('updated_at');
+        if (empty($deviceId)) {
+            return $this->errorResponse('A device_id field or X-Device-Id header is required.', 422);
         }
 
-        $device = $deviceQuery->first();
+        $device = UserDevice::where('user_id', $user->id)
+            ->where('device_id', $deviceId)
+            ->where('is_active', true)
+            ->first();
 
         if (! $device) {
             return $this->forbiddenResponse('Invalid or inactive device.');
         }
 
-        $validated['device_id'] = $device->device_id;
-
         $rows = array_map(fn ($kp) => [
             'user_id' => $user->id,
-            'device_id' => $validated['device_id'],
+            'device_id' => $device->device_id,
             'key_package_bytes' => $kp['key_package_bytes'],
             'key_package_hash' => $kp['key_package_hash'],
             'created_at' => now(),
@@ -139,7 +135,7 @@ class MlsController extends Controller
      */
     public function submitMessage(Request $request, string $groupId): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'device_id' => ['sometimes', 'string', 'uuid'],
             'message_type' => ['required', 'string', 'in:commit,proposal,application'],
             'message_bytes' => ['required', 'string'],
@@ -153,32 +149,26 @@ class MlsController extends Controller
             return $authError;
         }
 
-        $validated = $request->all();
-
         $deviceId = $validated['device_id']
             ?? $request->header('X-Device-Id');
 
-        $deviceQuery = UserDevice::where('user_id', $user->id)
-            ->where('is_active', true);
-
-        if (! empty($deviceId)) {
-            $deviceQuery->where('device_id', $deviceId);
-        } else {
-            $deviceQuery->latest('updated_at');
+        if (empty($deviceId)) {
+            return $this->errorResponse('A device_id field or X-Device-Id header is required.', 422);
         }
 
-        $device = $deviceQuery->first();
+        $device = UserDevice::where('user_id', $user->id)
+            ->where('device_id', $deviceId)
+            ->where('is_active', true)
+            ->first();
 
         if (! $device) {
             return $this->forbiddenResponse('Invalid or inactive device.');
         }
 
-        $validated['device_id'] = $device->device_id;
-
         $message = MlsMessage::create([
             'group_id' => $groupId,
             'sender_user_id' => $user->id,
-            'sender_device_id' => $validated['device_id'],
+            'sender_device_id' => $device->device_id,
             'message_type' => $validated['message_type'],
             'message_bytes' => $validated['message_bytes'],
             'epoch' => $validated['epoch'],
@@ -189,7 +179,7 @@ class MlsController extends Controller
                 groupId: $groupId,
                 messageId: $message->id,
                 senderUserId: $user->id,
-                senderDeviceId: $validated['device_id'],
+                senderDeviceId: $device->device_id,
                 messageType: $validated['message_type'],
                 epoch: $validated['epoch'],
             ))->toOthers();
@@ -251,7 +241,6 @@ class MlsController extends Controller
             return $authError;
         }
 
-        // Accept both single-recipient and multi-recipient formats
         if ($request->has('recipients')) {
             $request->validate([
                 'recipients' => ['required', 'array', 'min:1'],
@@ -277,7 +266,20 @@ class MlsController extends Controller
 
         $ratchetTreeBytes = $request->input('ratchet_tree_bytes');
 
-        // Validate each recipient device belongs to the specified user and is active
+        $permissionService = app(PermissionService::class);
+        $channel = null;
+        $dmGroup = null;
+
+        if (preg_match('/^channel:(\d+)$/', $groupId, $m)) {
+            $channel = Channel::find((int) $m[1]);
+        } elseif (preg_match('/^dm:(\d+)$/', $groupId, $m)) {
+            $dmGroup = DirectMessageGroup::find((int) $m[1]);
+        }
+
+        if (! $channel && ! $dmGroup) {
+            return $this->errorResponse('Unable to resolve group for recipient validation.', 422);
+        }
+
         foreach ($recipients as $index => $recipient) {
             $deviceExists = UserDevice::where('user_id', $recipient['user_id'])
                 ->where('device_id', $recipient['device_id'])
@@ -289,6 +291,24 @@ class MlsController extends Controller
                     "Recipient at index {$index}: device does not belong to the specified user or is inactive.",
                     422
                 );
+            }
+
+            $recipientUser = User::find($recipient['user_id']);
+
+            if ($channel) {
+                if (! $permissionService->userCanViewChannel($recipientUser, $channel)) {
+                    return $this->errorResponse(
+                        "Recipient at index {$index}: user does not have access to this group.",
+                        403
+                    );
+                }
+            } elseif ($dmGroup) {
+                if (! $dmGroup->participants()->where('users.id', $recipient['user_id'])->exists()) {
+                    return $this->errorResponse(
+                        "Recipient at index {$index}: user does not have access to this group.",
+                        403
+                    );
+                }
             }
         }
 
@@ -370,9 +390,15 @@ class MlsController extends Controller
         }
 
         $users = User::whereHas('devices', fn ($q) => $q->where('is_active', true))
-            ->with(['devices' => fn ($q) => $q->where('is_active', true)->select('user_id', 'device_id')])
-            ->get(['id'])
-            ->filter(fn (User $user) => $permissionService->userCanViewChannel($user, $channel));
+            ->with([
+                'roles',
+                'devices' => fn ($q) => $q->where('is_active', true)->select('user_id', 'device_id'),
+            ])
+            ->get(['id']);
+
+        $overrides = ChannelPermissionOverride::where('channel_id', $channel->id)->get();
+
+        $users = $users->filter(fn (User $user) => $permissionService->userCanViewChannel($user, $channel, $overrides));
 
         $result = $users->map(fn ($user) => [
             'user_id' => $user->id,

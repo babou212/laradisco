@@ -7,7 +7,6 @@ use App\Concerns\ApiResponse;
 use App\Enums\PermissionFlag;
 use App\Events\ThreadMessageDeleted;
 use App\Events\ThreadMessageEdited;
-use App\Events\ThreadMessageSent;
 use App\Events\ThreadUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreThreadReplyRequest;
@@ -21,7 +20,6 @@ use App\Services\MentionService;
 use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class ThreadController extends Controller

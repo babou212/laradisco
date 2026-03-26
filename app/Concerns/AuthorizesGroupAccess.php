@@ -5,7 +5,6 @@ namespace App\Concerns;
 use App\Models\Channel;
 use App\Models\DirectMessageGroup;
 use App\Models\User;
-use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
 
 trait AuthorizesGroupAccess

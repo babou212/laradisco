@@ -10,10 +10,10 @@ use App\Models\Channel;
 use App\Models\ChannelPermissionOverride;
 use App\Models\DirectMessageGroup;
 use App\Models\MlsGroup;
+use App\Models\MlsJoinRequest;
 use App\Models\MlsMessage;
 use App\Models\MlsWelcomeMessage;
 use App\Models\User;
-use App\Models\UserDevice;
 use App\Services\PermissionService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
@@ -61,7 +61,7 @@ class MlsGroupController extends Controller
 
         $hasPendingJoinRequest = false;
         if ($deviceId) {
-            $hasPendingJoinRequest = \App\Models\MlsJoinRequest::where('group_id', $groupId)
+            $hasPendingJoinRequest = MlsJoinRequest::where('group_id', $groupId)
                 ->where('device_id', $deviceId)
                 ->where('status', 'pending')
                 ->exists();

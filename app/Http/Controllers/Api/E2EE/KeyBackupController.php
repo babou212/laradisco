@@ -10,7 +10,6 @@ use App\Models\UserKeyBackup;
 use App\Services\KeyBackupService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 use Symfony\Component\HttpFoundation\Response;
 

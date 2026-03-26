@@ -5,14 +5,12 @@ namespace App\Actions;
 use App\Enums\PermissionFlag;
 use App\Events\ThreadMessageSent;
 use App\Events\ThreadUpdated;
-use App\Http\Resources\MessageResource;
 use App\Models\Channel;
 use App\Models\Message;
 use App\Models\Thread;
 use App\Models\User;
 use App\Services\MentionService;
 use App\Services\PermissionService;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
 class CreateThreadReplyAction

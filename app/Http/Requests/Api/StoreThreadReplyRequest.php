@@ -15,22 +15,22 @@ class StoreThreadReplyRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'content' => ['required', 'string', 'min:1', 'max:16000'],
-            'sender_device_id' => ['nullable', 'string', 'uuid'],
+            'sender_device_id' => ['required', 'string', 'uuid'],
+            'history_ciphertext' => ['nullable', 'string', 'max:32000'],
+            'message_bytes' => ['required', 'string', 'max:65535'],
+            'epoch' => ['sometimes', 'integer', 'min:0'],
             'mention_user_ids' => ['sometimes', 'array', 'max:50'],
             'mention_user_ids.*' => ['integer', 'exists:users,id'],
             'mention_everyone' => ['sometimes', 'boolean'],
             'mention_here' => ['sometimes', 'boolean'],
-            'search_tokens' => ['sometimes', 'array', 'max:500'],
-            'search_tokens.*' => ['string', 'size:64', 'regex:/^[a-f0-9]{64}$/'],
+            'thread_name' => ['sometimes', 'string', 'max:100'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'content.required' => 'Reply content is required.',
-            'content.max' => 'Reply cannot exceed 16000 characters.',
+            'message_bytes.required' => 'Encrypted message payload is required.',
         ];
     }
 }

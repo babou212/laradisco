@@ -51,7 +51,9 @@ class ChatController extends Controller
         $query = User::select(['id', 'name', 'username', 'nickname', 'avatar_path', 'status', 'custom_status'])
             ->orderBy('name');
 
-        if ($search = $request->input('search')) {
+        $search = $request->string('search')->trim()->value();
+        if ($search !== '') {
+            $search = str_replace(['%', '_'], ['\%', '\_'], mb_substr($search, 0, 50));
             $query->where(function ($q) use ($search) {
                 $q->where('username', 'like', $search.'%')
                     ->orWhere('name', 'like', $search.'%')

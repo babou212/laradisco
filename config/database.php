@@ -158,7 +158,19 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_DB', '0'),
-        ],
+            'persistent' => true,
+            'read_timeout' => 60,
+        ] + (env('REDIS_TLS_ENABLED', false) ? [
+            'context' => [
+                'ssl' => [
+                    'cafile' => '/etc/ssl/redis/ca.crt',
+                    'local_cert' => '/etc/ssl/redis/tls.crt',
+                    'local_pk' => '/etc/ssl/redis/tls.key',
+                    'verify_peer' => true,
+                    'verify_peer_name' => true,
+                ],
+            ],
+        ] : []),
 
         'cache' => [
             'url' => env('REDIS_URL'),
@@ -167,7 +179,19 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_CACHE_DB', '1'),
-        ],
+            'persistent' => true,
+            'read_timeout' => 60,
+        ] + (env('REDIS_TLS_ENABLED', false) ? [
+            'context' => [
+                'ssl' => [
+                    'cafile' => '/etc/ssl/redis/ca.crt',
+                    'local_cert' => '/etc/ssl/redis/tls.crt',
+                    'local_pk' => '/etc/ssl/redis/tls.key',
+                    'verify_peer' => true,
+                    'verify_peer_name' => true,
+                ],
+            ],
+        ] : []),
 
         'session' => [
             'url' => env('REDIS_URL'),
@@ -176,7 +200,19 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_SESSION_DB', '2'),
-        ],
+            'persistent' => true,
+            'read_timeout' => 60,
+        ] + (env('REDIS_TLS_ENABLED', false) ? [
+            'context' => [
+                'ssl' => [
+                    'cafile' => '/etc/ssl/redis/ca.crt',
+                    'local_cert' => '/etc/ssl/redis/tls.crt',
+                    'local_pk' => '/etc/ssl/redis/tls.key',
+                    'verify_peer' => true,
+                    'verify_peer_name' => true,
+                ],
+            ],
+        ] : []),
 
         'queue' => [
             'url' => env('REDIS_URL'),
@@ -185,7 +221,19 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_QUEUE_DB', '3'),
-        ],
+            'persistent' => true,
+            'read_timeout' => 60,
+        ] + (env('REDIS_TLS_ENABLED', false) ? [
+            'context' => [
+                'ssl' => [
+                    'cafile' => '/etc/ssl/redis/ca.crt',
+                    'local_cert' => '/etc/ssl/redis/tls.crt',
+                    'local_pk' => '/etc/ssl/redis/tls.key',
+                    'verify_peer' => true,
+                    'verify_peer_name' => true,
+                ],
+            ],
+        ] : []),
 
     ],
 

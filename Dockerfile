@@ -92,4 +92,4 @@ EXPOSE 8080 8443
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD ["healthcheck-octane"]
 
-CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--port=8080"]
+CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--port=8080", "--max-requests=500"]

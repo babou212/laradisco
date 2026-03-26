@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Api\E2EE;
 
 use App\Concerns\ApiResponse;
+use App\Events\DeviceAdded;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\E2EE\RegisterDeviceRequest;
+use App\Http\Requests\Api\E2EE\UpdateDeviceNameRequest;
 use App\Models\MlsKeyPackage;
 use App\Models\UserDevice;
 use App\Models\UserIdentityKey;
@@ -24,18 +27,10 @@ class DeviceController extends Controller
     /**
      * Register a new device with its key material.
      */
-    public function register(Request $request): JsonResponse
+    public function register(RegisterDeviceRequest $request): JsonResponse
     {
         $user = $request->user();
-        $validated = $request->validate([
-            'device_id' => ['required', 'string', 'uuid'],
-            'device_name' => ['nullable', 'string', 'max:255'],
-            'device_identity_key' => ['nullable', 'string'],
-            'identity_signature' => ['nullable', 'string'],
-            'key_packages' => ['sometimes', 'array', 'max:100'],
-            'key_packages.*.key_package_bytes' => ['required_with:key_packages', 'string'],
-            'key_packages.*.key_package_hash' => ['required_with:key_packages', 'string'],
-        ]);
+        $validated = $request->validated();
 
         $identityKey = UserIdentityKey::where('user_id', $user->id)->first();
 
@@ -105,6 +100,16 @@ class DeviceController extends Controller
             metadata: ['device_name' => $validated['device_name'] ?? null],
         );
 
+        try {
+            broadcast(new DeviceAdded(
+                userId: $user->id,
+                deviceId: $validated['device_id'],
+                deviceName: $validated['device_name'] ?? null,
+            ));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         return $this->createdResponse([
             'device_id' => $validated['device_id'],
             'device_name' => $validated['device_name'] ?? null,
@@ -157,9 +162,8 @@ class DeviceController extends Controller
     /**
      * Update a device's name.
      */
-    public function updateName(Request $request, string $deviceId): JsonResponse
+    public function updateName(UpdateDeviceNameRequest $request, string $deviceId): JsonResponse
     {
-        $request->validate(['device_name' => ['required', 'string', 'max:255']]);
 
         $device = UserDevice::where('user_id', $request->user()->id)
             ->where('device_id', $deviceId)

@@ -17,6 +17,13 @@ class TwoFactorController extends Controller
 {
     use ApiResponse;
 
+    public function __construct(
+        private readonly EnableTwoFactorAuthentication $enableTwoFactor,
+        private readonly DisableTwoFactorAuthentication $disableTwoFactor,
+        private readonly GenerateNewRecoveryCodes $generateRecoveryCodes,
+        private readonly ConfirmTwoFactorAuthentication $confirmTwoFactor,
+    ) {}
+
     /**
      * Get 2FA status for the authenticated user.
      */
@@ -41,7 +48,7 @@ class TwoFactorController extends Controller
             return $this->validationErrorResponse('Two-factor authentication is already enabled.');
         }
 
-        app(EnableTwoFactorAuthentication::class)($user);
+        ($this->enableTwoFactor)($user);
 
         return $this->successResponse(message: 'Two-factor authentication enabled successfully');
     }
@@ -57,7 +64,7 @@ class TwoFactorController extends Controller
             return $this->validationErrorResponse('Two-factor authentication is not enabled.');
         }
 
-        app(DisableTwoFactorAuthentication::class)($user);
+        ($this->disableTwoFactor)($user);
 
         return $this->successResponse(message: 'Two-factor authentication disabled successfully');
     }
@@ -102,7 +109,7 @@ class TwoFactorController extends Controller
     {
         $user = $request->user();
 
-        app(GenerateNewRecoveryCodes::class)($user);
+        ($this->generateRecoveryCodes)($user);
 
         $codes = json_decode(decrypt($user->fresh()->two_factor_recovery_codes), true);
 
@@ -115,7 +122,7 @@ class TwoFactorController extends Controller
     public function confirm(ConfirmTwoFactorRequest $request): JsonResponse
     {
         $user = $request->user();
-        app(ConfirmTwoFactorAuthentication::class)($user, $request->validated('code'));
+        ($this->confirmTwoFactor)($user, $request->validated('code'));
 
         return $this->successResponse(message: 'Two-factor authentication confirmed successfully');
     }

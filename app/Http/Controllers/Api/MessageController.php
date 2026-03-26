@@ -13,7 +13,6 @@ use App\Http\Requests\Api\StoreChannelMessageRequest;
 use App\Http\Requests\Api\UpdateChannelMessageRequest;
 use App\Http\Resources\MessageResource;
 use App\Models\Channel;
-use App\Models\EncryptedSearchToken;
 use App\Models\Message;
 use App\Services\MentionService;
 use App\Services\PermissionService;
@@ -64,33 +63,31 @@ class MessageController extends Controller
      */
     public function store(StoreChannelMessageRequest $request, Channel $channel): JsonResponse
     {
+        $user = $request->user();
+
+        if (! $this->permissionService->userCanInChannel($user, $channel, PermissionFlag::SendMessages)) {
+            return $this->forbiddenResponse('You do not have permission to send messages in this channel.');
+        }
+
         $message = $channel->messages()->create([
-            'user_id' => $request->user()->id,
-            'content' => $request->validated('content'),
+            'user_id' => $user->id,
             'reply_to_id' => $request->validated('reply_to_id'),
-            'is_encrypted' => $request->validated('is_encrypted', false),
             'sender_device_id' => $request->validated('sender_device_id'),
+            'history_ciphertext' => $request->validated('history_ciphertext'),
+            'message_bytes' => $request->validated('message_bytes'),
+            'epoch' => $request->validated('epoch', 0),
         ]);
 
         $message->load(['user:id,username,name,nickname,avatar_path,status,custom_status', 'replyTo.user:id,username,name,nickname,avatar_path,status,custom_status']);
 
         broadcast(new MessageSent($message))->toOthers();
 
-        if (! $message->is_encrypted) {
-            $this->mentionService->processMentions($message);
-        } else {
-            $this->mentionService->processMentionsFromMetadata(
-                $message,
-                $request->validated('mention_user_ids', []),
-                $request->validated('mention_everyone', false),
-                $request->validated('mention_here', false),
-            );
-        }
-
-        $searchTokens = $request->validated('search_tokens', []);
-        if (! empty($searchTokens)) {
-            EncryptedSearchToken::insertTokensForMessage('channel', $channel->id, $message->id, $searchTokens);
-        }
+        $this->mentionService->processMentionsFromMetadata(
+            $message,
+            $request->validated('mention_user_ids', []),
+            $request->validated('mention_everyone', false),
+            $request->validated('mention_here', false),
+        );
 
         return $this->createdResponse(
             new MessageResource($message),
@@ -113,17 +110,13 @@ class MessageController extends Controller
         }
 
         $message->update([
-            'content' => $request->validated('content'),
-            'is_encrypted' => $request->validated('is_encrypted', $message->is_encrypted),
             'sender_device_id' => $request->validated('sender_device_id', $message->sender_device_id),
+            'history_ciphertext' => $request->validated('history_ciphertext', $message->history_ciphertext),
+            'message_bytes' => $request->validated('message_bytes', $message->message_bytes),
+            'epoch' => $request->validated('epoch', $message->epoch),
             'is_edited' => true,
             'edited_at' => now(),
         ]);
-
-        $searchTokens = $request->validated('search_tokens', null);
-        if ($searchTokens !== null) {
-            EncryptedSearchToken::replaceTokensForMessage('channel', $channel->id, $message->id, $searchTokens);
-        }
 
         broadcast(new MessageEdited($message))->toOthers();
 
@@ -153,8 +146,7 @@ class MessageController extends Controller
 
         $messageId = $message->id;
 
-        EncryptedSearchToken::deleteTokensForMessage('channel', $channel->id, $messageId);
-
+        $message->update(['history_ciphertext' => null, 'message_bytes' => null]);
         $message->delete();
 
         broadcast(new MessageDeleted($messageId, $channel->id))->toOthers();

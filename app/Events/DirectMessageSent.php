@@ -2,7 +2,6 @@
 
 namespace App\Events;
 
-use App\Http\Resources\DirectMessageResource;
 use App\Models\DirectMessage;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -56,7 +55,26 @@ class DirectMessageSent implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'message' => new DirectMessageResource($this->message),
+            'message' => [
+                'id' => $this->message->id,
+                'dm_group_id' => $this->message->direct_message_group_id,
+                'user_id' => $this->message->user_id,
+                'content' => $this->message->message_bytes,
+                'sender_device_id' => $this->message->sender_device_id,
+                'reply_to_id' => $this->message->reply_to_id,
+                'epoch' => $this->message->epoch,
+                'is_edited' => $this->message->is_edited ?? false,
+                'reactions' => [],
+                'user' => $this->message->user ? [
+                    'id' => $this->message->user->id,
+                    'username' => $this->message->user->username,
+                    'name' => $this->message->user->name,
+                    'nickname' => $this->message->user->nickname,
+                    'avatar_path' => $this->message->user->avatar_path,
+                ] : null,
+                'created_at' => $this->message->created_at?->toISOString(),
+                'updated_at' => $this->message->updated_at?->toISOString(),
+            ],
         ];
     }
 }

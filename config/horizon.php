@@ -98,6 +98,8 @@ return [
 
     'waits' => [
         'redis:default' => 60,
+        'redis:broadcasting' => 30,
+        'redis:notifications' => 30,
     ],
 
     /*
@@ -170,7 +172,7 @@ return [
     |
     */
 
-    'fast_termination' => false,
+    'fast_termination' => true,
 
     /*
     |--------------------------------------------------------------------------
@@ -203,9 +205,9 @@ return [
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => 1,
-            'maxTime' => 0,
-            'maxJobs' => 0,
-            'memory' => 128,
+            'maxTime' => 3600,
+            'maxJobs' => 500,
+            'memory' => 256,
             'tries' => 3,
             'timeout' => 30,
             'nice' => 0,
@@ -216,9 +218,9 @@ return [
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => 1,
-            'maxTime' => 0,
-            'maxJobs' => 0,
-            'memory' => 128,
+            'maxTime' => 3600,
+            'maxJobs' => 500,
+            'memory' => 256,
             'tries' => 3,
             'timeout' => 60,
             'nice' => 0,
@@ -229,9 +231,9 @@ return [
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => 1,
-            'maxTime' => 0,
-            'maxJobs' => 0,
-            'memory' => 128,
+            'maxTime' => 3600,
+            'maxJobs' => 500,
+            'memory' => 256,
             'tries' => 3,
             'timeout' => 30,
             'nice' => 0,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\CreateThreadReplyAction;
 use App\Concerns\ApiResponse;
 use App\Enums\PermissionFlag;
 use App\Events\ThreadMessageDeleted;
@@ -14,13 +15,13 @@ use App\Http\Requests\Api\UpdateChannelMessageRequest;
 use App\Http\Resources\MessageResource;
 use App\Http\Resources\ThreadResource;
 use App\Models\Channel;
-use App\Models\EncryptedSearchToken;
 use App\Models\Message;
 use App\Models\Thread;
 use App\Services\MentionService;
 use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class ThreadController extends Controller
@@ -30,6 +31,7 @@ class ThreadController extends Controller
     public function __construct(
         private readonly MentionService $mentionService,
         private readonly PermissionService $permissionService,
+        private readonly CreateThreadReplyAction $createThreadReplyAction,
     ) {}
 
     /**
@@ -97,71 +99,27 @@ class ThreadController extends Controller
             return $this->errorResponse('Cannot start a thread from a thread reply.', Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $user = $request->user();
-
-        $thread = $message->threadStarted;
-
-        if (! $thread) {
-            if (! $this->permissionService->userCanInChannel($user, $channel, PermissionFlag::CreateThreads)) {
-                return $this->forbiddenResponse('You do not have permission to create threads in this channel.');
-            }
-
-            $threadName = mb_substr(strip_tags($message->content), 0, 50);
-
-            $thread = Thread::create([
-                'channel_id' => $channel->id,
-                'user_id' => $user->id,
-                'message_id' => $message->id,
-                'name' => $threadName,
-                'message_count' => 0,
-                'last_message_at' => now(),
-            ]);
-
-            $followerIds = array_unique([$user->id, $message->user_id]);
-            $thread->followers()->attach($followerIds);
-        } else {
-            if (! $this->permissionService->userCanInChannel($user, $channel, PermissionFlag::SendThreadMessages)) {
-                return $this->forbiddenResponse('You do not have permission to send messages in threads.');
-            }
-        }
-
-        if ($thread->is_locked) {
-            return $this->forbiddenResponse('This thread is locked.');
-        }
-
-        $reply = $channel->messages()->create([
-            'user_id' => $user->id,
-            'thread_id' => $thread->id,
-            'content' => $request->validated('content'),
-            'is_encrypted' => true,
-            'sender_device_id' => $request->validated('sender_device_id'),
-        ]);
-
-        $reply->load(['user:id,username,name,nickname,avatar_path,status,custom_status', 'attachments']);
-
-        $thread->increment('message_count');
-        $thread->update(['last_message_at' => now()]);
-
-        $thread->followers()->syncWithoutDetaching([$user->id]);
-
-        $this->mentionService->processMentionsFromMetadata(
-            $reply,
-            $request->validated('mention_user_ids', []),
-            $request->validated('mention_everyone', false),
-            $request->validated('mention_here', false),
+        $result = $this->createThreadReplyAction->execute(
+            $request->user(),
+            $channel,
+            $message,
+            [
+                'sender_device_id' => $request->validated('sender_device_id'),
+                'history_ciphertext' => $request->validated('history_ciphertext'),
+                'message_bytes' => $request->validated('message_bytes'),
+                'epoch' => $request->validated('epoch', 0),
+                'thread_name' => $request->validated('thread_name', 'Thread'),
+                'mention_user_ids' => $request->validated('mention_user_ids', []),
+                'mention_everyone' => $request->validated('mention_everyone', false),
+                'mention_here' => $request->validated('mention_here', false),
+            ],
         );
 
-        $searchTokens = $request->validated('search_tokens', []);
-        if (! empty($searchTokens)) {
-            EncryptedSearchToken::insertTokensForMessage('channel', $channel->id, $reply->id, $searchTokens);
+        if (! $result->success) {
+            return $this->forbiddenResponse($result->error);
         }
 
-        broadcast(new ThreadMessageSent($reply))->toOthers();
-
-        $thread->refresh();
-        broadcast(new ThreadUpdated($thread))->toOthers();
-
-        return $this->createdResponse(new MessageResource($reply), 'Reply sent successfully');
+        return $this->createdResponse(new MessageResource($result->reply), 'Reply sent successfully');
     }
 
     /**
@@ -182,21 +140,16 @@ class ThreadController extends Controller
         }
 
         $message->update([
-            'content' => $request->validated('content'),
-            'is_encrypted' => true,
             'sender_device_id' => $request->validated('sender_device_id', $message->sender_device_id),
+            'history_ciphertext' => $request->validated('history_ciphertext', $message->history_ciphertext),
+            'message_bytes' => $request->validated('message_bytes', $message->message_bytes),
+            'epoch' => $request->validated('epoch', $message->epoch),
             'is_edited' => true,
             'edited_at' => now(),
         ]);
 
-        $searchTokens = $request->validated('search_tokens', null);
-        if ($searchTokens !== null) {
-            EncryptedSearchToken::replaceTokensForMessage('channel', $channel->id, $message->id, $searchTokens);
-        }
-
         broadcast(new ThreadMessageEdited($message))->toOthers();
 
-        // Update thread preview if this was the latest reply
         $thread->load('latestReply');
         if ($thread->latestReply && $thread->latestReply->id === $message->id) {
             broadcast(new ThreadUpdated($thread))->toOthers();
@@ -229,8 +182,7 @@ class ThreadController extends Controller
 
         $messageId = $message->id;
 
-        EncryptedSearchToken::deleteTokensForMessage('channel', $channel->id, $messageId);
-
+        $message->update(['history_ciphertext' => null, 'message_bytes' => null]);
         $message->delete();
 
         $thread->decrement('message_count');

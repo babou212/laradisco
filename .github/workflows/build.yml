@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_DB: laradisco_test
           POSTGRES_USER: test
@@ -124,7 +124,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          platforms: linux/arm64
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -145,7 +145,7 @@ jobs:
           context: .
           file: ./Dockerfile.reverb
           push: true
-          platforms: linux/arm64
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta-reverb.outputs.tags }}
           labels: ${{ steps.meta-reverb.outputs.labels }}
           build-args: |
@@ -168,7 +168,7 @@ jobs:
           context: .
           file: ./Dockerfile.worker
           push: true
-          platforms: linux/arm64
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta-worker.outputs.tags }}
           labels: ${{ steps.meta-worker.outputs.labels }}
           build-args: |

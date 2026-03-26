@@ -4,8 +4,11 @@ use App\Http\Controllers\Api\E2EE\AuditLogController;
 use App\Http\Controllers\Api\E2EE\DeviceController;
 use App\Http\Controllers\Api\E2EE\IdentityController;
 use App\Http\Controllers\Api\E2EE\KeyBackupController;
-use App\Http\Controllers\Api\E2EE\MlsController;
-use App\Http\Controllers\Api\E2EE\SearchController;
+use App\Http\Controllers\Api\E2EE\MlsGroupController;
+use App\Http\Controllers\Api\E2EE\MlsJoinController;
+use App\Http\Controllers\Api\E2EE\MlsKeyPackageController;
+use App\Http\Controllers\Api\E2EE\MlsMessageController;
+use App\Http\Controllers\Api\E2EE\MlsWelcomeController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('throttle:20,1')->group(function () {
@@ -28,26 +31,32 @@ Route::middleware('throttle:15,1')->group(function () {
     Route::get('keys/backup', [KeyBackupController::class, 'show'])->name('keys.backup.show');
     Route::put('keys/backup', [KeyBackupController::class, 'update'])->name('keys.backup.update');
     Route::delete('keys/backup', [KeyBackupController::class, 'destroy'])->name('keys.backup.destroy');
+    Route::post('keys/backup/confirm', [KeyBackupController::class, 'confirmRestore'])->name('keys.backup.confirm');
+    Route::post('keys/backup/unlock', [KeyBackupController::class, 'unlock'])->name('keys.backup.unlock');
 });
 
 Route::middleware('throttle:30,1')->group(function () {
-    Route::post('mls/key-packages', [MlsController::class, 'uploadKeyPackages'])->name('mls.keyPackages.upload');
+    Route::post('mls/key-packages', [MlsKeyPackageController::class, 'upload'])->name('mls.keyPackages.upload');
 });
-Route::get('mls/key-packages/count', [MlsController::class, 'keyPackageCount'])->name('mls.keyPackages.count');
-Route::get('mls/key-packages/{user}', [MlsController::class, 'fetchKeyPackages'])->name('mls.keyPackages.fetch');
+Route::get('mls/key-packages/count', [MlsKeyPackageController::class, 'count'])->name('mls.keyPackages.count');
+Route::get('mls/key-packages/{user}', [MlsKeyPackageController::class, 'fetch'])->name('mls.keyPackages.fetch');
 
-Route::post('mls/groups/{groupId}/messages', [MlsController::class, 'submitMessage'])->name('mls.groups.messages.submit');
-Route::get('mls/groups/{groupId}/messages', [MlsController::class, 'fetchMessages'])->name('mls.groups.messages.fetch');
+Route::post('mls/groups/{groupId}/messages', [MlsMessageController::class, 'submit'])->name('mls.groups.messages.submit');
+Route::get('mls/groups/{groupId}/messages', [MlsMessageController::class, 'fetch'])->name('mls.groups.messages.fetch');
+Route::get('mls/groups/{groupId}/history', [MlsMessageController::class, 'fetchHistory'])->name('mls.groups.history.fetch');
 
-Route::post('mls/groups/{groupId}/welcome', [MlsController::class, 'submitWelcome'])->name('mls.groups.welcome.submit');
-Route::get('mls/welcome', [MlsController::class, 'fetchWelcomes'])->name('mls.welcome.fetch');
+Route::post('mls/groups/{groupId}/claim', [MlsGroupController::class, 'claim'])->name('mls.groups.claim');
+Route::get('mls/groups/{groupId}/status', [MlsGroupController::class, 'status'])->name('mls.groups.status');
+Route::post('mls/groups/{groupId}/join-request', [MlsJoinController::class, 'requestJoin'])->name('mls.groups.joinRequest');
+Route::post('mls/groups/{groupId}/join-request/fulfill', [MlsJoinController::class, 'fulfill'])->name('mls.groups.joinRequest.fulfill');
 
-Route::get('channels/{channel}/members/bundles', [MlsController::class, 'channelMemberBundles'])->name('channels.members.bundles');
-Route::get('dm-groups/{dmGroup}/members/bundles', [MlsController::class, 'dmMemberBundles'])->name('dmGroups.members.bundles');
+Route::post('mls/groups/{groupId}/welcome', [MlsWelcomeController::class, 'submit'])->name('mls.groups.welcome.submit');
+Route::get('mls/welcome', [MlsWelcomeController::class, 'fetch'])->name('mls.welcome.fetch');
 
-Route::middleware('throttle:60,1')->group(function () {
-    Route::post('search', [SearchController::class, 'search'])->name('search');
-});
+Route::get('mls/user-groups', [MlsGroupController::class, 'userGroups'])->name('mls.userGroups');
+
+Route::get('channels/{channel}/members/bundles', [MlsGroupController::class, 'channelMemberBundles'])->name('channels.members.bundles');
+Route::get('dm-groups/{dmGroup}/members/bundles', [MlsGroupController::class, 'dmMemberBundles'])->name('dmGroups.members.bundles');
 
 Route::get('audit-log/{user}', [AuditLogController::class, 'index'])->name('auditLog.index');
 Route::get('audit-log/{user}/latest-hash', [AuditLogController::class, 'latestHash'])->name('auditLog.latestHash');

@@ -31,6 +31,11 @@ class AuthController extends Controller
 {
     use ApiResponse;
 
+    public function __construct(
+        private readonly PresenceService $presenceService,
+        private readonly TwoFactorAuthenticationProvider $twoFactorProvider,
+    ) {}
+
     /**
      * Issue a new API token for the native client.
      *
@@ -82,7 +87,7 @@ class AuthController extends Controller
         $user = User::findOrFail($challenge['user_id']);
 
         if ($request->filled('code')) {
-            $valid = app(TwoFactorAuthenticationProvider::class)->verify(
+            $valid = $this->twoFactorProvider->verify(
                 decrypt($user->two_factor_secret),
                 $request->code,
             );
@@ -126,7 +131,7 @@ class AuthController extends Controller
         $token = $user->createToken($deviceName)->plainTextToken;
 
         $user->update(['status' => UserStatusType::Online->value]);
-        app(PresenceService::class)->register($user);
+        $this->presenceService->register($user);
         event(new UserPresenceUpdated($user, UserStatusType::Online, $user->custom_status));
 
         $user->load(['roles' => fn ($query) => $query->orderByDesc('position')]);
@@ -146,7 +151,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        app(PresenceService::class)->unregister($user);
+        $this->presenceService->unregister($user);
         event(new UserPresenceUpdated($user, UserStatusType::Offline));
 
         $user->currentAccessToken()->delete();
@@ -271,7 +276,7 @@ class AuthController extends Controller
 
         $cached = Cache::get("password_reset:{$user->id}");
 
-        if (! $cached || ! Hash::check($request->code, $cached['code'])) {
+        if (! $cached || ! Hash::check($request->validated('code'), $cached['code'])) {
             throw ValidationException::withMessages([
                 'code' => ['The reset code is invalid or has expired.'],
             ]);
@@ -280,7 +285,7 @@ class AuthController extends Controller
         Cache::forget("password_reset:{$user->id}");
 
         $user->forceFill([
-            'password' => Hash::make($request->password),
+            'password' => Hash::make($request->validated('password')),
         ])->save();
 
         return $this->successResponse(

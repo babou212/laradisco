@@ -17,7 +17,7 @@ Route::get('/members', [ChatController::class, 'members'])->name('members.index'
 
 Route::get('/voice/participants', [VoiceChannelController::class, 'participants'])->name('voice.participants');
 
-Route::prefix('channels/{channel}')->as('channels.')->group(function () {
+Route::prefix('channels/{channel}')->as('channels.')->scopeBindings()->group(function () {
     Route::get('/', [ChannelController::class, 'show'])
         ->middleware('cache.headers')
         ->name('show');
@@ -41,7 +41,7 @@ Route::prefix('channels/{channel}')->as('channels.')->group(function () {
         ->middleware(['throttle:api-messages', 'idempotency'])
         ->name('messages.thread.store');
 
-    Route::prefix('threads/{thread}')->as('threads.')->group(function () {
+    Route::prefix('threads/{thread}')->as('threads.')->scopeBindings()->group(function () {
         Route::get('/', [ThreadController::class, 'show'])->name('show');
         Route::get('/messages', [ThreadController::class, 'messages'])->name('messages');
         Route::put('/messages/{message}', [ThreadController::class, 'updateReply'])->name('messages.update');

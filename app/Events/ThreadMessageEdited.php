@@ -2,7 +2,6 @@
 
 namespace App\Events;
 
-use App\Http\Resources\MessageResource;
 use App\Models\Message;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -35,7 +34,17 @@ class ThreadMessageEdited implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'message' => (new MessageResource($this->message))->resolve(),
+            'message' => [
+                'id' => $this->message->id,
+                'channel_id' => $this->message->channel_id,
+                'user_id' => $this->message->user_id,
+                'thread_id' => $this->message->thread_id,
+                'sender_device_id' => $this->message->sender_device_id,
+                'is_edited' => $this->message->is_edited,
+                'edited_at' => $this->message->edited_at?->toISOString(),
+                'created_at' => $this->message->created_at?->toISOString(),
+                'updated_at' => $this->message->updated_at?->toISOString(),
+            ],
         ];
     }
 }

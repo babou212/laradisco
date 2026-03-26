@@ -22,7 +22,7 @@ class DirectMessageGroupResource extends JsonResource
         });
 
         $lastMessage = $this->relationLoaded('lastMessage') ? $this->lastMessage : null;
-        // Fallback for eager load via 'messages' relation
+
         if (! $lastMessage && $this->relationLoaded('messages')) {
             $lastMessage = $this->messages->first();
         }
@@ -33,10 +33,8 @@ class DirectMessageGroupResource extends JsonResource
             'other_user' => $otherParticipant ? new UserSummaryResource($otherParticipant) : null,
             'last_message' => $lastMessage ? [
                 'id' => $lastMessage->id,
-                'content' => $lastMessage->content,
                 'created_at' => $lastMessage->created_at?->toISOString(),
                 'user_id' => $lastMessage->user_id,
-                'is_encrypted' => (bool) $lastMessage->is_encrypted,
                 'sender_device_id' => $lastMessage->sender_device_id,
             ] : null,
             'last_message_at' => $this->last_message_at?->toISOString(),

@@ -153,8 +153,11 @@ class User extends Authenticatable
                 ->get()
                 ->flatMap(fn (Role $role) => $role->permissions ?? [])
                 ->unique()
-                ->values();
+                ->values()
+                ->all();
         });
+
+        $permissions = collect($permissions);
 
         if ($permissions->contains(PermissionFlag::Administrator->value)) {
             return true;

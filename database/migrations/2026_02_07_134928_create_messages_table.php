@@ -15,9 +15,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('channel_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->unsignedBigInteger('thread_id')->nullable(); // FK added in later migration
+            $table->unsignedBigInteger('thread_id')->nullable();
             $table->foreignId('reply_to_id')->nullable()->constrained('messages')->nullOnDelete();
-            $table->text('content');
+            $table->char('sender_device_id', 36)->nullable();
+            $table->text('history_ciphertext')->nullable();
+            $table->text('message_bytes')->nullable();
+            $table->unsignedBigInteger('epoch')->default(0);
             $table->boolean('is_pinned')->default(false);
             $table->boolean('is_edited')->default(false);
             $table->timestamp('edited_at')->nullable();

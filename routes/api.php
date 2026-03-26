@@ -11,12 +11,11 @@ Route::prefix('v1')->group(function () {
     Route::get('/ping', fn () => response()->json([
         'status' => 'ok',
         'app' => config('app.name'),
-        'version' => app()->version(),
         'reverb' => [
-            'key' => config('reverb.apps.apps.0.key', env('REVERB_APP_KEY')),
-            'host' => env('REVERB_HOST', 'localhost'),
-            'port' => (int) env('REVERB_PORT', 8080),
-            'scheme' => env('REVERB_SCHEME', 'http'),
+            'key' => config('reverb.apps.apps.0.key'),
+            'host' => config('reverb.apps.apps.0.options.host'),
+            'port' => (int) config('reverb.apps.apps.0.options.port', 443),
+            'scheme' => config('reverb.apps.apps.0.options.scheme', 'https'),
         ],
     ]));
 

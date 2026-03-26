@@ -16,7 +16,6 @@ use App\Http\Resources\DirectMessageGroupResource;
 use App\Http\Resources\DirectMessageResource;
 use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
-use App\Models\EncryptedSearchToken;
 use App\Notifications\DirectMessageNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -58,7 +57,7 @@ class DirectMessageController extends Controller
             ->first();
 
         $messages = $dmGroup->messages()
-            ->with(['user:id,username,name,nickname,avatar_path,status,custom_status', 'reactions'])
+            ->with(['user:id,username,name,nickname,avatar_path,status,custom_status', 'reactions', 'replyTo.user:id,username,name,nickname,avatar_path'])
             ->orderBy('created_at', 'asc')
             ->cursorPaginate(50);
 
@@ -82,23 +81,20 @@ class DirectMessageController extends Controller
 
         $message = $dmGroup->messages()->create([
             'user_id' => $user->id,
-            'content' => $request->validated('content'),
-            'is_encrypted' => $request->validated('is_encrypted', false),
+            'reply_to_id' => $request->validated('reply_to_id'),
             'sender_device_id' => $request->validated('sender_device_id'),
+            'history_ciphertext' => $request->validated('history_ciphertext'),
+            'message_bytes' => $request->validated('message_bytes'),
+            'epoch' => $request->validated('epoch', 0),
         ]);
 
         $dmGroup->update(['last_message_at' => now()]);
 
-        $message->load('user:id,username,name,nickname,avatar_path,status,custom_status');
-
-        $dmGroup->loadMissing('participants');
-
-        foreach ($dmGroup->participants as $participant) {
-            cache()->forget("user.{$participant->id}.dm_groups");
-        }
+        $message->load(['user:id,username,name,nickname,avatar_path,status,custom_status', 'replyTo.user:id,username,name,nickname,avatar_path']);
 
         broadcast(new DirectMessageSent($message))->toOthers();
 
+        $dmGroup->loadMissing('participants');
         $recipients = $dmGroup->participants->where('id', '!=', $user->id);
 
         if ($recipients->isNotEmpty()) {
@@ -106,11 +102,6 @@ class DirectMessageController extends Controller
                 $recipients,
                 new DirectMessageNotification($message)
             );
-        }
-
-        $searchTokens = $request->validated('search_tokens', []);
-        if (! empty($searchTokens)) {
-            EncryptedSearchToken::insertTokensForMessage('dm', $dmGroup->id, $message->id, $searchTokens);
         }
 
         return $this->createdResponse(
@@ -140,17 +131,13 @@ class DirectMessageController extends Controller
         }
 
         $message->update([
-            'content' => $request->validated('content'),
-            'is_encrypted' => $request->validated('is_encrypted', $message->is_encrypted),
             'sender_device_id' => $request->validated('sender_device_id', $message->sender_device_id),
+            'history_ciphertext' => $request->validated('history_ciphertext', $message->history_ciphertext),
+            'message_bytes' => $request->validated('message_bytes', $message->message_bytes),
+            'epoch' => $request->validated('epoch', $message->epoch),
             'is_edited' => true,
             'edited_at' => now(),
         ]);
-
-        $searchTokens = $request->validated('search_tokens', null);
-        if ($searchTokens !== null) {
-            EncryptedSearchToken::replaceTokensForMessage('dm', $dmGroup->id, $message->id, $searchTokens);
-        }
 
         broadcast(new DirectMessageEdited($message))->toOthers();
 
@@ -181,8 +168,7 @@ class DirectMessageController extends Controller
 
         $messageId = $message->id;
 
-        EncryptedSearchToken::deleteTokensForMessage('dm', $dmGroup->id, $messageId);
-
+        $message->update(['history_ciphertext' => null, 'message_bytes' => null]);
         $message->delete();
 
         broadcast(new DirectMessageDeleted($messageId, $dmGroup->id))->toOthers();

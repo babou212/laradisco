@@ -24,7 +24,7 @@ class MessageFactory extends Factory
             'user_id' => User::factory(),
             'thread_id' => null,
             'reply_to_id' => null,
-            'content' => fake()->paragraph(),
+            'message_bytes' => fake()->paragraph(),
             'is_pinned' => false,
             'is_edited' => false,
             'edited_at' => null,

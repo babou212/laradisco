@@ -65,6 +65,13 @@ class VoiceChannelController extends Controller
         ];
         Cache::put($cacheKey, $participants, now()->addHours(2));
 
+        // Generate or retrieve E2EE shared key for this room
+        $e2eeKey = Cache::remember(
+            "voice_channel:{$channel->id}:e2ee_key",
+            now()->addHours(2),
+            fn () => bin2hex(random_bytes(32))
+        );
+
         VoiceChannelJoined::dispatch($channel, $user);
 
         return $this->successResponse([
@@ -73,6 +80,7 @@ class VoiceChannelController extends Controller
             'room' => $roomName,
             'channel_id' => $channel->id,
             'channel_name' => $channel->name,
+            'e2ee_key' => $e2eeKey,
         ]);
     }
 
@@ -86,7 +94,13 @@ class VoiceChannelController extends Controller
         $cacheKey = "voice_channel:{$channel->id}:participants";
         $participants = Cache::get($cacheKey, []);
         unset($participants[$user->id]);
-        Cache::put($cacheKey, $participants, now()->addHours(2));
+
+        if (empty($participants)) {
+            Cache::forget($cacheKey);
+            Cache::forget("voice_channel:{$channel->id}:e2ee_key");
+        } else {
+            Cache::put($cacheKey, $participants, now()->addHours(2));
+        }
 
         VoiceChannelLeft::dispatch($channel, $user);
 

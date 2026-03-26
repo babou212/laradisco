@@ -12,7 +12,7 @@ Route::post('/', [DirectMessageController::class, 'createDm'])
     ->middleware('idempotency')
     ->name('create');
 
-Route::prefix('{dmGroup}')->group(function () {
+Route::prefix('{dmGroup}')->scopeBindings()->group(function () {
     Route::get('/', [DirectMessageController::class, 'show'])->name('show');
 
     Route::post('/messages', [DirectMessageController::class, 'store'])

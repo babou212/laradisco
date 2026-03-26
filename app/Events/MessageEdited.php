@@ -44,7 +44,17 @@ class MessageEdited implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'message' => $this->message,
+            'message' => [
+                'id' => $this->message->id,
+                'channel_id' => $this->message->channel_id,
+                'user_id' => $this->message->user_id,
+                'content' => $this->message->message_bytes,
+                'sender_device_id' => $this->message->sender_device_id,
+                'is_edited' => $this->message->is_edited,
+                'edited_at' => $this->message->edited_at?->toISOString(),
+                'created_at' => $this->message->created_at?->toISOString(),
+                'updated_at' => $this->message->updated_at?->toISOString(),
+            ],
         ];
     }
 }

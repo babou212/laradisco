@@ -17,7 +17,7 @@ class LiveKitServiceTest extends TestCase
 
         $this->service = new LiveKitService(
             apiKey: 'test-api-key',
-            apiSecret: 'test-api-secret',
+            apiSecret: 'test-api-secret-that-is-long-enough-for-hs256-signing',
             url: 'ws://localhost:7880',
             tokenTtl: 21600,
         );

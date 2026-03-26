@@ -18,12 +18,14 @@ class MentionController extends Controller
      */
     public function search(SearchMentionRequest $request): JsonResponse
     {
+        $search = str_replace(['%', '_'], ['\%', '\_'], $request->validated('q'));
+
         $users = User::query()
             ->where('id', '!=', $request->user()->id)
-            ->where(function ($q) use ($request) {
-                $q->where('username', 'like', $request->input('q').'%')
-                    ->orWhere('name', 'like', $request->input('q').'%')
-                    ->orWhere('nickname', 'like', $request->input('q').'%');
+            ->where(function ($q) use ($search) {
+                $q->where('username', 'like', $search.'%')
+                    ->orWhere('name', 'like', $search.'%')
+                    ->orWhere('nickname', 'like', $search.'%');
             })
             ->limit(10)
             ->get();

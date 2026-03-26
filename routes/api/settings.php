@@ -40,7 +40,7 @@ Route::apiResource('roles', RoleController::class)->only(['index', 'store', 'upd
 
 Route::get('/members', [MemberController::class, 'index'])->name('members.index');
 Route::post('/members/{user}/roles', [MemberController::class, 'assignRole'])->name('members.roles.assign');
-Route::delete('/members/{user}/roles/{role}', [MemberController::class, 'removeRole'])->name('members.roles.remove');
+Route::delete('/members/{user}/roles/{role}', [MemberController::class, 'removeRole'])->name('members.roles.remove')->scopeBindings();
 
 Route::get('/channels', [ChannelController::class, 'index'])->name('channels.index');
 Route::post('/channels', [ChannelController::class, 'store'])->name('channels.store');
@@ -48,7 +48,7 @@ Route::put('/channels/{channel}', [ChannelController::class, 'update'])->name('c
 Route::delete('/channels/{channel}', [ChannelController::class, 'destroy'])->name('channels.destroy');
 Route::get('/channels/{channel}/overrides', [ChannelController::class, 'overrides'])->name('channels.overrides.index');
 Route::post('/channels/{channel}/overrides', [ChannelController::class, 'storeOverride'])->name('channels.overrides.store');
-Route::delete('/channels/{channel}/overrides/{override}', [ChannelController::class, 'destroyOverride'])->name('channels.overrides.destroy');
+Route::delete('/channels/{channel}/overrides/{override}', [ChannelController::class, 'destroyOverride'])->name('channels.overrides.destroy')->scopeBindings();
 
 Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
 Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');

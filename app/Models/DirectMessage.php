@@ -25,9 +25,11 @@ class DirectMessage extends Model
     protected $fillable = [
         'direct_message_group_id',
         'user_id',
-        'content',
-        'is_encrypted',
+        'reply_to_id',
         'sender_device_id',
+        'history_ciphertext',
+        'message_bytes',
+        'epoch',
         'is_pinned',
         'is_edited',
         'edited_at',
@@ -39,10 +41,10 @@ class DirectMessage extends Model
     protected function casts(): array
     {
         return [
-            'is_encrypted' => 'boolean',
             'is_pinned' => 'boolean',
             'is_edited' => 'boolean',
             'edited_at' => 'datetime',
+            'epoch' => 'integer',
         ];
     }
 
@@ -60,6 +62,14 @@ class DirectMessage extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * @return BelongsTo<self, $this>
+     */
+    public function replyTo(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'reply_to_id');
     }
 
     /**

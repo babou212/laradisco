@@ -36,7 +36,7 @@ return [
             'options' => [
                 'tls' => [],
             ],
-            'max_request_size' => env('REVERB_MAX_REQUEST_SIZE', 10_000),
+            'max_request_size' => env('REVERB_MAX_REQUEST_SIZE', 100_000),
             'scaling' => [
                 'enabled' => env('REVERB_SCALING_ENABLED', false),
                 'channel' => env('REVERB_SCALING_CHANNEL', 'reverb'),
@@ -82,11 +82,11 @@ return [
                     'scheme' => env('REVERB_SCHEME', 'https'),
                     'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
                 ],
-                'allowed_origins' => ['*'],
+                'allowed_origins' => explode(',', env('REVERB_ALLOWED_ORIGINS', '*')),
                 'ping_interval' => env('REVERB_APP_PING_INTERVAL', 60),
-                'activity_timeout' => env('REVERB_APP_ACTIVITY_TIMEOUT', 30),
+                'activity_timeout' => env('REVERB_APP_ACTIVITY_TIMEOUT', 120),
                 'max_connections' => env('REVERB_APP_MAX_CONNECTIONS'),
-                'max_message_size' => env('REVERB_APP_MAX_MESSAGE_SIZE', 10_000),
+                'max_message_size' => env('REVERB_APP_MAX_MESSAGE_SIZE', 100_000),
             ],
         ],
 

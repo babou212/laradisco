@@ -81,7 +81,7 @@ return [
         ],
 
         RequestTerminated::class => [
-            // FlushUploadedFiles::class,
+            FlushUploadedFiles::class,
         ],
 
         TaskReceived::class => [
@@ -106,7 +106,7 @@ return [
             FlushOnce::class,
             FlushTemporaryContainerInstances::class,
             CollectGarbage::class,
-            // DisconnectFromDatabases::class,
+            DisconnectFromDatabases::class,
         ],
 
         WorkerErrorOccurred::class => [
@@ -153,23 +153,7 @@ return [
     |
     */
 
-    'tables' => [
-        'example:1000' => [
-            'name' => 'string:1000',
-            'votes' => 'int',
-        ],
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Octane Swoole Cache Table
-    |--------------------------------------------------------------------------
-    |
-    | While using Swoole, you may leverage the Octane cache, which is powered
-    | by a Swoole table. You may set the maximum number of rows as well as
-    | the number of bytes per row using the configuration options below.
-    |
-    */
+    'tables' => [],
 
     'cache' => [
         'rows' => 1000,
@@ -210,7 +194,7 @@ return [
     |
     */
 
-    'garbage' => 50,
+    'garbage' => 128,
 
     /*
     |--------------------------------------------------------------------------
@@ -223,6 +207,6 @@ return [
     |
     */
 
-    'max_execution_time' => 30,
+    'max_execution_time' => 60,
 
 ];

@@ -20,6 +20,12 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Spatie\Prometheus\Collectors\Horizon\CurrentProcessesPerQueueCollector;
+use Spatie\Prometheus\Collectors\Horizon\CurrentWorkloadCollector;
+use Spatie\Prometheus\Collectors\Horizon\FailedJobsPerHourCollector;
+use Spatie\Prometheus\Collectors\Horizon\HorizonStatusCollector;
+use Spatie\Prometheus\Collectors\Horizon\JobsPerMinuteCollector;
+use Spatie\Prometheus\Facades\Prometheus;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -47,6 +53,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureGates();
         $this->configureAuthListeners();
         $this->configureRateLimiting();
+        $this->configurePrometheus();
     }
 
     /**
@@ -58,9 +65,6 @@ class AppServiceProvider extends ServiceProvider
             return $user->isAdministrator() || $user->hasPermission(PermissionFlag::ManageRoles);
         });
 
-        Gate::define('viewPulse', function (?User $user): bool {
-            return true; // Protected by oauth2-proxy at infrastructure level
-        });
     }
 
     /**
@@ -137,5 +141,27 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api-search', function (Request $request) {
             return Limit::perMinute(100)->by($request->user()?->id ?: $request->ip());
         });
+    }
+
+    /**
+     * Register Prometheus metric collectors for monitoring.
+     */
+    protected function configurePrometheus(): void
+    {
+        Prometheus::addGauge('User count')
+            ->helpText('Total number of registered users')
+            ->value(fn () => User::count());
+
+        Prometheus::addGauge('Online users')
+            ->helpText('Number of currently online users')
+            ->value(fn () => app(PresenceService::class)->getOnlineUsers()['count'] ?? 0);
+
+        Prometheus::registerCollectorClasses([
+            HorizonStatusCollector::class,
+            CurrentProcessesPerQueueCollector::class,
+            CurrentWorkloadCollector::class,
+            FailedJobsPerHourCollector::class,
+            JobsPerMinuteCollector::class,
+        ]);
     }
 }

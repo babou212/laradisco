@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Concerns\ApiResponse;
+use App\Enums\AttachmentStatus;
 use App\Events\DirectMessageDeleted;
 use App\Events\DirectMessageEdited;
 use App\Events\DirectMessageSent;
@@ -16,6 +17,7 @@ use App\Http\Resources\DirectMessageGroupResource;
 use App\Http\Resources\DirectMessageResource;
 use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
+use App\Models\EncryptedAttachment;
 use App\Notifications\DirectMessageNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -34,7 +36,7 @@ class DirectMessageController extends Controller
         $user = $request->user();
 
         $dmGroups = $user->directMessageGroups()
-            ->with(['participants:id,username,name,nickname,avatar_path,status,custom_status', 'lastMessage.user:id,username,name,nickname,avatar_path,status,custom_status'])
+            ->with(['participants:id,username,name,nickname,status,custom_status', 'lastMessage.user:id,username,name,nickname,status,custom_status'])
             ->orderBy('last_message_at', 'desc')
             ->get();
 
@@ -57,12 +59,12 @@ class DirectMessageController extends Controller
             ->first();
 
         $messages = $dmGroup->messages()
-            ->with(['user:id,username,name,nickname,avatar_path,status,custom_status', 'reactions', 'replyTo.user:id,username,name,nickname,avatar_path'])
+            ->with(['user:id,username,name,nickname,status,custom_status', 'reactions', 'replyTo.user:id,username,name,nickname', 'encryptedAttachments'])
             ->orderBy('created_at', 'asc')
             ->cursorPaginate(50);
 
         return $this->successResponse([
-            'dm_group' => new DirectMessageGroupResource($dmGroup->load('participants:id,username,name,nickname,avatar_path,status,custom_status')),
+            'dm_group' => new DirectMessageGroupResource($dmGroup->load('participants:id,username,name,nickname,status,custom_status')),
             'messages' => DirectMessageResource::collection($messages->items()),
             'pagination' => [
                 'next_cursor' => $messages->nextCursor()?->encode(),
@@ -88,9 +90,22 @@ class DirectMessageController extends Controller
             'epoch' => $request->validated('epoch', 0),
         ]);
 
+        $attachmentIds = $request->validated('attachment_ids', []);
+        if (! empty($attachmentIds)) {
+            EncryptedAttachment::where('user_id', $user->id)
+                ->where('status', AttachmentStatus::Pending)
+                ->whereIn('id', $attachmentIds)
+                ->update([
+                    'attachable_type' => DirectMessage::class,
+                    'attachable_id' => $message->id,
+                    'status' => AttachmentStatus::Attached,
+                    'expires_at' => null,
+                ]);
+        }
+
         $dmGroup->update(['last_message_at' => now()]);
 
-        $message->load(['user:id,username,name,nickname,avatar_path,status,custom_status', 'replyTo.user:id,username,name,nickname,avatar_path']);
+        $message->load(['user:id,username,name,nickname,status,custom_status', 'replyTo.user:id,username,name,nickname']);
 
         broadcast(new DirectMessageSent($message))->toOthers();
 

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -78,6 +79,14 @@ class DirectMessage extends Model
     public function reactions(): HasMany
     {
         return $this->hasMany(DirectMessageReaction::class);
+    }
+
+    /**
+     * @return MorphMany<EncryptedAttachment, $this>
+     */
+    public function encryptedAttachments(): MorphMany
+    {
+        return $this->morphMany(EncryptedAttachment::class, 'attachable');
     }
 
     /**

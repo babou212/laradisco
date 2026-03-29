@@ -20,7 +20,7 @@ class UserSummaryResource extends JsonResource
             'id' => $this->id,
             'username' => $this->username,
             'display_name' => $this->display_name ?? $this->nickname ?? $this->name,
-            'avatar_path' => $this->avatar_path,
+            'avatar_urls' => $this->avatar_urls,
             'status' => $this->status ?? 'offline',
             'custom_status' => $this->custom_status,
         ];

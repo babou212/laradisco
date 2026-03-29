@@ -6,6 +6,7 @@ use App\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\DeleteAccountRequest;
 use App\Http\Requests\Api\UpdateProfileRequest;
+use App\Http\Requests\Api\UploadAvatarRequest;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -53,6 +54,32 @@ class ProfileController extends Controller
         $user = $request->user();
         $user->tokens()->delete();
         $user->delete();
+
+        return $this->noContentResponse();
+    }
+
+    /**
+     * Upload or replace the authenticated user's avatar.
+     */
+    public function uploadAvatar(UploadAvatarRequest $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $user->addMediaFromRequest('avatar')
+            ->toMediaCollection('avatar');
+
+        return $this->successResponse(
+            new UserResource($user->refresh()),
+            'Avatar uploaded successfully',
+        );
+    }
+
+    /**
+     * Delete the authenticated user's avatar.
+     */
+    public function deleteAvatar(Request $request): JsonResponse|Response
+    {
+        $request->user()->clearMediaCollection('avatar');
 
         return $this->noContentResponse();
     }

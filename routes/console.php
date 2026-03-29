@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('presence:sweep')->everyThirtySeconds();
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
+Schedule::command('attachments:clean-orphaned')->hourly();

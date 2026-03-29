@@ -23,7 +23,7 @@ class UserResource extends JsonResource
             'username' => $this->username,
             'email' => $this->when($this->isCurrentUser($request), $this->email),
             'email_verified_at' => $this->when($this->isCurrentUser($request), $this->email_verified_at),
-            'avatar_path' => $this->avatar_path,
+            'avatar_urls' => $this->avatar_urls,
             'display_name' => $this->display_name,
             'nickname' => $this->nickname,
             'status' => $this->status ?? 'offline',

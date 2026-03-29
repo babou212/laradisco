@@ -29,6 +29,7 @@ class DirectMessageResource extends JsonResource
             'edited_at' => $this->edited_at?->toISOString(),
             'user' => new UserSummaryResource($this->whenLoaded('user')),
             'reactions' => ReactionResource::collection($this->whenLoaded('reactions')),
+            'encrypted_attachments' => EncryptedAttachmentResource::collection($this->whenLoaded('encryptedAttachments')),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

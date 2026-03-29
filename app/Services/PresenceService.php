@@ -20,7 +20,7 @@ class PresenceService
             'id' => $user->id,
             'username' => $user->username,
             'display_name' => $user->display_name,
-            'avatar_path' => $user->avatar_path,
+            'avatar_urls' => $user->avatar_urls,
             'status' => $user->status ?? 'online',
             'custom_status' => $user->custom_status,
             'last_heartbeat' => now()->timestamp,
@@ -73,7 +73,7 @@ class PresenceService
     /**
      * Get all currently online users, cleaning up stale entries.
      *
-     * @return array<int, array{id: int, username: string, display_name: string, avatar_path: string|null, status: string, custom_status: string|null}>
+     * @return array<int, array{id: int, username: string, display_name: string, avatar_urls: array|null, status: string, custom_status: string|null}>
      */
     public function getOnlineUsers(): array
     {
@@ -109,7 +109,7 @@ class PresenceService
     /**
      * Sweep stale presence entries from Redis and return their user data.
      *
-     * @return array<int, array{id: int, username: string, display_name: string, avatar_path: string|null, status: string, custom_status: string|null}>
+     * @return array<int, array{id: int, username: string, display_name: string, avatar_urls: array|null, status: string, custom_status: string|null}>
      */
     public function sweepStale(): array
     {

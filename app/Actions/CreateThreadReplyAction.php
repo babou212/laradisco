@@ -70,7 +70,7 @@ class CreateThreadReplyAction
             return $reply;
         });
 
-        $result->load(['user:id,username,name,nickname,avatar_path,status,custom_status', 'attachments']);
+        $result->load(['user:id,username,name,nickname,status,custom_status', 'attachments']);
 
         $this->mentionService->processMentionsFromMetadata(
             $result,

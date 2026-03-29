@@ -32,6 +32,7 @@ class MessageResource extends JsonResource
             'reply_to' => new self($this->whenLoaded('replyTo')),
             'reactions' => ReactionResource::collection($this->whenLoaded('reactions')),
             'attachments' => $this->whenLoaded('attachments'),
+            'encrypted_attachments' => EncryptedAttachmentResource::collection($this->whenLoaded('encryptedAttachments')),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

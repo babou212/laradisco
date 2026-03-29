@@ -23,7 +23,7 @@ Broadcast::channel('channel.{channelId}', function (User $user, int $channelId) 
         'id' => $user->id,
         'username' => $user->username,
         'display_name' => $user->display_name,
-        'avatar_path' => $user->avatar_path,
+        'avatar_urls' => $user->avatar_urls,
         'custom_status' => $user->custom_status,
     ];
 });
@@ -49,7 +49,7 @@ Broadcast::channel('direct-message.{groupId}', function (User $user, int $groupI
         'id' => $user->id,
         'username' => $user->username,
         'display_name' => $user->display_name,
-        'avatar_path' => $user->avatar_path,
+        'avatar_urls' => $user->avatar_urls,
         'custom_status' => $user->custom_status,
     ];
 });
@@ -71,7 +71,7 @@ Broadcast::channel('thread.{threadId}', function (User $user, int $threadId) {
         'id' => $user->id,
         'username' => $user->username,
         'display_name' => $user->display_name,
-        'avatar_path' => $user->avatar_path,
+        'avatar_urls' => $user->avatar_urls,
         'custom_status' => $user->custom_status,
     ];
 });

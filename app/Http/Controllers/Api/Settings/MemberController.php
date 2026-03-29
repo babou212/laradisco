@@ -26,7 +26,7 @@ class MemberController extends Controller
         Gate::authorize('manage-members');
 
         $members = User::query()
-            ->select(['id', 'name', 'username', 'nickname', 'avatar_path', 'status', 'custom_status', 'created_at'])
+            ->select(['id', 'name', 'username', 'nickname', 'status', 'custom_status', 'created_at'])
             ->with(['roles' => fn ($q) => $q->orderByDesc('position')])
             ->orderBy('username')
             ->paginate(50);

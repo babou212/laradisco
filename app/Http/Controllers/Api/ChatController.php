@@ -48,7 +48,7 @@ class ChatController extends Controller
      */
     public function members(Request $request): JsonResponse
     {
-        $query = User::select(['id', 'name', 'username', 'nickname', 'avatar_path', 'status', 'custom_status'])
+        $query = User::select(['id', 'name', 'username', 'nickname', 'status', 'custom_status'])
             ->orderBy('name');
 
         $search = $request->string('search')->trim()->value();

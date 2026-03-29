@@ -24,6 +24,8 @@ class StoreDirectMessageRequest extends FormRequest
             'history_ciphertext' => ['nullable', 'string', 'max:32000'],
             'message_bytes' => ['required', 'string', 'max:65535'],
             'epoch' => ['sometimes', 'integer', 'min:0'],
+            'attachment_ids' => ['sometimes', 'array', 'max:10'],
+            'attachment_ids.*' => ['uuid'],
         ];
     }
 }

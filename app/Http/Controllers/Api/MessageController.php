@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Concerns\ApiResponse;
+use App\Enums\AttachmentStatus;
 use App\Enums\PermissionFlag;
 use App\Events\MessageDeleted;
 use App\Events\MessageEdited;
@@ -13,6 +14,7 @@ use App\Http\Requests\Api\StoreChannelMessageRequest;
 use App\Http\Requests\Api\UpdateChannelMessageRequest;
 use App\Http\Resources\MessageResource;
 use App\Models\Channel;
+use App\Models\EncryptedAttachment;
 use App\Models\Message;
 use App\Services\MentionService;
 use App\Services\PermissionService;
@@ -43,11 +45,12 @@ class MessageController extends Controller
         $messages = $channel->messages()
             ->whereNull('thread_id')
             ->with([
-                'user:id,username,name,nickname,avatar_path,status,custom_status',
+                'user:id,username,name,nickname,status,custom_status',
                 'attachments',
+                'encryptedAttachments',
                 'reactions',
-                'replyTo.user:id,username,name,nickname,avatar_path,status,custom_status',
-                'threadStarted.latestReply.user:id,username,name,nickname,avatar_path,status,custom_status',
+                'replyTo.user:id,username,name,nickname,status,custom_status',
+                'threadStarted.latestReply.user:id,username,name,nickname,status,custom_status',
                 'threadStarted.followers',
             ])
             ->orderBy('created_at', 'asc')
@@ -78,7 +81,20 @@ class MessageController extends Controller
             'epoch' => $request->validated('epoch', 0),
         ]);
 
-        $message->load(['user:id,username,name,nickname,avatar_path,status,custom_status', 'replyTo.user:id,username,name,nickname,avatar_path,status,custom_status']);
+        $attachmentIds = $request->validated('attachment_ids', []);
+        if (! empty($attachmentIds)) {
+            EncryptedAttachment::where('user_id', $user->id)
+                ->where('status', AttachmentStatus::Pending)
+                ->whereIn('id', $attachmentIds)
+                ->update([
+                    'attachable_type' => Message::class,
+                    'attachable_id' => $message->id,
+                    'status' => AttachmentStatus::Attached,
+                    'expires_at' => null,
+                ]);
+        }
+
+        $message->load(['user:id,username,name,nickname,status,custom_status', 'replyTo.user:id,username,name,nickname,status,custom_status']);
 
         broadcast(new MessageSent($message))->toOthers();
 

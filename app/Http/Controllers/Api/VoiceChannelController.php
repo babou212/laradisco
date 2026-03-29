@@ -61,7 +61,7 @@ class VoiceChannelController extends Controller
             'id' => $user->id,
             'username' => $user->username,
             'display_name' => $user->display_name,
-            'avatar_path' => $user->avatar_path,
+            'avatar_urls' => $user->avatar_urls,
         ];
         Cache::put($cacheKey, $participants, now()->addHours(2));
 

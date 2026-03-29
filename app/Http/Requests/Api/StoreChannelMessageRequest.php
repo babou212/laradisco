@@ -26,6 +26,8 @@ class StoreChannelMessageRequest extends FormRequest
             'message_bytes' => ['required', 'string', 'max:65535'],
             'epoch' => ['sometimes', 'integer', 'min:0'],
             'thread_name' => ['sometimes', 'string', 'max:100'],
+            'attachment_ids' => ['sometimes', 'array', 'max:10'],
+            'attachment_ids.*' => ['uuid'],
         ];
     }
 

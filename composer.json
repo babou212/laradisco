@@ -21,6 +21,8 @@
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.9",
+        "league/flysystem-aws-s3-v3": "^3.32",
+        "spatie/laravel-medialibrary": "^11.21",
         "spatie/laravel-prometheus": "^1.5"
     },
     "require-dev": {

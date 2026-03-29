@@ -30,7 +30,7 @@ USER root
 
 # Install additional PHP extensions not included by default
 # Pre-installed: opcache, pcntl, pdo_mysql, pdo_pgsql, redis, zip, mbstring
-RUN install-php-extensions intl gd bcmath sockets pgsql
+RUN install-php-extensions intl gd exif bcmath sockets pgsql
 
 # Create required directories
 RUN mkdir -p \

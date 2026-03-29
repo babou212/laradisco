@@ -55,7 +55,7 @@ class UserPresenceUpdated implements ShouldBroadcastNow
             'user_id' => $this->user->id,
             'username' => $this->user->username,
             'display_name' => $this->user->display_name,
-            'avatar_path' => $this->user->avatar_path,
+            'avatar_urls' => $this->user->avatar_urls,
             'status' => $this->status->value,
             'custom_status' => $this->customStatus,
         ];

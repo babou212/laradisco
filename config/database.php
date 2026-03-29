@@ -162,13 +162,13 @@ return [
             'read_timeout' => 60,
         ] + (env('REDIS_TLS_ENABLED', false) ? [
             'context' => [
-                'ssl' => [
+                'ssl' => array_filter([
                     'cafile' => '/etc/ssl/redis/ca.crt',
-                    'local_cert' => '/etc/ssl/redis/tls.crt',
-                    'local_pk' => '/etc/ssl/redis/tls.key',
+                    'local_cert' => env('REDIS_TLS_CERT_FILE'),
+                    'local_pk' => env('REDIS_TLS_KEY_FILE'),
                     'verify_peer' => true,
-                    'verify_peer_name' => true,
-                ],
+                    'verify_peer_name' => (bool) env('REDIS_TLS_VERIFY_NAME', true),
+                ], fn ($v) => $v !== null),
             ],
         ] : []),
 
@@ -183,13 +183,13 @@ return [
             'read_timeout' => 60,
         ] + (env('REDIS_TLS_ENABLED', false) ? [
             'context' => [
-                'ssl' => [
+                'ssl' => array_filter([
                     'cafile' => '/etc/ssl/redis/ca.crt',
-                    'local_cert' => '/etc/ssl/redis/tls.crt',
-                    'local_pk' => '/etc/ssl/redis/tls.key',
+                    'local_cert' => env('REDIS_TLS_CERT_FILE'),
+                    'local_pk' => env('REDIS_TLS_KEY_FILE'),
                     'verify_peer' => true,
-                    'verify_peer_name' => true,
-                ],
+                    'verify_peer_name' => (bool) env('REDIS_TLS_VERIFY_NAME', true),
+                ], fn ($v) => $v !== null),
             ],
         ] : []),
 
@@ -204,13 +204,13 @@ return [
             'read_timeout' => 60,
         ] + (env('REDIS_TLS_ENABLED', false) ? [
             'context' => [
-                'ssl' => [
+                'ssl' => array_filter([
                     'cafile' => '/etc/ssl/redis/ca.crt',
-                    'local_cert' => '/etc/ssl/redis/tls.crt',
-                    'local_pk' => '/etc/ssl/redis/tls.key',
+                    'local_cert' => env('REDIS_TLS_CERT_FILE'),
+                    'local_pk' => env('REDIS_TLS_KEY_FILE'),
                     'verify_peer' => true,
-                    'verify_peer_name' => true,
-                ],
+                    'verify_peer_name' => (bool) env('REDIS_TLS_VERIFY_NAME', true),
+                ], fn ($v) => $v !== null),
             ],
         ] : []),
 
@@ -225,13 +225,13 @@ return [
             'read_timeout' => 60,
         ] + (env('REDIS_TLS_ENABLED', false) ? [
             'context' => [
-                'ssl' => [
+                'ssl' => array_filter([
                     'cafile' => '/etc/ssl/redis/ca.crt',
-                    'local_cert' => '/etc/ssl/redis/tls.crt',
-                    'local_pk' => '/etc/ssl/redis/tls.key',
+                    'local_cert' => env('REDIS_TLS_CERT_FILE'),
+                    'local_pk' => env('REDIS_TLS_KEY_FILE'),
                     'verify_peer' => true,
-                    'verify_peer_name' => true,
-                ],
+                    'verify_peer_name' => (bool) env('REDIS_TLS_VERIFY_NAME', true),
+                ], fn ($v) => $v !== null),
             ],
         ] : []),
 

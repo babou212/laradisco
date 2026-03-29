@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\DirectMessageController;
 use App\Http\Controllers\Api\PinController;
 use App\Http\Controllers\Api\ReactionController;
@@ -20,6 +21,8 @@ Route::prefix('{dmGroup}')->scopeBindings()->group(function () {
         ->name('messages.store');
     Route::put('/messages/{message}', [DirectMessageController::class, 'update'])->name('messages.update');
     Route::delete('/messages/{message}', [DirectMessageController::class, 'destroy'])->name('messages.destroy');
+
+    Route::post('/attachments/presign', [AttachmentController::class, 'presignForDm'])->name('attachments.presign');
 
     Route::post('/messages/{message}/reactions', [ReactionController::class, 'dmToggle'])->name('messages.reactions.toggle');
 

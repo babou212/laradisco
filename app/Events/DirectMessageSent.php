@@ -70,7 +70,7 @@ class DirectMessageSent implements ShouldBroadcast
                     'username' => $this->message->user->username,
                     'name' => $this->message->user->name,
                     'nickname' => $this->message->user->nickname,
-                    'avatar_path' => $this->message->user->avatar_path,
+                    'avatar_urls' => $this->message->user->avatar_urls,
                 ] : null,
                 'created_at' => $this->message->created_at?->toISOString(),
                 'updated_at' => $this->message->updated_at?->toISOString(),

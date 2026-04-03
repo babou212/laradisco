@@ -19,8 +19,8 @@ class RoleFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->unique()->word(),
-            'color' => fake()->hexColor(),
+            'name' => 'Role',
+            'color' => '#000000',
             'is_hoisted' => false,
             'position' => 0,
             'permissions' => [],

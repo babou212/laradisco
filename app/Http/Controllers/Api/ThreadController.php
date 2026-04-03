@@ -18,8 +18,11 @@ use App\Models\Message;
 use App\Models\Thread;
 use App\Services\MentionService;
 use App\Services\PermissionService;
+use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
 
 class ThreadController extends Controller
@@ -45,17 +48,33 @@ class ThreadController extends Controller
             return $this->forbiddenResponse('You do not have access to this channel.');
         }
 
+        $cacheKey = CacheKeys::threadDetails($thread->id);
+        $cached = Cache::tags([CacheKeys::threadTag($thread->id), CacheKeys::channelTag($channel->id)])->get($cacheKey);
+        if ($cached) {
+            return response()->json($cached);
+        }
+
         $thread->load([
-            'user:id,username,name,nickname,avatar_path,status,custom_status',
-            'parentMessage.user:id,username,name,nickname,avatar_path,status,custom_status',
-            'latestReply.user:id,username,name,nickname,avatar_path,status,custom_status',
+            'user:id,username,name,nickname,status,custom_status',
+            'parentMessage.user:id,username,name,nickname,status,custom_status',
+            'latestReply.user:id,username,name,nickname,status,custom_status',
             'followers',
         ]);
 
-        return $this->successResponse([
-            'thread' => new ThreadResource($thread),
-            'parent_message' => new MessageResource($thread->parentMessage),
-        ]);
+        $response = (new ThreadResource($thread))
+            ->includePreviouslyLoadedRelationships()
+            ->additional([
+                'meta' => [
+                    'parent_message' => (new MessageResource($thread->parentMessage))
+                        ->includePreviouslyLoadedRelationships(),
+                ],
+            ])
+            ->response();
+
+        Cache::tags([CacheKeys::threadTag($thread->id), CacheKeys::channelTag($channel->id)])
+            ->put($cacheKey, $response->getData(true), CacheKeys::TTL_WARM);
+
+        return $response;
     }
 
     /**
@@ -71,17 +90,35 @@ class ThreadController extends Controller
             return $this->forbiddenResponse('You do not have access to this channel.');
         }
 
-        $messages = $thread->messages()
-            ->with([
-                'user:id,username,name,nickname,avatar_path,status,custom_status',
-                'attachments',
-                'reactions',
-            ])
-            ->orderBy('created_at', 'asc')
-            ->cursorPaginate(50)
-            ->through(fn (Message $message) => new MessageResource($message));
+        $cursor = $request->query('cursor');
+        $includes = $request->query('include', '');
+        $cacheKey = CacheKeys::threadMessages($thread->id).'.'.md5($includes);
 
-        return $this->successResponse($messages);
+        if (! $cursor) {
+            $cached = Cache::tags([CacheKeys::threadTag($thread->id)])->get($cacheKey);
+            if ($cached) {
+                return response()->json($cached);
+            }
+        }
+
+        $messages = QueryBuilder::for(
+            $thread->messages()
+        )
+            ->allowedIncludes('user', 'reactions', 'encryptedAttachments')
+            ->allowedSorts('created_at')
+            ->defaultSort('created_at')
+            ->cursorPaginate(50);
+
+        $response = MessageResource::collection($messages)
+            ->includePreviouslyLoadedRelationships()
+            ->response();
+
+        if (! $cursor) {
+            Cache::tags([CacheKeys::threadTag($thread->id)])
+                ->put($cacheKey, $response->getData(true), CacheKeys::TTL_HOT);
+        }
+
+        return $response;
     }
 
     /**
@@ -117,7 +154,10 @@ class ThreadController extends Controller
             return $this->forbiddenResponse($result->error);
         }
 
-        return $this->createdResponse(new MessageResource($result->reply), 'Reply sent successfully');
+        return (new MessageResource($result->reply))
+            ->includePreviouslyLoadedRelationships()
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
     }
 
     /**
@@ -146,6 +186,8 @@ class ThreadController extends Controller
             'edited_at' => now(),
         ]);
 
+        Cache::tags([CacheKeys::threadTag($thread->id)])->flush();
+
         broadcast(new ThreadMessageEdited($message))->toOthers();
 
         $thread->load('latestReply');
@@ -153,7 +195,8 @@ class ThreadController extends Controller
             broadcast(new ThreadUpdated($thread))->toOthers();
         }
 
-        return $this->successResponse(new MessageResource($message), 'Reply updated successfully');
+        return (new MessageResource($message))
+            ->response();
     }
 
     /**
@@ -187,6 +230,8 @@ class ThreadController extends Controller
 
         $latestReply = $thread->messages()->latest()->first();
         $thread->update(['last_message_at' => $latestReply?->created_at]);
+
+        Cache::tags([CacheKeys::threadTag($thread->id)])->flush();
 
         broadcast(new ThreadMessageDeleted($messageId, $thread->id))->toOthers();
 

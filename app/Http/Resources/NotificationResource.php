@@ -3,25 +3,29 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 use Illuminate\Notifications\DatabaseNotification;
 
 /** @mixin DatabaseNotification */
-class NotificationResource extends JsonResource
+class NotificationResource extends JsonApiResource
 {
     /**
-     * Transform the resource into an array.
+     * Get the resource's attributes.
      *
      * @return array<string, mixed>
      */
-    public function toArray(Request $request): array
+    public function toAttributes(Request $request): array
     {
         return [
-            'id' => $this->id,
             'type' => class_basename($this->type),
             'data' => $this->data,
-            'read_at' => $this->read_at?->toISOString(),
-            'created_at' => $this->created_at?->toISOString(),
+            'read_at' => $this->read_at,
+            'created_at' => $this->created_at,
         ];
+    }
+
+    public function toType(Request $request): string
+    {
+        return 'notifications';
     }
 }

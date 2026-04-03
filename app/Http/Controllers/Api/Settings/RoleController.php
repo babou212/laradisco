@@ -8,8 +8,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreRoleRequest;
 use App\Http\Resources\RoleResource;
 use App\Models\Role;
+use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
 
 class RoleController extends Controller
@@ -23,9 +26,16 @@ class RoleController extends Controller
     {
         $this->authorize('viewAny', Role::class);
 
-        $roles = Role::query()
+        $cacheKey = CacheKeys::rolesListWithCounts();
+        $cached = Cache::tags([CacheKeys::TAG_ROLES])->get($cacheKey);
+        if ($cached) {
+            return response()->json($cached);
+        }
+
+        $roles = QueryBuilder::for(Role::class)
+            ->allowedSorts('position', 'name')
+            ->defaultSort('-position')
             ->withCount('users')
-            ->orderByDesc('position')
             ->get();
 
         $permissions = collect(PermissionFlag::cases())->map(fn (PermissionFlag $p) => [
@@ -33,10 +43,18 @@ class RoleController extends Controller
             'label' => $p->label(),
         ]);
 
-        return $this->successResponse([
-            'roles' => RoleResource::collection($roles),
-            'permissions' => $permissions,
-        ]);
+        $response = RoleResource::collection($roles)
+            ->additional([
+                'meta' => [
+                    'permissions' => $permissions,
+                ],
+            ])
+            ->response();
+
+        Cache::tags([CacheKeys::TAG_ROLES])
+            ->put($cacheKey, $response->getData(true), CacheKeys::TTL_COLD);
+
+        return $response;
     }
 
     /**
@@ -48,7 +66,11 @@ class RoleController extends Controller
 
         $role = Role::create($request->validated());
 
-        return $this->createdResponse(new RoleResource($role));
+        Cache::tags([CacheKeys::TAG_ROLES])->flush();
+
+        return (new RoleResource($role))
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
     }
 
     /**
@@ -60,10 +82,10 @@ class RoleController extends Controller
 
         $role->update($request->validated());
 
-        return $this->successResponse(
-            new RoleResource($role->fresh()),
-            'Role updated successfully',
-        );
+        Cache::tags([CacheKeys::TAG_ROLES])->flush();
+
+        return (new RoleResource($role->fresh()))
+            ->response();
     }
 
     /**
@@ -75,6 +97,8 @@ class RoleController extends Controller
 
         $role->users()->detach();
         $role->delete();
+
+        Cache::tags([CacheKeys::TAG_ROLES])->flush();
 
         return $this->noContentResponse();
     }

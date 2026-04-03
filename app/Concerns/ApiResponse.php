@@ -76,7 +76,7 @@ trait ApiResponse
     }
 
     /**
-     * Return an error response.
+     * Return a JSON:API compliant error response.
      *
      * @param  array<string, mixed>  $errors
      */
@@ -85,13 +85,32 @@ trait ApiResponse
         int $status = Response::HTTP_INTERNAL_SERVER_ERROR,
         array $errors = [],
     ): JsonResponse {
-        $response = ['message' => $message];
+        $jsonApiErrors = [];
 
         if (! empty($errors)) {
-            $response['errors'] = $errors;
+            foreach ($errors as $field => $fieldErrors) {
+                $fieldErrors = is_array($fieldErrors) ? $fieldErrors : [$fieldErrors];
+                foreach ($fieldErrors as $detail) {
+                    $jsonApiErrors[] = [
+                        'status' => (string) $status,
+                        'title' => $message,
+                        'detail' => $detail,
+                        'source' => ['pointer' => "/data/attributes/{$field}"],
+                    ];
+                }
+            }
+        } else {
+            $jsonApiErrors[] = [
+                'status' => (string) $status,
+                'title' => $message,
+            ];
         }
 
-        return response()->json($response, $status);
+        return response()->json(
+            ['errors' => $jsonApiErrors],
+            $status,
+            ['Content-Type' => 'application/vnd.api+json'],
+        );
     }
 
     /**

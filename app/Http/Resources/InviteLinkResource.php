@@ -4,28 +4,33 @@ namespace App\Http\Resources;
 
 use App\Models\InviteLink;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /** @mixin InviteLink */
-class InviteLinkResource extends JsonResource
+class InviteLinkResource extends JsonApiResource
 {
     /**
-     * Transform the resource into an array.
+     * Get the resource's attributes.
      *
      * @return array<string, mixed>
      */
-    public function toArray(Request $request): array
+    public function toAttributes(Request $request): array
     {
         return [
-            'id' => $this->id,
             'token' => $this->token,
             'created_by' => $this->created_by,
             'used_by' => $this->used_by,
-            'used_at' => $this->used_at?->toISOString(),
-            'expires_at' => $this->expires_at?->toISOString(),
-            'creator' => new UserSummaryResource($this->whenLoaded('creator')),
-            'used_by_user' => new UserSummaryResource($this->whenLoaded('usedByUser')),
-            'created_at' => $this->created_at?->toISOString(),
+            'used_at' => $this->used_at,
+            'expires_at' => $this->expires_at,
+            'created_at' => $this->created_at,
         ];
     }
+
+    /**
+     * The resource's relationships.
+     */
+    public $relationships = [
+        'creator' => UserSummaryResource::class,
+        'usedByUser' => UserSummaryResource::class,
+    ];
 }

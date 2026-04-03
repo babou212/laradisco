@@ -8,8 +8,10 @@ use App\Http\Requests\Api\E2EE\UploadKeyPackagesRequest;
 use App\Models\MlsKeyPackage;
 use App\Models\User;
 use App\Models\UserDevice;
+use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class MlsKeyPackageController extends Controller
@@ -51,6 +53,9 @@ class MlsKeyPackageController extends Controller
 
         $created = MlsKeyPackage::insertOrIgnore($rows);
 
+        // Invalidate key package count cache for this device
+        Cache::tags([CacheKeys::userTag($user->id)])->forget(CacheKeys::e2eeKeyPackageCount($device->device_id));
+
         return $this->createdResponse([
             'uploaded' => $created,
         ], 'Key packages uploaded.');
@@ -89,6 +94,9 @@ class MlsKeyPackageController extends Controller
                         'key_package_bytes' => $kp->key_package_bytes,
                         'key_package_hash' => $kp->key_package_hash,
                     ];
+
+                    // Invalidate key package count cache for consumed device
+                    Cache::tags([CacheKeys::userTag($user->id)])->forget(CacheKeys::e2eeKeyPackageCount($device->device_id));
                 }
             }
 
@@ -104,12 +112,21 @@ class MlsKeyPackageController extends Controller
         $user = $request->user();
         $deviceId = $request->query('device_id');
 
+        if ($deviceId) {
+            $cacheKey = CacheKeys::e2eeKeyPackageCount($deviceId);
+            $count = Cache::tags([CacheKeys::userTag($user->id)])
+                ->remember($cacheKey, CacheKeys::TTL_WARM, function () use ($user, $deviceId) {
+                    return MlsKeyPackage::where('user_id', $user->id)
+                        ->where('device_id', $deviceId)
+                        ->whereNull('consumed_at')
+                        ->count();
+                });
+
+            return $this->successResponse(['count' => $count]);
+        }
+
         $query = MlsKeyPackage::where('user_id', $user->id)
             ->whereNull('consumed_at');
-
-        if ($deviceId) {
-            $query->where('device_id', $deviceId);
-        }
 
         return $this->successResponse([
             'count' => $query->count(),

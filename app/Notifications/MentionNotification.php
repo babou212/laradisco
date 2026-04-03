@@ -55,7 +55,7 @@ class MentionNotification extends Notification implements ShouldQueue
             'channel_name' => $this->message->channel?->name,
             'sender_id' => $this->message->user_id,
             'sender_username' => $this->message->user?->username,
-            'sender_avatar' => $this->message->user?->avatar_path,
+            'sender_avatar' => $this->message->user?->avatar_urls['thumb'] ?? null,
             'sender_device_id' => $this->message->sender_device_id,
             'mention_type' => $this->mentionType,
         ];

@@ -3,11 +3,13 @@
 namespace App\Models;
 
 use App\Concerns\ClearsCaches;
+use App\Support\CacheKeys;
 use Database\Factories\DirectMessageFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -81,11 +83,18 @@ class DirectMessage extends Model
     }
 
     /**
+     * @return MorphMany<EncryptedAttachment, $this>
+     */
+    public function encryptedAttachments(): MorphMany
+    {
+        return $this->morphMany(EncryptedAttachment::class, 'attachable');
+    }
+
+    /**
      * Clear caches related to this message.
      */
     public function clearCaches(): void
     {
-        // Clear DM groups cache for all participants
         $this->loadMissing('group.participants');
 
         if ($this->group) {
@@ -93,5 +102,17 @@ class DirectMessage extends Model
                 cache()->forget("user.{$participant->id}.dm_groups");
             }
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function cacheTags(): array
+    {
+        if ($this->direct_message_group_id) {
+            return [CacheKeys::dmGroupTag($this->direct_message_group_id)];
+        }
+
+        return [];
     }
 }

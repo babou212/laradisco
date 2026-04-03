@@ -11,6 +11,8 @@ use App\Models\Thread;
 use App\Models\User;
 use App\Services\MentionService;
 use App\Services\PermissionService;
+use App\Support\CacheKeys;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class CreateThreadReplyAction
@@ -70,7 +72,7 @@ class CreateThreadReplyAction
             return $reply;
         });
 
-        $result->load(['user:id,username,name,nickname,avatar_path,status,custom_status', 'attachments']);
+        $result->load(['user:id,username,name,nickname,status,custom_status', 'attachments']);
 
         $this->mentionService->processMentionsFromMetadata(
             $result,
@@ -83,6 +85,9 @@ class CreateThreadReplyAction
 
         $thread->refresh();
         broadcast(new ThreadUpdated($thread))->toOthers();
+
+        Cache::tags([CacheKeys::threadTag($thread->id)])->flush();
+        Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
 
         return CreateThreadReplyResult::success($result);
     }

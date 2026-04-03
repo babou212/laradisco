@@ -9,8 +9,12 @@ use App\Http\Resources\UserSummaryResource;
 use App\Models\Category;
 use App\Models\User;
 use App\Services\PermissionService;
+use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\QueryBuilder;
 
 class ChatController extends Controller
 {
@@ -26,21 +30,39 @@ class ChatController extends Controller
     public function categories(Request $request): JsonResponse
     {
         $user = $request->user();
+        $cacheKey = CacheKeys::userSidebarCategories($user->id);
+        $includes = $request->query('include', '');
+        $fullCacheKey = $cacheKey.'.'.md5($includes);
+
+        $cached = Cache::tags([CacheKeys::userTag($user->id), CacheKeys::TAG_SIDEBAR])->get($fullCacheKey);
+        if ($cached) {
+            return response()->json($cached);
+        }
+
         $accessibleChannelIds = $this->permissionService
             ->getAccessibleChannels($user)
             ->pluck('id')
             ->all();
 
-        $categories = Category::with(['channels' => function ($query) use ($accessibleChannelIds) {
-            $query->whereIn('id', $accessibleChannelIds)
-                ->orderBy('position');
-        }])
-            ->orderBy('position')
+        $categories = QueryBuilder::for(Category::class)
+            ->allowedIncludes('channels')
+            ->allowedSorts('position')
+            ->defaultSort('position')
+            ->with(['channels' => function ($query) use ($accessibleChannelIds) {
+                $query->whereIn('id', $accessibleChannelIds)
+                    ->orderBy('position');
+            }])
             ->get()
             ->filter(fn (Category $category) => $category->channels->isNotEmpty())
             ->values();
 
-        return $this->successResponse(CategoryResource::collection($categories));
+        $response = CategoryResource::collection($categories)
+            ->response();
+
+        Cache::tags([CacheKeys::userTag($user->id), CacheKeys::TAG_SIDEBAR])
+            ->put($fullCacheKey, $response->getData(true), CacheKeys::TTL_WARM);
+
+        return $response;
     }
 
     /**
@@ -48,28 +70,18 @@ class ChatController extends Controller
      */
     public function members(Request $request): JsonResponse
     {
-        $query = User::select(['id', 'name', 'username', 'nickname', 'avatar_path', 'status', 'custom_status'])
-            ->orderBy('name');
+        $users = QueryBuilder::for(User::class)
+            ->select(['id', 'name', 'username', 'nickname', 'status', 'custom_status'])
+            ->allowedFilters(
+                AllowedFilter::partial('search', 'username'),
+                AllowedFilter::partial('search_name', 'name'),
+                AllowedFilter::partial('search_nickname', 'nickname'),
+            )
+            ->allowedSorts('name', 'username')
+            ->defaultSort('name')
+            ->cursorPaginate(50);
 
-        $search = $request->string('search')->trim()->value();
-        if ($search !== '') {
-            $search = str_replace(['%', '_'], ['\%', '\_'], mb_substr($search, 0, 50));
-            $query->where(function ($q) use ($search) {
-                $q->where('username', 'like', $search.'%')
-                    ->orWhere('name', 'like', $search.'%')
-                    ->orWhere('nickname', 'like', $search.'%');
-            });
-        }
-
-        $users = $query->cursorPaginate(50);
-
-        return $this->successResponse([
-            'members' => UserSummaryResource::collection($users->items()),
-            'pagination' => [
-                'next_cursor' => $users->nextCursor()?->encode(),
-                'prev_cursor' => $users->previousCursor()?->encode(),
-                'has_more' => $users->hasMorePages(),
-            ],
-        ]);
+        return UserSummaryResource::collection($users)
+            ->response();
     }
 }

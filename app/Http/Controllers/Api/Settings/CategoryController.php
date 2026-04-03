@@ -7,8 +7,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreCategoryRequest;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
+use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
 class CategoryController extends Controller
@@ -28,7 +30,11 @@ class CategoryController extends Controller
             'position' => $maxPosition + 1,
         ]);
 
-        return $this->createdResponse(new CategoryResource($category));
+        Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
+
+        return (new CategoryResource($category))
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
     }
 
     /**
@@ -40,10 +46,10 @@ class CategoryController extends Controller
 
         $category->update($request->validated());
 
-        return $this->successResponse(
-            new CategoryResource($category->fresh()),
-            'Category updated successfully',
-        );
+        Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
+
+        return (new CategoryResource($category->fresh()))
+            ->response();
     }
 
     /**
@@ -55,6 +61,8 @@ class CategoryController extends Controller
 
         $category->channels()->delete();
         $category->delete();
+
+        Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
 
         return $this->noContentResponse();
     }

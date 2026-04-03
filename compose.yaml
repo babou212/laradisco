@@ -12,6 +12,8 @@ services:
         environment:
             AUTORUN_ENABLED: 'false'
             PHP_OPCACHE_ENABLE: '0'
+            PHP_POST_MAX_SIZE: '120M'
+            PHP_UPLOAD_MAX_FILESIZE: '110M'
             OCTANE_SERVER: frankenphp
             XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
             IGNITION_LOCAL_SITES_PATH: '${PWD}'
@@ -19,6 +21,7 @@ services:
             PGID: '${WWWGROUP:-1000}'
         volumes:
             - '.:/var/www/html'
+            - './docker/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini'
         networks:
             - sail
         depends_on:

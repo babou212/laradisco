@@ -4,25 +4,29 @@ namespace App\Http\Resources;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /** @mixin User */
-class UserSummaryResource extends JsonResource
+class UserSummaryResource extends JsonApiResource
 {
     /**
-     * A lightweight user representation for lists and references.
+     * Get the resource's attributes.
      *
      * @return array<string, mixed>
      */
-    public function toArray(Request $request): array
+    public function toAttributes(Request $request): array
     {
         return [
-            'id' => $this->id,
             'username' => $this->username,
             'display_name' => $this->display_name ?? $this->nickname ?? $this->name,
-            'avatar_path' => $this->avatar_path,
+            'avatar_urls' => $this->avatar_urls,
             'status' => $this->status ?? 'offline',
             'custom_status' => $this->custom_status,
         ];
+    }
+
+    public function toType(Request $request): string
+    {
+        return 'users';
     }
 }

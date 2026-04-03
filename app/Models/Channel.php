@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Concerns\ClearsCaches;
 use App\Enums\ChannelType;
+use App\Support\CacheKeys;
 use Database\Factories\ChannelFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Channel extends Model
 {
     /** @use HasFactory<ChannelFactory> */
-    use HasFactory;
+    use ClearsCaches, HasFactory;
 
     /**
      * @var list<string>
@@ -83,5 +85,21 @@ class Channel extends Model
     public function pinnedMessages(): HasMany
     {
         return $this->hasMany(Message::class)->where('is_pinned', true);
+    }
+
+    public function clearCaches(): void
+    {
+        //
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function cacheTags(): array
+    {
+        return [
+            CacheKeys::channelTag($this->id),
+            CacheKeys::TAG_SIDEBAR,
+        ];
     }
 }

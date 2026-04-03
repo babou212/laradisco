@@ -1,0 +1,35 @@
+# Forge Daemons Configuration
+# Configure these in Forge: Server > Daemons > New Daemon
+
+# 1. Octane (FrankenPHP)
+# Forge handles this automatically when you select "Octane" as the site type.
+# Default command: php artisan octane:frankenphp --port=8000 --max-requests=500
+# No manual daemon needed.
+
+# 2. Horizon (Queue Worker)
+Command:    php8.5 artisan horizon
+Directory:  /home/forge/{{DOMAIN}}
+User:       forge
+Processes:  1
+
+# 3. Reverb (WebSocket Server)
+Command:    php8.5 artisan reverb:start --port=6001
+Directory:  /home/forge/{{DOMAIN}}
+User:       forge
+Processes:  1
+
+# 4. Schedule Worker (Sub-Minute Scheduling)
+# Required because presence:sweep runs every 30 seconds.
+Command:    php8.5 artisan schedule:work
+Directory:  /home/forge/{{DOMAIN}}
+User:       forge
+Processes:  1
+
+# 5. LiveKit Server
+Command:    /usr/local/bin/livekit-server --config /etc/livekit.yaml
+Directory:  /home/forge/{{DOMAIN}}
+User:       forge
+Processes:  1
+
+# Note: Forge also auto-configures the standard cron for `schedule:run`,
+# but the schedule:work daemon is additionally needed for sub-minute tasks.

@@ -4,36 +4,44 @@ namespace App\Http\Resources;
 
 use App\Models\Message;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /** @mixin Message */
-class MessageResource extends JsonResource
+class MessageResource extends JsonApiResource
 {
     /**
-     * Transform the resource into an array.
+     * Get the resource's attributes.
      *
      * @return array<string, mixed>
      */
-    public function toArray(Request $request): array
+    public function toAttributes(Request $request): array
     {
         return [
-            'id' => $this->id,
             'channel_id' => $this->channel_id,
             'user_id' => $this->user_id,
             'content' => $this->message_bytes,
             'sender_device_id' => $this->sender_device_id,
             'is_pinned' => $this->is_pinned ?? false,
             'is_edited' => $this->is_edited ?? false,
-            'edited_at' => $this->edited_at?->toISOString(),
+            'edited_at' => $this->edited_at,
             'reply_to_id' => $this->reply_to_id,
             'thread_id' => $this->thread_id,
-            'thread' => new ThreadResource($this->whenLoaded('threadStarted')),
-            'user' => new UserSummaryResource($this->whenLoaded('user')),
-            'reply_to' => new self($this->whenLoaded('replyTo')),
-            'reactions' => ReactionResource::collection($this->whenLoaded('reactions')),
-            'attachments' => $this->whenLoaded('attachments'),
-            'created_at' => $this->created_at?->toISOString(),
-            'updated_at' => $this->updated_at?->toISOString(),
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
+    }
+
+    /**
+     * Get the resource's relationships.
+     */
+    public function toRelationships(Request $request): array
+    {
+        return [
+            'user' => UserSummaryResource::class,
+            'replyTo' => self::class,
+            'threadStarted' => ThreadResource::class,
+            'reactions' => ReactionResource::class,
+            'encryptedAttachments' => EncryptedAttachmentResource::class,
         ];
     }
 }

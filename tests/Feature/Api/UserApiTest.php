@@ -33,14 +33,28 @@ class UserApiTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonStructure([
-            'id',
-            'username',
-            'roles' => [
-                '*' => ['id', 'name', 'color', 'position'],
+            'data' => [
+                'id',
+                'type',
+                'attributes' => ['username'],
+                'relationships' => [
+                    'roles' => [
+                        'data' => [
+                            '*' => ['id', 'type'],
+                        ],
+                    ],
+                ],
+            ],
+            'included' => [
+                '*' => [
+                    'id',
+                    'type',
+                    'attributes' => ['name', 'color', 'position'],
+                ],
             ],
         ]);
 
-        $response->assertJsonCount(2, 'roles');
+        $response->assertJsonCount(2, 'data.relationships.roles.data');
     }
 
     public function test_user_api_returns_roles_without_duplicates(): void
@@ -55,7 +69,7 @@ class UserApiTest extends TestCase
         $response = $this->actingAs($viewer)->getJson(route('api.users.show', $user));
 
         $response->assertOk();
-        $response->assertJsonCount(1, 'roles');
+        $response->assertJsonCount(1, 'data.relationships.roles.data');
     }
 
     public function test_user_api_returns_roles_ordered_by_position(): void
@@ -70,9 +84,9 @@ class UserApiTest extends TestCase
         $response = $this->actingAs($viewer)->getJson(route('api.users.show', $user));
 
         $response->assertOk();
-        $roles = $response->json('roles');
-        $this->assertEquals('High', $roles[0]['name']);
-        $this->assertEquals('Low', $roles[1]['name']);
+        $included = $response->json('included');
+        $this->assertEquals('High', $included[0]['attributes']['name']);
+        $this->assertEquals('Low', $included[1]['attributes']['name']);
     }
 
     public function test_user_api_does_not_expose_sensitive_fields(): void
@@ -83,10 +97,10 @@ class UserApiTest extends TestCase
         $response = $this->actingAs($viewer)->getJson(route('api.users.show', $user));
 
         $response->assertOk();
-        $response->assertJsonMissing(['password']);
-        $this->assertArrayNotHasKey('password', $response->json());
-        $this->assertArrayNotHasKey('two_factor_secret', $response->json());
-        $this->assertArrayNotHasKey('two_factor_recovery_codes', $response->json());
-        $this->assertArrayNotHasKey('remember_token', $response->json());
+        $attributes = $response->json('data.attributes');
+        $this->assertArrayNotHasKey('password', $attributes);
+        $this->assertArrayNotHasKey('two_factor_secret', $attributes);
+        $this->assertArrayNotHasKey('two_factor_recovery_codes', $attributes);
+        $this->assertArrayNotHasKey('remember_token', $attributes);
     }
 }

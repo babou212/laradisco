@@ -30,7 +30,7 @@ USER root
 
 # Install additional PHP extensions not included by default
 # Pre-installed: opcache, pcntl, pdo_mysql, pdo_pgsql, redis, zip, mbstring
-RUN install-php-extensions intl gd bcmath sockets pgsql
+RUN install-php-extensions intl gd exif bcmath sockets pgsql
 
 # Create required directories
 RUN mkdir -p \
@@ -39,6 +39,8 @@ RUN mkdir -p \
     /var/www/html/storage/framework/views \
     /var/www/html/storage/framework/cache/data \
     /var/www/html/storage/logs \
+    /var/www/html/storage/app/private/media \
+    /var/www/html/storage/app/private/attachments \
     /var/www/html/bootstrap/cache
 
 WORKDIR /var/www/html

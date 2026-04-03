@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\AttachmentController;
+use App\Http\Controllers\Api\MediaServeController;
 use App\Http\Controllers\Api\MentionController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
@@ -22,6 +24,10 @@ Route::prefix('v1')->group(function () {
     Route::prefix('auth')->as('api.auth.')->group(
         base_path('routes/api/auth.php'),
     );
+
+    // Signed URL routes — signature-validated, no bearer token needed
+    Route::get('/media/{media}/{conversion?}', [MediaServeController::class, 'show'])->name('api.media.serve');
+    Route::get('/attachments/{attachment}/file', [AttachmentController::class, 'serveFile'])->name('api.attachments.serve');
 
     Route::middleware('auth:sanctum')->group(function () {
 
@@ -52,6 +58,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/users/{user}', [UserController::class, 'show'])->name('api.users.show');
 
         Route::get('/mentions/search', [MentionController::class, 'search'])->name('api.mentions.search');
+
+        Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('api.attachments.download');
 
         Route::prefix('e2ee')->as('api.e2ee.')->group(
             base_path('routes/api/e2ee.php'),

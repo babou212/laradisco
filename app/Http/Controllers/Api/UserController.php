@@ -6,7 +6,9 @@ use App\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 
 class UserController extends Controller
 {
@@ -17,8 +19,21 @@ class UserController extends Controller
      */
     public function show(User $user): JsonResponse
     {
+        $cacheKey = CacheKeys::userProfile($user->id);
+        $cached = Cache::tags([CacheKeys::userTag($user->id)])->get($cacheKey);
+        if ($cached) {
+            return response()->json($cached);
+        }
+
         $user->load(['roles' => fn ($query) => $query->orderByDesc('position')]);
 
-        return response()->json((new UserResource($user))->resolve());
+        $response = (new UserResource($user))
+            ->includePreviouslyLoadedRelationships()
+            ->response();
+
+        Cache::tags([CacheKeys::userTag($user->id)])
+            ->put($cacheKey, $response->getData(true), CacheKeys::TTL_COLD);
+
+        return $response;
     }
 }

@@ -5,31 +5,29 @@ namespace App\Http\Resources;
 use App\Enums\PermissionFlag;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /** @mixin User */
-class UserResource extends JsonResource
+class UserResource extends JsonApiResource
 {
     /**
-     * Transform the resource into an array.
+     * Get the resource's attributes.
      *
      * @return array<string, mixed>
      */
-    public function toArray(Request $request): array
+    public function toAttributes(Request $request): array
     {
         return [
-            'id' => $this->id,
             'name' => $this->name,
             'username' => $this->username,
-            'email' => $this->when($this->isCurrentUser($request), $this->email),
-            'email_verified_at' => $this->when($this->isCurrentUser($request), $this->email_verified_at),
-            'avatar_path' => $this->avatar_path,
+            'email' => fn () => $this->when($this->isCurrentUser($request), $this->email),
+            'email_verified_at' => fn () => $this->when($this->isCurrentUser($request), $this->email_verified_at),
+            'avatar_urls' => $this->avatar_urls,
             'display_name' => $this->display_name,
             'nickname' => $this->nickname,
             'status' => $this->status ?? 'offline',
             'custom_status' => $this->custom_status,
-            'roles' => RoleResource::collection($this->whenLoaded('roles')),
-            'permissions' => $this->when($this->isCurrentUser($request), fn () => [
+            'permissions' => fn () => $this->when($this->isCurrentUser($request), fn () => [
                 'canInviteMembers' => $this->isAdministrator() || $this->hasPermission(PermissionFlag::InviteMembers),
                 'canManageRoles' => $this->isAdministrator() || $this->hasPermission(PermissionFlag::ManageRoles),
                 'canManageChannels' => $this->isAdministrator() || $this->hasPermission(PermissionFlag::ManageChannels),
@@ -37,9 +35,16 @@ class UserResource extends JsonResource
                 'canManageMessages' => $this->isAdministrator() || $this->hasPermission(PermissionFlag::ManageMessages),
                 'isAdministrator' => $this->isAdministrator(),
             ]),
-            'created_at' => $this->created_at?->toISOString(),
+            'created_at' => $this->created_at,
         ];
     }
+
+    /**
+     * The resource's relationships.
+     */
+    public $relationships = [
+        'roles' => RoleResource::class,
+    ];
 
     /**
      * Check if this resource represents the currently authenticated user.

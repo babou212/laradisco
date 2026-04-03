@@ -2,6 +2,8 @@
 
 namespace App\Concerns;
 
+use Illuminate\Support\Facades\Cache;
+
 trait ClearsCaches
 {
     /**
@@ -11,10 +13,12 @@ trait ClearsCaches
     {
         static::saved(function ($model) {
             $model->clearCaches();
+            $model->flushCacheTags();
         });
 
         static::deleted(function ($model) {
             $model->clearCaches();
+            $model->flushCacheTags();
         });
     }
 
@@ -25,5 +29,27 @@ trait ClearsCaches
     public function clearCaches(): void
     {
         // Default implementation - override in models
+    }
+
+    /**
+     * Return cache tags to flush when this model is saved/deleted.
+     * Override in models to specify tags.
+     *
+     * @return list<string>
+     */
+    public function cacheTags(): array
+    {
+        return [];
+    }
+
+    /**
+     * Flush all caches associated with this model's tags.
+     */
+    public function flushCacheTags(): void
+    {
+        $tags = $this->cacheTags();
+        if (! empty($tags)) {
+            Cache::tags($tags)->flush();
+        }
     }
 }

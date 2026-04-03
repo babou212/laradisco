@@ -7,7 +7,9 @@ use App\Models\Channel;
 use App\Models\ChannelPermissionOverride;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\CacheKeys;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class PermissionService
 {
@@ -53,9 +55,10 @@ class PermissionService
      */
     public function userCanInChannel(User $user, Channel $channel, PermissionFlag $permission): bool
     {
-        $cacheKey = "user.{$user->id}.channel.{$channel->id}.permissions";
+        $cacheKey = CacheKeys::userChannelPermissions($user->id, $channel->id);
+        $tags = [CacheKeys::channelTag($channel->id), CacheKeys::userTag($user->id)];
 
-        $permissions = cache()->remember($cacheKey, now()->addMinutes(15), function () use ($user, $channel) {
+        $permissions = Cache::tags($tags)->remember($cacheKey, CacheKeys::TTL_LONG, function () use ($user, $channel) {
             return $this->resolveChannelPermissions($user, $channel);
         });
 
@@ -114,9 +117,10 @@ class PermissionService
      */
     public function getAccessibleChannels(User $user): Collection
     {
-        $cacheKey = "user.{$user->id}.accessible_channels";
+        $cacheKey = CacheKeys::userAccessibleChannels($user->id);
+        $tags = [CacheKeys::userTag($user->id)];
 
-        $channelIds = cache()->remember($cacheKey, now()->addMinutes(5), function () use ($user) {
+        $channelIds = Cache::tags($tags)->remember($cacheKey, CacheKeys::TTL_WARM, function () use ($user) {
             $user->loadMissing('roles');
             $channels = Channel::with('category')->get();
 
@@ -184,15 +188,7 @@ class PermissionService
      */
     public function clearUserChannelCaches(User $user): void
     {
-        $channelIds = Channel::pluck('id');
-
-        $keys = $channelIds->map(fn ($id) => "user.{$user->id}.channel.{$id}.permissions")->all();
-        $keys[] = "user.{$user->id}.permissions";
-        $keys[] = "user.{$user->id}.accessible_channels";
-
-        foreach ($keys as $key) {
-            cache()->forget($key);
-        }
+        Cache::tags([CacheKeys::userTag($user->id)])->flush();
     }
 
     /**
@@ -200,10 +196,7 @@ class PermissionService
      */
     public function clearChannelCaches(Channel $channel): void
     {
-        User::select('id')->cursor()->each(function (User $user) use ($channel) {
-            cache()->forget("user.{$user->id}.channel.{$channel->id}.permissions");
-            cache()->forget("user.{$user->id}.accessible_channels");
-        });
+        Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
     }
 
     /**

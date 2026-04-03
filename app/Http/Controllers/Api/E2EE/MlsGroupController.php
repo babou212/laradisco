@@ -15,9 +15,11 @@ use App\Models\MlsMessage;
 use App\Models\MlsWelcomeMessage;
 use App\Models\User;
 use App\Services\PermissionService;
+use App\Support\CacheKeys;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class MlsGroupController extends Controller
 {
@@ -167,6 +169,12 @@ class MlsGroupController extends Controller
     {
         $user = $request->user();
 
+        $cacheKey = CacheKeys::e2eeMlsGroups($user->id);
+        $cached = Cache::tags([CacheKeys::userTag($user->id), CacheKeys::TAG_SIDEBAR])->get($cacheKey);
+        if ($cached) {
+            return $this->successResponse($cached);
+        }
+
         $channels = $this->permissionService->getAccessibleChannels($user);
         $channelGroupIds = $channels->map(fn (Channel $ch) => 'channel:'.$ch->id)->all();
 
@@ -174,7 +182,12 @@ class MlsGroupController extends Controller
             ->map(fn (int $id) => 'dm:'.$id)
             ->all();
 
-        return $this->successResponse(array_merge($channelGroupIds, $dmGroupIds));
+        $result = array_merge($channelGroupIds, $dmGroupIds);
+
+        Cache::tags([CacheKeys::userTag($user->id), CacheKeys::TAG_SIDEBAR])
+            ->put($cacheKey, $result, CacheKeys::TTL_WARM);
+
+        return $this->successResponse($result);
     }
 
     /**

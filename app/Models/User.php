@@ -11,13 +11,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\URL;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class User extends Authenticatable
+class User extends Authenticatable implements HasMedia
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable;
+    use HasApiTokens, HasFactory, InteractsWithMedia, Notifiable, TwoFactorAuthenticatable;
 
     /**
      * The attributes that are mass assignable.
@@ -29,7 +33,6 @@ class User extends Authenticatable
         'username',
         'email',
         'password',
-        'avatar_path',
         'nickname',
         'about_me',
         'custom_status',
@@ -180,5 +183,55 @@ class User extends Authenticatable
     public function getDisplayNameAttribute(): string
     {
         return $this->nickname ?? $this->name;
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('avatar')
+            ->singleFile()
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')
+            ->width(64)
+            ->height(64)
+            ->sharpen(10)
+            ->nonQueued();
+
+        $this->addMediaConversion('small')
+            ->width(128)
+            ->height(128)
+            ->sharpen(10)
+            ->nonQueued();
+
+        $this->addMediaConversion('medium')
+            ->width(256)
+            ->height(256)
+            ->nonQueued();
+    }
+
+    /**
+     * Get avatar URLs from Spatie Media Library.
+     *
+     * @return array{thumb: string, small: string, medium: string, original: string}|null
+     */
+    public function getAvatarUrlsAttribute(): ?array
+    {
+        $media = $this->getFirstMedia('avatar');
+
+        if (! $media) {
+            return null;
+        }
+
+        $expiration = now()->addHours(24);
+
+        return [
+            'thumb' => URL::signedRoute('api.media.serve', ['media' => $media->id, 'conversion' => 'thumb'], $expiration),
+            'small' => URL::signedRoute('api.media.serve', ['media' => $media->id, 'conversion' => 'small'], $expiration),
+            'medium' => URL::signedRoute('api.media.serve', ['media' => $media->id, 'conversion' => 'medium'], $expiration),
+            'original' => URL::signedRoute('api.media.serve', ['media' => $media->id], $expiration),
+        ];
     }
 }

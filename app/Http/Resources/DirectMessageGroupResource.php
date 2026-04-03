@@ -4,17 +4,17 @@ namespace App\Http\Resources;
 
 use App\Models\DirectMessageGroup;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /** @mixin DirectMessageGroup */
-class DirectMessageGroupResource extends JsonResource
+class DirectMessageGroupResource extends JsonApiResource
 {
     /**
-     * Transform the resource into an array.
+     * Get the resource's attributes.
      *
      * @return array<string, mixed>
      */
-    public function toArray(Request $request): array
+    public function toAttributes(Request $request): array
     {
         $currentUser = $request->user();
         $otherParticipant = $this->whenLoaded('participants', function () use ($currentUser) {
@@ -28,17 +28,23 @@ class DirectMessageGroupResource extends JsonResource
         }
 
         return [
-            'id' => $this->id,
             'name' => $this->name ?? $otherParticipant->username ?? 'Unknown',
-            'other_user' => $otherParticipant ? new UserSummaryResource($otherParticipant) : null,
-            'last_message' => $lastMessage ? [
+            'other_user' => fn () => $otherParticipant ? new UserSummaryResource($otherParticipant) : null,
+            'last_message' => fn () => $lastMessage ? [
                 'id' => $lastMessage->id,
-                'created_at' => $lastMessage->created_at?->toISOString(),
+                'created_at' => $lastMessage->created_at,
                 'user_id' => $lastMessage->user_id,
                 'sender_device_id' => $lastMessage->sender_device_id,
             ] : null,
-            'last_message_at' => $this->last_message_at?->toISOString(),
-            'created_at' => $this->created_at?->toISOString(),
+            'last_message_at' => $this->last_message_at,
+            'created_at' => $this->created_at,
         ];
     }
+
+    /**
+     * The resource's relationships.
+     */
+    public $relationships = [
+        'participants' => UserSummaryResource::class,
+    ];
 }

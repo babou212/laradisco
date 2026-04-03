@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Concerns\ApiResponse;
+use App\Enums\AttachmentStatus;
 use App\Events\DirectMessageDeleted;
 use App\Events\DirectMessageEdited;
 use App\Events\DirectMessageSent;
@@ -16,10 +17,14 @@ use App\Http\Resources\DirectMessageGroupResource;
 use App\Http\Resources\DirectMessageResource;
 use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
+use App\Models\EncryptedAttachment;
 use App\Notifications\DirectMessageNotification;
+use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
+use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
 
 class DirectMessageController extends Controller
@@ -33,12 +38,32 @@ class DirectMessageController extends Controller
     {
         $user = $request->user();
 
-        $dmGroups = $user->directMessageGroups()
-            ->with(['participants:id,username,name,nickname,avatar_path,status,custom_status', 'lastMessage.user:id,username,name,nickname,avatar_path,status,custom_status'])
-            ->orderBy('last_message_at', 'desc')
+        $cacheKey = CacheKeys::userDmGroups($user->id);
+        $cached = Cache::tags([CacheKeys::userTag($user->id)])->get($cacheKey);
+        if ($cached) {
+            return response()->json($cached);
+        }
+
+        $dmGroups = QueryBuilder::for(
+            $user->directMessageGroups()
+        )
+            ->allowedIncludes('participants', 'lastMessage', 'lastMessage.user')
+            ->allowedSorts('last_message_at')
+            ->defaultSort('-last_message_at')
+            ->with([
+                'participants:id,username,name,nickname,status,custom_status',
+                'lastMessage.user:id,username,name,nickname,status,custom_status',
+            ])
             ->get();
 
-        return $this->successResponse(DirectMessageGroupResource::collection($dmGroups));
+        $response = DirectMessageGroupResource::collection($dmGroups)
+            ->includePreviouslyLoadedRelationships()
+            ->response();
+
+        Cache::tags([CacheKeys::userTag($user->id)])
+            ->put($cacheKey, $response->getData(true), CacheKeys::TTL_WARM);
+
+        return $response;
     }
 
     /**
@@ -52,24 +77,42 @@ class DirectMessageController extends Controller
             return $this->forbiddenResponse();
         }
 
-        $otherParticipant = $dmGroup->participants()
-            ->where('users.id', '!=', $user->id)
-            ->first();
+        $cursor = $request->query('cursor');
+        $includes = $request->query('include', '');
+        $cacheKey = CacheKeys::dmGroupMessages($dmGroup->id).'.'.md5($includes);
 
-        $messages = $dmGroup->messages()
-            ->with(['user:id,username,name,nickname,avatar_path,status,custom_status', 'reactions', 'replyTo.user:id,username,name,nickname,avatar_path'])
-            ->orderBy('created_at', 'asc')
+        if (! $cursor) {
+            $cached = Cache::tags([CacheKeys::dmGroupTag($dmGroup->id)])->get($cacheKey);
+            if ($cached) {
+                return response()->json($cached);
+            }
+        }
+
+        $messages = QueryBuilder::for(
+            $dmGroup->messages()
+        )
+            ->allowedIncludes('user', 'reactions', 'replyTo', 'replyTo.user', 'encryptedAttachments')
+            ->allowedSorts('created_at')
+            ->defaultSort('created_at')
             ->cursorPaginate(50);
 
-        return $this->successResponse([
-            'dm_group' => new DirectMessageGroupResource($dmGroup->load('participants:id,username,name,nickname,avatar_path,status,custom_status')),
-            'messages' => DirectMessageResource::collection($messages->items()),
-            'pagination' => [
-                'next_cursor' => $messages->nextCursor()?->encode(),
-                'prev_cursor' => $messages->previousCursor()?->encode(),
-                'has_more' => $messages->hasMorePages(),
-            ],
-        ]);
+        $response = DirectMessageResource::collection($messages)
+            ->includePreviouslyLoadedRelationships()
+            ->additional([
+                'meta' => [
+                    'dm_group' => (new DirectMessageGroupResource(
+                        $dmGroup->load('participants:id,username,name,nickname,status,custom_status')
+                    ))->includePreviouslyLoadedRelationships(),
+                ],
+            ])
+            ->response();
+
+        if (! $cursor) {
+            Cache::tags([CacheKeys::dmGroupTag($dmGroup->id)])
+                ->put($cacheKey, $response->getData(true), CacheKeys::TTL_HOT);
+        }
+
+        return $response;
     }
 
     /**
@@ -88,9 +131,28 @@ class DirectMessageController extends Controller
             'epoch' => $request->validated('epoch', 0),
         ]);
 
+        $attachmentIds = $request->validated('attachment_ids', []);
+        if (! empty($attachmentIds)) {
+            EncryptedAttachment::where('user_id', $user->id)
+                ->where('status', AttachmentStatus::Attached)
+                ->whereNull('attachable_type')
+                ->whereIn('id', $attachmentIds)
+                ->update([
+                    'attachable_type' => DirectMessage::class,
+                    'attachable_id' => $message->id,
+                ]);
+        }
+
         $dmGroup->update(['last_message_at' => now()]);
 
-        $message->load(['user:id,username,name,nickname,avatar_path,status,custom_status', 'replyTo.user:id,username,name,nickname,avatar_path']);
+        $message->load(['user:id,username,name,nickname,status,custom_status', 'replyTo.user:id,username,name,nickname']);
+
+        // Flush DM message cache and DM group list cache for all participants
+        Cache::tags([CacheKeys::dmGroupTag($dmGroup->id)])->flush();
+        $dmGroup->loadMissing('participants');
+        foreach ($dmGroup->participants as $participant) {
+            Cache::tags([CacheKeys::userTag($participant->id)])->forget(CacheKeys::userDmGroups($participant->id));
+        }
 
         broadcast(new DirectMessageSent($message))->toOthers();
 
@@ -104,11 +166,11 @@ class DirectMessageController extends Controller
             );
         }
 
-        return $this->createdResponse(
-            new DirectMessageResource($message),
-            'Created successfully',
-            route('api.direct-messages.show', $dmGroup),
-        );
+        return (new DirectMessageResource($message))
+            ->includePreviouslyLoadedRelationships()
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED)
+            ->header('Location', route('api.direct-messages.show', $dmGroup));
     }
 
     /**
@@ -139,12 +201,12 @@ class DirectMessageController extends Controller
             'edited_at' => now(),
         ]);
 
+        Cache::tags([CacheKeys::dmGroupTag($dmGroup->id)])->flush();
+
         broadcast(new DirectMessageEdited($message))->toOthers();
 
-        return $this->successResponse(
-            new DirectMessageResource($message),
-            'Message updated successfully',
-        );
+        return (new DirectMessageResource($message))
+            ->response();
     }
 
     /**
@@ -171,6 +233,8 @@ class DirectMessageController extends Controller
         $message->update(['history_ciphertext' => null, 'message_bytes' => null]);
         $message->delete();
 
+        Cache::tags([CacheKeys::dmGroupTag($dmGroup->id)])->flush();
+
         broadcast(new DirectMessageDeleted($messageId, $dmGroup->id))->toOthers();
 
         return $this->noContentResponse();
@@ -195,7 +259,7 @@ class DirectMessageController extends Controller
             return $this->notFoundResponse('No existing DM group found.');
         }
 
-        return $this->successResponse(['dm_group_id' => $existingDm->id]);
+        return response()->json(['data' => ['dm_group_id' => $existingDm->id]]);
     }
 
     /**
@@ -218,7 +282,7 @@ class DirectMessageController extends Controller
             ->first();
 
         if ($existingDm) {
-            return $this->successResponse(['dm_group_id' => $existingDm->id]);
+            return response()->json(['data' => ['dm_group_id' => $existingDm->id]]);
         }
 
         $dmGroup = DirectMessageGroup::create([
@@ -227,10 +291,10 @@ class DirectMessageController extends Controller
 
         $dmGroup->participants()->attach([$currentUser->id, $otherUserId]);
 
-        return $this->createdResponse(
-            ['dm_group_id' => $dmGroup->id],
-            'Created successfully',
-            route('api.direct-messages.show', $dmGroup),
-        );
+        return (new DirectMessageGroupResource($dmGroup->load('participants:id,username,name,nickname,status,custom_status')))
+            ->includePreviouslyLoadedRelationships()
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED)
+            ->header('Location', route('api.direct-messages.show', $dmGroup));
     }
 }

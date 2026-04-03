@@ -37,10 +37,9 @@ A privacy-focused, end-to-end encrypted communication platform built with Larave
 
 - PHP 8.5+
 - Composer
-- Node.js & npm
 - PostgreSQL
 - Redis
-- Docker & Docker Compose
+- Docker & Docker Compose (local development)
 
 ## Getting Started
 
@@ -106,6 +105,28 @@ sail composer test:lint     # Check code style without fixing
 ```
 
 Configured via `phpstan.neon` with Larastan.
+
+## CI
+
+A single GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push and PR to `develop` and `main`:
+
+- **Lint** — `vendor/bin/pint --test`
+- **Test** — PHPUnit with Postgres + Redis service containers
+- **Security** — Snyk dependency vulnerability scan
+
+## Deployment
+
+Production is deployed via [Laravel Forge](https://forge.laravel.com) with auto-deploy on push to `main`.
+
+Forge runs `forge/deploy.sh` which handles:
+
+- `composer install` (production-optimised)
+- Database migrations
+- Config, route, view, and event caching
+- Octane reload (zero-downtime)
+- Horizon and Reverb restart
+
+See `forge/DEPLOYMENT.md` for the full provisioning and setup guide.
 
 ## License
 

@@ -23,7 +23,7 @@ class EnsureJsonAccept
             return $next($request);
         }
 
-        if (str_contains($accept, 'application/json')) {
+        if (str_contains($accept, 'application/json') || str_contains($accept, 'application/vnd.api+json')) {
             return $next($request);
         }
 

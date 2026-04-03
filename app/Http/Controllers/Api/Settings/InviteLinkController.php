@@ -9,6 +9,7 @@ use App\Models\InviteLink;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
 
 class InviteLinkController extends Controller
@@ -22,19 +23,16 @@ class InviteLinkController extends Controller
     {
         $this->authorize('viewAny', InviteLink::class);
 
-        $inviteLinks = InviteLink::query()
+        $inviteLinks = QueryBuilder::for(InviteLink::class)
+            ->allowedIncludes('creator', 'usedByUser')
+            ->allowedSorts('created_at')
+            ->defaultSort('-created_at')
             ->with(['creator:id,name,username', 'usedByUser:id,name,username'])
-            ->latest()
             ->cursorPaginate(50);
 
-        return $this->successResponse([
-            'invite_links' => InviteLinkResource::collection($inviteLinks->items()),
-            'pagination' => [
-                'next_cursor' => $inviteLinks->nextCursor()?->encode(),
-                'prev_cursor' => $inviteLinks->previousCursor()?->encode(),
-                'has_more' => $inviteLinks->hasMorePages(),
-            ],
-        ]);
+        return InviteLinkResource::collection($inviteLinks)
+            ->includePreviouslyLoadedRelationships()
+            ->response();
     }
 
     /**
@@ -52,7 +50,10 @@ class InviteLinkController extends Controller
 
         $link->load(['creator:id,name,username']);
 
-        return $this->createdResponse(new InviteLinkResource($link));
+        return (new InviteLinkResource($link))
+            ->includePreviouslyLoadedRelationships()
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
     }
 
     /**

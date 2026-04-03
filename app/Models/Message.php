@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\ClearsCaches;
+use App\Support\CacheKeys;
 use Database\Factories\MessageFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -130,9 +131,24 @@ class Message extends Model
      */
     public function clearCaches(): void
     {
-        // Clear channel metadata cache
         if ($this->channel_id) {
             cache()->forget("channel.{$this->channel_id}.metadata");
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function cacheTags(): array
+    {
+        $tags = [];
+        if ($this->channel_id) {
+            $tags[] = CacheKeys::channelTag($this->channel_id);
+        }
+        if ($this->thread_id) {
+            $tags[] = CacheKeys::threadTag($this->thread_id);
+        }
+
+        return $tags;
     }
 }

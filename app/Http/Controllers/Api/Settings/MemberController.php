@@ -9,9 +9,13 @@ use App\Http\Resources\RoleResource;
 use App\Http\Resources\UserResource;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
+use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
 
 class MemberController extends Controller
@@ -25,26 +29,31 @@ class MemberController extends Controller
     {
         Gate::authorize('manage-members');
 
-        $members = User::query()
-            ->select(['id', 'name', 'username', 'nickname', 'status', 'custom_status', 'created_at'])
+        $members = QueryBuilder::for(
+            User::select(['id', 'name', 'username', 'nickname', 'status', 'custom_status', 'created_at'])
+        )
+            ->allowedIncludes('roles')
+            ->allowedSorts('username', 'name', 'created_at')
+            ->allowedFilters(
+                AllowedFilter::partial('username'),
+                AllowedFilter::partial('name'),
+            )
+            ->defaultSort('username')
             ->with(['roles' => fn ($q) => $q->orderByDesc('position')])
-            ->orderBy('username')
             ->paginate(50);
 
         $roles = Role::query()
             ->orderByDesc('position')
             ->get(['id', 'name', 'color', 'position', 'is_default']);
 
-        return $this->successResponse([
-            'members' => UserResource::collection($members),
-            'roles' => RoleResource::collection($roles),
-            'pagination' => [
-                'current_page' => $members->currentPage(),
-                'last_page' => $members->lastPage(),
-                'per_page' => $members->perPage(),
-                'total' => $members->total(),
-            ],
-        ]);
+        return UserResource::collection($members)
+            ->includePreviouslyLoadedRelationships()
+            ->additional([
+                'meta' => [
+                    'roles' => RoleResource::collection($roles),
+                ],
+            ])
+            ->response();
     }
 
     /**
@@ -55,6 +64,9 @@ class MemberController extends Controller
         Gate::authorize('manage-members');
 
         $user->roles()->syncWithoutDetaching([$request->validated('role_id')]);
+
+        Cache::tags([CacheKeys::userTag($user->id)])->forget(CacheKeys::userProfile($user->id));
+        Cache::tags([CacheKeys::TAG_ROLES])->flush();
 
         return $this->successResponse(message: 'Role assigned successfully');
     }
@@ -73,6 +85,9 @@ class MemberController extends Controller
         }
 
         $user->roles()->detach($role->id);
+
+        Cache::tags([CacheKeys::userTag($user->id)])->forget(CacheKeys::userProfile($user->id));
+        Cache::tags([CacheKeys::TAG_ROLES])->flush();
 
         return $this->noContentResponse();
     }

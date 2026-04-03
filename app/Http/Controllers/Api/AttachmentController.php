@@ -14,7 +14,10 @@ use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttachmentController extends Controller
 {
@@ -22,20 +25,18 @@ class AttachmentController extends Controller
 
     private const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
 
-    private const PRESIGN_EXPIRY = 300; // 5 minutes
-
     private const DOWNLOAD_EXPIRY = 900; // 15 minutes
 
-    private const PENDING_TTL_HOURS = 1;
+    private const NGINX_ACCEL_PREFIX = '/internal-attachments';
 
     public function __construct(
         private readonly PermissionService $permissionService,
     ) {}
 
     /**
-     * Generate presigned upload URLs for a channel attachment.
+     * Upload an attachment for a channel message.
      */
-    public function presignForChannel(Request $request, Channel $channel): JsonResponse
+    public function uploadForChannel(Request $request, Channel $channel): JsonResponse
     {
         $user = $request->user();
 
@@ -43,13 +44,13 @@ class AttachmentController extends Controller
             return $this->forbiddenResponse('You do not have access to this channel.');
         }
 
-        return $this->generatePresignedUpload($user, $request);
+        return $this->handleUpload($user, $request);
     }
 
     /**
-     * Generate presigned upload URLs for a DM attachment.
+     * Upload an attachment for a DM.
      */
-    public function presignForDm(Request $request, DirectMessageGroup $dmGroup): JsonResponse
+    public function uploadForDm(Request $request, DirectMessageGroup $dmGroup): JsonResponse
     {
         $user = $request->user();
 
@@ -57,45 +58,11 @@ class AttachmentController extends Controller
             return $this->forbiddenResponse();
         }
 
-        return $this->generatePresignedUpload($user, $request);
+        return $this->handleUpload($user, $request);
     }
 
     /**
-     * Confirm that an upload has completed.
-     */
-    public function confirm(Request $request, EncryptedAttachment $attachment): JsonResponse
-    {
-        if ($attachment->user_id !== $request->user()->id) {
-            return $this->forbiddenResponse();
-        }
-
-        if ($attachment->status !== AttachmentStatus::Pending) {
-            return $this->validationErrorResponse('Attachment is not in pending state.');
-        }
-
-        $disk = Storage::disk('s3');
-
-        if (! $disk->exists($attachment->storage_path)) {
-            return $this->validationErrorResponse('File not found on storage. Upload may not have completed.');
-        }
-
-        $attachment->update([
-            'encrypted_size' => $disk->size($attachment->storage_path),
-            'thumbnail_size' => $attachment->thumbnail_path && $disk->exists($attachment->thumbnail_path)
-                ? $disk->size($attachment->thumbnail_path)
-                : null,
-            'expires_at' => now()->addHours(self::PENDING_TTL_HOURS),
-        ]);
-
-        return $this->successResponse([
-            'id' => $attachment->id,
-            'encrypted_size' => $attachment->encrypted_size,
-            'thumbnail_size' => $attachment->thumbnail_size,
-        ]);
-    }
-
-    /**
-     * Generate a presigned download URL for an attachment.
+     * Generate signed download URLs for an attachment.
      */
     public function download(Request $request, EncryptedAttachment $attachment): JsonResponse
     {
@@ -109,63 +76,119 @@ class AttachmentController extends Controller
             return $this->forbiddenResponse();
         }
 
-        $disk = Storage::disk('s3');
-        $presignDisk = Storage::disk('s3-presign');
-
         $urls = [
-            'download_url' => $presignDisk->temporaryUrl($attachment->storage_path, now()->addSeconds(self::DOWNLOAD_EXPIRY)),
+            'download_url' => URL::signedRoute(
+                'api.attachments.serve',
+                ['attachment' => $attachment->id, 'type' => 'main'],
+                now()->addSeconds(self::DOWNLOAD_EXPIRY),
+            ),
         ];
 
         if ($attachment->thumbnail_path) {
-            $urls['thumbnail_url'] = $presignDisk->temporaryUrl($attachment->thumbnail_path, now()->addSeconds(self::DOWNLOAD_EXPIRY));
+            $urls['thumbnail_url'] = URL::signedRoute(
+                'api.attachments.serve',
+                ['attachment' => $attachment->id, 'type' => 'thumb'],
+                now()->addSeconds(self::DOWNLOAD_EXPIRY),
+            );
         }
 
         return $this->successResponse($urls);
     }
 
     /**
-     * Generate presigned upload URLs and create a pending attachment record.
+     * Serve an attachment file via signed URL.
      */
-    private function generatePresignedUpload(mixed $user, Request $request): JsonResponse
+    public function serveFile(Request $request, EncryptedAttachment $attachment): Response
+    {
+        if (! $request->hasValidSignature()) {
+            abort(403, 'Invalid or expired URL.');
+        }
+
+        $type = $request->query('type', 'main');
+        $path = $type === 'thumb' ? $attachment->thumbnail_path : $attachment->storage_path;
+
+        if (! $path) {
+            abort(404);
+        }
+
+        $disk = Storage::disk('attachments');
+
+        if (! $disk->exists($path)) {
+            abort(404);
+        }
+
+        $fileSize = $disk->size($path);
+
+        $headers = [
+            'Content-Type' => 'application/octet-stream',
+            'Content-Length' => $fileSize,
+            'Content-Disposition' => 'attachment',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ];
+
+        if ($this->supportsAccelRedirect()) {
+            $accelPath = self::NGINX_ACCEL_PREFIX.'/'.ltrim($path, '/');
+
+            return response('', 200, array_merge($headers, [
+                'X-Accel-Redirect' => $accelPath,
+            ]));
+        }
+
+        return new StreamedResponse(function () use ($disk, $path) {
+            $stream = $disk->readStream($path);
+            fpassthru($stream);
+            fclose($stream);
+        }, 200, $headers);
+    }
+
+    /**
+     * Handle the file upload, store to local disk, and create an attachment record.
+     */
+    private function handleUpload(mixed $user, Request $request): JsonResponse
     {
         $request->validate([
-            'file_size' => ['required', 'integer', 'min:1', 'max:'.self::MAX_FILE_SIZE],
-            'has_thumbnail' => ['sometimes', 'boolean'],
+            'file' => ['required', 'file', 'max:'.(self::MAX_FILE_SIZE / 1024)],
+            'thumbnail' => ['sometimes', 'file', 'max:5120'],
         ]);
 
         $attachmentId = Str::uuid()->toString();
-        $storagePath = 'attachments/'.date('Y/m').'/'.$attachmentId;
+        $directory = date('Y/m').'/'.$attachmentId;
+        $storagePath = $directory.'/file';
         $thumbnailPath = null;
 
-        $disk = Storage::disk('s3');
+        $disk = Storage::disk('attachments');
 
-        $presignDisk = Storage::disk('s3-presign');
+        $disk->putFileAs(
+            $directory,
+            $request->file('file'),
+            'file',
+        );
 
-        $uploadUrl = $presignDisk->temporaryUploadUrl($storagePath, now()->addSeconds(self::PRESIGN_EXPIRY));
-
-        $response = [
-            'attachment_id' => $attachmentId,
-            'upload_url' => $uploadUrl['url'],
-            'upload_headers' => $uploadUrl['headers'] ?? [],
-        ];
-
-        if ($request->boolean('has_thumbnail')) {
-            $thumbnailPath = $storagePath.'/thumb';
-            $thumbUpload = $presignDisk->temporaryUploadUrl($thumbnailPath, now()->addSeconds(self::PRESIGN_EXPIRY));
-            $response['thumbnail_upload_url'] = $thumbUpload['url'];
-            $response['thumbnail_upload_headers'] = $thumbUpload['headers'] ?? [];
+        if ($request->hasFile('thumbnail')) {
+            $thumbnailPath = $directory.'/thumb';
+            $disk->putFileAs(
+                $directory,
+                $request->file('thumbnail'),
+                'thumb',
+            );
         }
 
-        EncryptedAttachment::create([
+        $attachment = EncryptedAttachment::create([
             'id' => $attachmentId,
             'user_id' => $user->id,
             'storage_path' => $storagePath,
+            'encrypted_size' => $disk->size($storagePath),
             'thumbnail_path' => $thumbnailPath,
-            'status' => AttachmentStatus::Pending,
-            'expires_at' => now()->addHours(self::PENDING_TTL_HOURS),
+            'thumbnail_size' => $thumbnailPath ? $disk->size($thumbnailPath) : null,
+            'status' => AttachmentStatus::Attached,
         ]);
 
-        return $this->successResponse($response);
+        return $this->successResponse([
+            'attachment_id' => $attachment->id,
+            'encrypted_size' => $attachment->encrypted_size,
+            'thumbnail_size' => $attachment->thumbnail_size,
+        ]);
     }
 
     /**
@@ -192,5 +215,10 @@ class AttachmentController extends Controller
         }
 
         return false;
+    }
+
+    private function supportsAccelRedirect(): bool
+    {
+        return ! app()->environment('local', 'testing');
     }
 }

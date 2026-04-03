@@ -6,8 +6,11 @@ use App\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\MarkNotificationReadRequest;
 use App\Http\Resources\NotificationResource;
+use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Spatie\QueryBuilder\QueryBuilder;
 
 class NotificationController extends Controller
 {
@@ -19,22 +22,25 @@ class NotificationController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $unreadCount = $user->unreadNotifications()->count();
+        $countCacheKey = CacheKeys::userUnreadNotificationCount($user->id);
 
-        $notifications = $user
-            ->unreadNotifications()
-            ->latest()
+        $unreadCount = Cache::tags([CacheKeys::userTag($user->id)])
+            ->remember($countCacheKey, CacheKeys::TTL_HOT, fn () => $user->unreadNotifications()->count());
+
+        $notifications = QueryBuilder::for(
+            $user->unreadNotifications()
+        )
+            ->allowedSorts('created_at')
+            ->defaultSort('-created_at')
             ->cursorPaginate(50);
 
-        return $this->successResponse([
-            'notifications' => NotificationResource::collection($notifications->items()),
-            'unread_count' => $unreadCount,
-            'pagination' => [
-                'next_cursor' => $notifications->nextCursor()?->encode(),
-                'prev_cursor' => $notifications->previousCursor()?->encode(),
-                'has_more' => $notifications->hasMorePages(),
-            ],
-        ]);
+        return NotificationResource::collection($notifications)
+            ->additional([
+                'meta' => [
+                    'unread_count' => $unreadCount,
+                ],
+            ])
+            ->response();
     }
 
     /**
@@ -50,9 +56,14 @@ class NotificationController extends Controller
 
         $notificationModel->markAsRead();
 
-        return $this->successResponse([
-            'unread_count' => $request->user()->unreadNotifications()->count(),
-        ], 'Notification marked as read');
+        $user = $request->user();
+        Cache::tags([CacheKeys::userTag($user->id)])->forget(CacheKeys::userUnreadNotificationCount($user->id));
+
+        return response()->json([
+            'meta' => [
+                'unread_count' => $user->unreadNotifications()->count(),
+            ],
+        ]);
     }
 
     /**
@@ -64,9 +75,12 @@ class NotificationController extends Controller
     {
         $request->user()->unreadNotifications()->update(['read_at' => now()]);
 
-        return $this->successResponse(
-            ['unread_count' => 0],
-            'All notifications marked as read',
-        );
+        Cache::tags([CacheKeys::userTag($request->user()->id)])->forget(CacheKeys::userUnreadNotificationCount($request->user()->id));
+
+        return response()->json([
+            'meta' => [
+                'unread_count' => 0,
+            ],
+        ]);
     }
 }

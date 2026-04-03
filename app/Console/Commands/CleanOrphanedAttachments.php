@@ -11,7 +11,7 @@ class CleanOrphanedAttachments extends Command
 {
     protected $signature = 'attachments:clean-orphaned';
 
-    protected $description = 'Delete expired pending attachments and their S3 objects';
+    protected $description = 'Delete expired pending attachments and their stored files';
 
     public function handle(): int
     {
@@ -26,7 +26,7 @@ class CleanOrphanedAttachments extends Command
             return self::SUCCESS;
         }
 
-        $disk = Storage::disk('s3');
+        $disk = Storage::disk('attachments');
         $deleted = 0;
 
         foreach ($orphaned as $attachment) {

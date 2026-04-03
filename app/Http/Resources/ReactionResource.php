@@ -3,25 +3,18 @@
 namespace App\Http\Resources;
 
 use App\Models\MessageReaction;
-use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /** @mixin MessageReaction */
-class ReactionResource extends JsonResource
+class ReactionResource extends JsonApiResource
 {
     /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
+     * The resource's attributes.
      */
-    public function toArray(Request $request): array
-    {
-        return [
-            'id' => $this->id,
-            'user_id' => $this->user_id,
-            'emoji' => $this->emoji,
-            'message_id' => $this->message_id,
-            'created_at' => $this->created_at?->toISOString(),
-        ];
-    }
+    public $attributes = [
+        'user_id',
+        'emoji',
+        'message_id',
+        'created_at',
+    ];
 }

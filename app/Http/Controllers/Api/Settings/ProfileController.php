@@ -8,8 +8,10 @@ use App\Http\Requests\Api\DeleteAccountRequest;
 use App\Http\Requests\Api\UpdateProfileRequest;
 use App\Http\Requests\Api\UploadAvatarRequest;
 use App\Http\Resources\UserResource;
+use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
 class ProfileController extends Controller
@@ -21,9 +23,8 @@ class ProfileController extends Controller
      */
     public function show(Request $request): JsonResponse
     {
-        return $this->successResponse(
-            new UserResource($request->user()),
-        );
+        return (new UserResource($request->user()))
+            ->response();
     }
 
     /**
@@ -40,10 +41,10 @@ class ProfileController extends Controller
 
         $user->save();
 
-        return $this->successResponse(
-            new UserResource($user),
-            'Profile updated successfully',
-        );
+        Cache::tags([CacheKeys::userTag($user->id)])->forget(CacheKeys::userProfile($user->id));
+
+        return (new UserResource($user))
+            ->response();
     }
 
     /**
@@ -68,10 +69,10 @@ class ProfileController extends Controller
         $user->addMediaFromRequest('avatar')
             ->toMediaCollection('avatar');
 
-        return $this->successResponse(
-            new UserResource($user->refresh()),
-            'Avatar uploaded successfully',
-        );
+        Cache::tags([CacheKeys::userTag($user->id)])->forget(CacheKeys::userProfile($user->id));
+
+        return (new UserResource($user->refresh()))
+            ->response();
     }
 
     /**
@@ -79,7 +80,10 @@ class ProfileController extends Controller
      */
     public function deleteAvatar(Request $request): JsonResponse|Response
     {
-        $request->user()->clearMediaCollection('avatar');
+        $user = $request->user();
+        $user->clearMediaCollection('avatar');
+
+        Cache::tags([CacheKeys::userTag($user->id)])->forget(CacheKeys::userProfile($user->id));
 
         return $this->noContentResponse();
     }

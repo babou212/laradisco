@@ -18,8 +18,11 @@ use App\Models\EncryptedAttachment;
 use App\Models\Message;
 use App\Services\MentionService;
 use App\Services\PermissionService;
+use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
 
 class MessageController extends Controller
@@ -42,23 +45,46 @@ class MessageController extends Controller
             return $this->forbiddenResponse('You do not have access to this channel.');
         }
 
-        $messages = $channel->messages()
-            ->whereNull('thread_id')
-            ->with([
-                'user:id,username,name,nickname,status,custom_status',
-                'attachments',
+        // Only cache the initial load (no cursor = latest messages)
+        $cursor = $request->query('cursor');
+        $includes = $request->query('include', '');
+        $cacheKey = CacheKeys::channelMessages($channel->id).'.'.md5($includes);
+
+        if (! $cursor) {
+            $cached = Cache::tags([CacheKeys::channelTag($channel->id)])->get($cacheKey);
+            if ($cached) {
+                return response()->json($cached);
+            }
+        }
+
+        $messages = QueryBuilder::for(
+            $channel->messages()->whereNull('thread_id')
+        )
+            ->allowedIncludes(
+                'user',
                 'encryptedAttachments',
                 'reactions',
-                'replyTo.user:id,username,name,nickname,status,custom_status',
-                'threadStarted.latestReply.user:id,username,name,nickname,status,custom_status',
+                'replyTo',
+                'replyTo.user',
+                'threadStarted',
+                'threadStarted.latestReply',
+                'threadStarted.latestReply.user',
                 'threadStarted.followers',
-            ])
-            ->orderBy('created_at', 'asc')
+            )
+            ->allowedSorts('created_at')
+            ->defaultSort('created_at')
             ->cursorPaginate(50);
 
-        $messages->through(fn ($message) => new MessageResource($message));
+        $response = MessageResource::collection($messages)
+            ->includePreviouslyLoadedRelationships()
+            ->response();
 
-        return $this->successResponse($messages);
+        if (! $cursor) {
+            Cache::tags([CacheKeys::channelTag($channel->id)])
+                ->put($cacheKey, $response->getData(true), CacheKeys::TTL_HOT);
+        }
+
+        return $response;
     }
 
     /**
@@ -84,17 +110,18 @@ class MessageController extends Controller
         $attachmentIds = $request->validated('attachment_ids', []);
         if (! empty($attachmentIds)) {
             EncryptedAttachment::where('user_id', $user->id)
-                ->where('status', AttachmentStatus::Pending)
+                ->where('status', AttachmentStatus::Attached)
+                ->whereNull('attachable_type')
                 ->whereIn('id', $attachmentIds)
                 ->update([
                     'attachable_type' => Message::class,
                     'attachable_id' => $message->id,
-                    'status' => AttachmentStatus::Attached,
-                    'expires_at' => null,
                 ]);
         }
 
         $message->load(['user:id,username,name,nickname,status,custom_status', 'replyTo.user:id,username,name,nickname,status,custom_status']);
+
+        Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
 
         broadcast(new MessageSent($message))->toOthers();
 
@@ -105,11 +132,11 @@ class MessageController extends Controller
             $request->validated('mention_here', false),
         );
 
-        return $this->createdResponse(
-            new MessageResource($message),
-            'Created successfully',
-            route('api.channels.messages.store', $channel).'/'.$message->id,
-        );
+        return (new MessageResource($message))
+            ->includePreviouslyLoadedRelationships()
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED)
+            ->header('Location', route('api.channels.messages.store', $channel).'/'.$message->id);
     }
 
     /**
@@ -134,12 +161,12 @@ class MessageController extends Controller
             'edited_at' => now(),
         ]);
 
+        Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
+
         broadcast(new MessageEdited($message))->toOthers();
 
-        return $this->successResponse(
-            new MessageResource($message),
-            'Message updated successfully',
-        );
+        return (new MessageResource($message))
+            ->response();
     }
 
     /**
@@ -164,6 +191,8 @@ class MessageController extends Controller
 
         $message->update(['history_ciphertext' => null, 'message_bytes' => null]);
         $message->delete();
+
+        Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
 
         broadcast(new MessageDeleted($messageId, $channel->id))->toOthers();
 

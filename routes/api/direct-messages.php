@@ -22,7 +22,7 @@ Route::prefix('{dmGroup}')->scopeBindings()->group(function () {
     Route::put('/messages/{message}', [DirectMessageController::class, 'update'])->name('messages.update');
     Route::delete('/messages/{message}', [DirectMessageController::class, 'destroy'])->name('messages.destroy');
 
-    Route::post('/attachments/presign', [AttachmentController::class, 'presignForDm'])->name('attachments.presign');
+    Route::post('/attachments/upload', [AttachmentController::class, 'uploadForDm'])->name('attachments.upload');
 
     Route::post('/messages/{message}/reactions', [ReactionController::class, 'dmToggle'])->name('messages.reactions.toggle');
 

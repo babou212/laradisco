@@ -13,6 +13,8 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\JsonApi\AnonymousResourceCollection;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -54,6 +56,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureAuthListeners();
         $this->configureRateLimiting();
         $this->configurePrometheus();
+        $this->configureJsonApiMacros();
     }
 
     /**
@@ -163,5 +166,23 @@ class AppServiceProvider extends ServiceProvider
             FailedJobsPerHourCollector::class,
             JobsPerMinuteCollector::class,
         ]);
+    }
+
+    /**
+     * Register macros so JsonApi\AnonymousResourceCollection supports
+     * includePreviouslyLoadedRelationships() the same way individual resources do.
+     */
+    protected function configureJsonApiMacros(): void
+    {
+        AnonymousResourceCollection::macro('includePreviouslyLoadedRelationships', function () {
+            /** @var AnonymousResourceCollection $this */
+            $this->collection->each(function ($resource) {
+                if ($resource instanceof JsonApiResource) {
+                    $resource->includePreviouslyLoadedRelationships();
+                }
+            });
+
+            return $this;
+        });
     }
 }

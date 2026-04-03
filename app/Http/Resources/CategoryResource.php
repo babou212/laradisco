@@ -3,25 +3,24 @@
 namespace App\Http\Resources;
 
 use App\Models\Category;
-use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /** @mixin Category */
-class CategoryResource extends JsonResource
+class CategoryResource extends JsonApiResource
 {
     /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
+     * The resource's attributes.
      */
-    public function toArray(Request $request): array
-    {
-        return [
-            'id' => $this->id,
-            'name' => $this->name,
-            'position' => $this->position,
-            'channels' => ChannelResource::collection($this->whenLoaded('channels')),
-            'created_at' => $this->created_at?->toISOString(),
-        ];
-    }
+    public $attributes = [
+        'name',
+        'position',
+        'created_at',
+    ];
+
+    /**
+     * The resource's relationships.
+     */
+    public $relationships = [
+        'channels' => ChannelResource::class,
+    ];
 }

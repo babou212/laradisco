@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\E2eeAuditLog;
+use App\Support\CacheKeys;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class E2eeAuditService
@@ -21,7 +23,7 @@ class E2eeAuditService
         ?string $signature = null,
         ?array $metadata = null,
     ): E2eeAuditLog {
-        return DB::transaction(function () use ($userId, $eventType, $deviceId, $publicKey, $signature, $metadata) {
+        $entry = DB::transaction(function () use ($userId, $eventType, $deviceId, $publicKey, $signature, $metadata) {
             DB::table('users')->where('id', $userId)->lockForUpdate()->first();
 
             $previousEntry = E2eeAuditLog::where('user_id', $userId)
@@ -55,5 +57,9 @@ class E2eeAuditService
                 'created_at' => $timestamp,
             ]);
         });
+
+        Cache::tags([CacheKeys::userTag($userId)])->forget(CacheKeys::e2eeAuditLatest($userId));
+
+        return $entry;
     }
 }

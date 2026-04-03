@@ -14,8 +14,11 @@ use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
 use App\Models\Message;
 use App\Services\PermissionService;
+use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
 
 class PinController extends Controller
@@ -37,12 +40,29 @@ class PinController extends Controller
             return $this->forbiddenResponse();
         }
 
-        $pinned = $channel->pinnedMessages()
-            ->with(['user', 'reactions'])
-            ->latest()
+        $includes = $request->query('include', '');
+        $cacheKey = CacheKeys::channelPinnedMessages($channel->id).'.'.md5($includes);
+        $cached = Cache::tags([CacheKeys::channelTag($channel->id)])->get($cacheKey);
+        if ($cached) {
+            return response()->json($cached);
+        }
+
+        $pinned = QueryBuilder::for(
+            $channel->pinnedMessages()
+        )
+            ->allowedIncludes('user', 'reactions')
+            ->allowedSorts('created_at')
+            ->defaultSort('-created_at')
             ->get();
 
-        return $this->successResponse(MessageResource::collection($pinned));
+        $response = MessageResource::collection($pinned)
+            ->includePreviouslyLoadedRelationships()
+            ->response();
+
+        Cache::tags([CacheKeys::channelTag($channel->id)])
+            ->put($cacheKey, $response->getData(true), CacheKeys::TTL_COLD);
+
+        return $response;
     }
 
     /**
@@ -61,14 +81,17 @@ class PinController extends Controller
         }
 
         if ($message->is_pinned) {
-            return $this->successResponse(new MessageResource($message), 'Message is already pinned.');
+            return (new MessageResource($message))
+                ->response();
         }
 
         $message->update(['is_pinned' => true]);
 
         broadcast(new MessagePinned($channel->id, $message->id, $user->id))->toOthers();
 
-        return $this->successResponse(new MessageResource($message->load(['user', 'reactions'])), 'Message pinned.');
+        return (new MessageResource($message->load(['user', 'reactions'])))
+            ->includePreviouslyLoadedRelationships()
+            ->response();
     }
 
     /**
@@ -108,13 +131,29 @@ class PinController extends Controller
             return $this->forbiddenResponse();
         }
 
-        $pinned = $dmGroup->messages()
-            ->where('is_pinned', true)
-            ->with(['user', 'reactions'])
-            ->latest()
+        $includes = $request->query('include', '');
+        $cacheKey = CacheKeys::dmGroupPinnedMessages($dmGroup->id).'.'.md5($includes);
+        $cached = Cache::tags([CacheKeys::dmGroupTag($dmGroup->id)])->get($cacheKey);
+        if ($cached) {
+            return response()->json($cached);
+        }
+
+        $pinned = QueryBuilder::for(
+            $dmGroup->messages()->where('is_pinned', true)
+        )
+            ->allowedIncludes('user', 'reactions')
+            ->allowedSorts('created_at')
+            ->defaultSort('-created_at')
             ->get();
 
-        return $this->successResponse(DirectMessageResource::collection($pinned));
+        $response = DirectMessageResource::collection($pinned)
+            ->includePreviouslyLoadedRelationships()
+            ->response();
+
+        Cache::tags([CacheKeys::dmGroupTag($dmGroup->id)])
+            ->put($cacheKey, $response->getData(true), CacheKeys::TTL_COLD);
+
+        return $response;
     }
 
     /**
@@ -133,14 +172,17 @@ class PinController extends Controller
         }
 
         if ($message->is_pinned) {
-            return $this->successResponse(new DirectMessageResource($message), 'Message is already pinned.');
+            return (new DirectMessageResource($message))
+                ->response();
         }
 
         $message->update(['is_pinned' => true]);
 
         broadcast(new MessagePinned($dmGroup->id, $message->id, $user->id, true))->toOthers();
 
-        return $this->successResponse(new DirectMessageResource($message->load(['user', 'reactions'])), 'Message pinned.');
+        return (new DirectMessageResource($message->load(['user', 'reactions'])))
+            ->includePreviouslyLoadedRelationships()
+            ->response();
     }
 
     /**

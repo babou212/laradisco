@@ -14,8 +14,11 @@ use App\Models\Category;
 use App\Models\Channel;
 use App\Models\ChannelPermissionOverride;
 use App\Models\Role;
+use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
 
 class ChannelController extends Controller
@@ -29,8 +32,11 @@ class ChannelController extends Controller
     {
         $this->authorize('viewAny', Channel::class);
 
-        $categories = Category::with(['channels' => fn ($q) => $q->orderBy('position')])
-            ->orderBy('position')
+        $categories = QueryBuilder::for(Category::class)
+            ->allowedIncludes('channels')
+            ->allowedSorts('position')
+            ->defaultSort('position')
+            ->with(['channels' => fn ($q) => $q->orderBy('position')])
             ->get();
 
         $roles = Role::orderByDesc('position')->get(['id', 'name', 'color']);
@@ -40,11 +46,15 @@ class ChannelController extends Controller
             'label' => $p->label(),
         ]);
 
-        return $this->successResponse([
-            'categories' => CategoryResource::collection($categories),
-            'roles' => RoleResource::collection($roles),
-            'permissions' => $permissions,
-        ]);
+        return CategoryResource::collection($categories)
+            ->includePreviouslyLoadedRelationships()
+            ->additional([
+                'meta' => [
+                    'roles' => RoleResource::collection($roles),
+                    'permissions' => $permissions,
+                ],
+            ])
+            ->response();
     }
 
     /**
@@ -56,11 +66,12 @@ class ChannelController extends Controller
 
         $channel = Channel::create($request->validated());
 
-        return $this->createdResponse(
-            new ChannelResource($channel),
-            'Created successfully',
-            route('api.channels.show', $channel),
-        );
+        Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
+
+        return (new ChannelResource($channel))
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED)
+            ->header('Location', route('api.channels.show', $channel));
     }
 
     /**
@@ -72,10 +83,11 @@ class ChannelController extends Controller
 
         $channel->update($request->validated());
 
-        return $this->successResponse(
-            new ChannelResource($channel->fresh()),
-            'Channel updated successfully',
-        );
+        Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
+        Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
+
+        return (new ChannelResource($channel->fresh()))
+            ->response();
     }
 
     /**
@@ -85,7 +97,11 @@ class ChannelController extends Controller
     {
         $this->authorize('delete', $channel);
 
+        $channelId = $channel->id;
         $channel->delete();
+
+        Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
+        Cache::tags([CacheKeys::channelTag($channelId)])->flush();
 
         return $this->noContentResponse();
     }
@@ -127,6 +143,9 @@ class ChannelController extends Controller
 
         $override->load(['role:id,name,color', 'user:id,username,name']);
 
+        Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
+        Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
+
         return $this->createdResponse($override);
     }
 
@@ -138,6 +157,9 @@ class ChannelController extends Controller
         $this->authorize('manageOverrides', $channel);
 
         $override->delete();
+
+        Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
+        Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
 
         return $this->noContentResponse();
     }

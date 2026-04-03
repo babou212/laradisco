@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\URL;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\MediaLibrary\HasMedia;
@@ -224,11 +225,13 @@ class User extends Authenticatable implements HasMedia
             return null;
         }
 
+        $expiration = now()->addHours(24);
+
         return [
-            'thumb' => $media->getUrl('thumb'),
-            'small' => $media->getUrl('small'),
-            'medium' => $media->getUrl('medium'),
-            'original' => $media->getUrl(),
+            'thumb' => URL::signedRoute('api.media.serve', ['media' => $media->id, 'conversion' => 'thumb'], $expiration),
+            'small' => URL::signedRoute('api.media.serve', ['media' => $media->id, 'conversion' => 'small'], $expiration),
+            'medium' => URL::signedRoute('api.media.serve', ['media' => $media->id, 'conversion' => 'medium'], $expiration),
+            'original' => URL::signedRoute('api.media.serve', ['media' => $media->id], $expiration),
         ];
     }
 }

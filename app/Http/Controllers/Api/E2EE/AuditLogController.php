@@ -6,8 +6,10 @@ use App\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\E2eeAuditLog;
 use App\Models\User;
+use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class AuditLogController extends Controller
 {
@@ -55,13 +57,24 @@ class AuditLogController extends Controller
             return $this->forbiddenResponse('You can only access your own audit log.');
         }
 
+        $cacheKey = CacheKeys::e2eeAuditLatest($user->id);
+        $cached = Cache::tags([CacheKeys::userTag($user->id)])->get($cacheKey);
+        if ($cached) {
+            return $this->successResponse($cached);
+        }
+
         $latestEntry = E2eeAuditLog::where('user_id', $user->id)
             ->orderByDesc('id')
             ->first();
 
-        return $this->successResponse([
+        $data = [
             'latest_hash' => $latestEntry?->entry_hash,
             'entry_count' => E2eeAuditLog::where('user_id', $user->id)->count(),
-        ]);
+        ];
+
+        Cache::tags([CacheKeys::userTag($user->id)])
+            ->put($cacheKey, $data, CacheKeys::TTL_WARM);
+
+        return $this->successResponse($data);
     }
 }

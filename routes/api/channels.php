@@ -30,7 +30,7 @@ Route::prefix('channels/{channel}')->as('channels.')->scopeBindings()->group(fun
     Route::put('/messages/{message}', [MessageController::class, 'update'])->name('messages.update');
     Route::delete('/messages/{message}', [MessageController::class, 'destroy'])->name('messages.destroy');
 
-    Route::post('/attachments/presign', [AttachmentController::class, 'presignForChannel'])->name('attachments.presign');
+    Route::post('/attachments/upload', [AttachmentController::class, 'uploadForChannel'])->name('attachments.upload');
 
     Route::post('/messages/{message}/reactions', [ReactionController::class, 'toggle'])->name('messages.reactions.toggle');
 

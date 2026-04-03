@@ -4,20 +4,19 @@ namespace App\Http\Resources;
 
 use App\Models\Role;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /** @mixin Role */
-class RoleResource extends JsonResource
+class RoleResource extends JsonApiResource
 {
     /**
-     * Transform the resource into an array.
+     * Get the resource's attributes.
      *
      * @return array<string, mixed>
      */
-    public function toArray(Request $request): array
+    public function toAttributes(Request $request): array
     {
         return [
-            'id' => $this->id,
             'name' => $this->name,
             'color' => $this->color,
             'position' => $this->position,
@@ -25,8 +24,8 @@ class RoleResource extends JsonResource
             'is_default' => $this->is_default,
             'is_mentionable' => $this->is_mentionable,
             'permissions' => $this->permissions,
-            'users_count' => $this->when(isset($this->users_count), $this->users_count),
-            'created_at' => $this->created_at?->toISOString(),
+            'users_count' => fn () => $this->whenCounted('users'),
+            'created_at' => $this->created_at,
         ];
     }
 }

@@ -6,11 +6,15 @@ use App\Concerns\ApiResponse;
 use App\Events\ReactionToggled;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\ToggleReactionRequest;
+use App\Http\Resources\ReactionResource;
 use App\Models\Channel;
 use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
 use App\Models\Message;
+use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
+use Symfony\Component\HttpFoundation\Response;
 
 class ReactionController extends Controller
 {
@@ -37,6 +41,8 @@ class ReactionController extends Controller
         if ($existing) {
             $existing->delete();
 
+            Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
+
             broadcast(new ReactionToggled($channel->id, [
                 'id' => $existing->id,
                 'message_id' => $message->id,
@@ -44,13 +50,17 @@ class ReactionController extends Controller
                 'emoji' => $validated['emoji'],
             ], false))->toOthers();
 
-            return $this->successResponse(['added' => false], 'Reaction removed');
+            return response()->json([
+                'meta' => ['added' => false],
+            ]);
         }
 
         $reaction = $message->reactions()->create([
             'user_id' => $user->id,
             'emoji' => $validated['emoji'],
         ]);
+
+        Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
 
         broadcast(new ReactionToggled($channel->id, [
             'id' => $reaction->id,
@@ -59,7 +69,10 @@ class ReactionController extends Controller
             'emoji' => $validated['emoji'],
         ], true))->toOthers();
 
-        return $this->createdResponse(['added' => true, 'reaction' => $reaction]);
+        return (new ReactionResource($reaction))
+            ->additional(['meta' => ['added' => true]])
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
     }
 
     /**
@@ -87,6 +100,8 @@ class ReactionController extends Controller
         if ($existing) {
             $existing->delete();
 
+            Cache::tags([CacheKeys::dmGroupTag($dmGroup->id)])->flush();
+
             broadcast(new ReactionToggled($dmGroup->id, [
                 'id' => $existing->id,
                 'message_id' => $message->id,
@@ -94,13 +109,17 @@ class ReactionController extends Controller
                 'emoji' => $validated['emoji'],
             ], false, true))->toOthers();
 
-            return $this->successResponse(['added' => false], 'Reaction removed');
+            return response()->json([
+                'meta' => ['added' => false],
+            ]);
         }
 
         $reaction = $message->reactions()->create([
             'user_id' => $user->id,
             'emoji' => $validated['emoji'],
         ]);
+
+        Cache::tags([CacheKeys::dmGroupTag($dmGroup->id)])->flush();
 
         broadcast(new ReactionToggled($dmGroup->id, [
             'id' => $reaction->id,
@@ -109,6 +128,9 @@ class ReactionController extends Controller
             'emoji' => $validated['emoji'],
         ], true, true))->toOthers();
 
-        return $this->createdResponse(['added' => true, 'reaction' => $reaction]);
+        return (new ReactionResource($reaction))
+            ->additional(['meta' => ['added' => true]])
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
     }
 }

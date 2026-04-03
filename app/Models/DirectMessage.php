@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\ClearsCaches;
+use App\Support\CacheKeys;
 use Database\Factories\DirectMessageFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -94,7 +95,6 @@ class DirectMessage extends Model
      */
     public function clearCaches(): void
     {
-        // Clear DM groups cache for all participants
         $this->loadMissing('group.participants');
 
         if ($this->group) {
@@ -102,5 +102,17 @@ class DirectMessage extends Model
                 cache()->forget("user.{$participant->id}.dm_groups");
             }
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function cacheTags(): array
+    {
+        if ($this->direct_message_group_id) {
+            return [CacheKeys::dmGroupTag($this->direct_message_group_id)];
+        }
+
+        return [];
     }
 }

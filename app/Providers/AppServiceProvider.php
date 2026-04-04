@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Enums\PermissionFlag;
 use App\Enums\UserStatusType;
 use App\Events\UserPresenceUpdated;
+use App\Models\PersonalAccessToken;
 use App\Models\User;
 use App\Services\LiveKitService;
 use App\Services\PresenceService;
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -45,6 +47,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+
         $this->configureDefaults();
         $this->configureGates();
         $this->configureAuthListeners();
@@ -131,10 +135,6 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('api-messages', function (Request $request) {
-            return Limit::perMinute(100)->by($request->user()?->id ?: $request->ip());
-        });
-
-        RateLimiter::for('api-search', function (Request $request) {
             return Limit::perMinute(100)->by($request->user()?->id ?: $request->ip());
         });
     }

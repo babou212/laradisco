@@ -101,14 +101,14 @@ class ReactionController extends Controller
         if ($existing) {
             $existing->delete();
 
-            Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
+            Cache::tags([CacheKeys::channelTag($channel->id), CacheKeys::threadTag($thread->id)])->flush();
 
             broadcast(new ReactionToggled($channel->id, [
                 'id' => $existing->id,
                 'message_id' => $message->id,
                 'user_id' => $user->id,
                 'emoji' => $validated['emoji'],
-            ], false))->toOthers();
+            ], false, threadId: $thread->id))->toOthers();
 
             return response()->json([
                 'meta' => ['added' => false],
@@ -120,14 +120,14 @@ class ReactionController extends Controller
             'emoji' => $validated['emoji'],
         ]);
 
-        Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
+        Cache::tags([CacheKeys::channelTag($channel->id), CacheKeys::threadTag($thread->id)])->flush();
 
         broadcast(new ReactionToggled($channel->id, [
             'id' => $reaction->id,
             'message_id' => $message->id,
             'user_id' => $user->id,
             'emoji' => $validated['emoji'],
-        ], true))->toOthers();
+        ], true, threadId: $thread->id))->toOthers();
 
         return (new ReactionResource($reaction))
             ->additional(['meta' => ['added' => true]])

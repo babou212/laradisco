@@ -11,6 +11,7 @@ use App\Models\Channel;
 use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
 use App\Models\Message;
+use App\Models\Thread;
 use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
@@ -27,6 +28,65 @@ class ReactionController extends Controller
     {
         if ($message->channel_id !== $channel->id) {
             return $this->notFoundResponse('Message not found in this channel.');
+        }
+
+        $validated = $request->validated();
+
+        $user = $request->user();
+
+        $existing = $message->reactions()
+            ->where('user_id', $user->id)
+            ->where('emoji', $validated['emoji'])
+            ->first();
+
+        if ($existing) {
+            $existing->delete();
+
+            Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
+
+            broadcast(new ReactionToggled($channel->id, [
+                'id' => $existing->id,
+                'message_id' => $message->id,
+                'user_id' => $user->id,
+                'emoji' => $validated['emoji'],
+            ], false))->toOthers();
+
+            return response()->json([
+                'meta' => ['added' => false],
+            ]);
+        }
+
+        $reaction = $message->reactions()->create([
+            'user_id' => $user->id,
+            'emoji' => $validated['emoji'],
+        ]);
+
+        Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
+
+        broadcast(new ReactionToggled($channel->id, [
+            'id' => $reaction->id,
+            'message_id' => $message->id,
+            'user_id' => $user->id,
+            'emoji' => $validated['emoji'],
+        ], true))->toOthers();
+
+        return (new ReactionResource($reaction))
+            ->additional(['meta' => ['added' => true]])
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
+    }
+
+    /**
+     * Toggle a reaction on a thread message.
+     */
+    public function threadToggle(ToggleReactionRequest $request, Channel $channel, Thread $thread, Message $message): JsonResponse
+    {
+        if ($thread->channel_id !== $channel->id) {
+            return $this->notFoundResponse('Thread not found in this channel.');
+        }
+
+        if ($message->thread_id !== $thread->id) {
+            return $this->notFoundResponse('Message not found in this thread.');
         }
 
         $validated = $request->validated();

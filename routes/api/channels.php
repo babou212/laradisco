@@ -52,7 +52,7 @@ Route::prefix('channels/{channel}')->as('channels.')->scopeBindings()->group(fun
         Route::post('/follow', [ThreadController::class, 'follow'])->name('follow');
         Route::delete('/follow', [ThreadController::class, 'unfollow'])->name('unfollow');
 
-        Route::post('/messages/{message}/reactions', [ReactionController::class, 'toggle'])->name('messages.reactions.toggle');
+        Route::post('/messages/{message}/reactions', [ReactionController::class, 'threadToggle'])->name('messages.reactions.toggle');
         Route::post('/messages/{message}/pin', [PinController::class, 'pin'])->name('messages.pin');
         Route::delete('/messages/{message}/pin', [PinController::class, 'unpin'])->name('messages.unpin');
     });

@@ -16,13 +16,13 @@
         "laravel/fortify": "^1.30",
         "laravel/framework": "^13.0",
         "laravel/horizon": "^5.43",
+        "laravel/nightwatch": "^1.26",
         "laravel/octane": "^2.13",
         "laravel/reverb": "^1.7",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.9",
         "spatie/laravel-medialibrary": "^11.21",
-        "spatie/laravel-prometheus": "^1.5",
         "spatie/laravel-query-builder": "^7.0"
     },
     "require-dev": {

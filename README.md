@@ -29,7 +29,7 @@ A privacy-focused, end-to-end encrypted communication platform built with Larave
 | Voice/Video | LiveKit |
 | HTTP Server | FrankenPHP + Laravel Octane |
 | Queue | Redis + Laravel Horizon |
-| Storage | S3, Spatie MediaLibrary |
+| Storage | Spatie MediaLibrary |
 | Encryption | E2EE + MLS protocol |
 | Monitoring | Prometheus metrics |
 
@@ -62,7 +62,6 @@ This spins up all services: the app (FrankenPHP/Octane), Reverb (WebSocket), Hor
 | `redis` | 6379 | Cache, sessions, queues |
 | `pgsql` | 5432 | PostgreSQL database |
 | `livekit` | 7880 | Voice/Video media server |
-| `minio` | 9000 / 9001 | S3-compatible storage + console |
 | `mailpit` | 1025 / 8025 | SMTP catcher + web UI |
 
 ## API Overview

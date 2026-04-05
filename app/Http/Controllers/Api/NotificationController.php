@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\MarkNotificationReadRequest;
 use App\Http\Resources\NotificationResource;
 use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
@@ -48,7 +47,7 @@ class NotificationController extends Controller
      *
      * PATCH /notifications/{notification} with { read: true }
      */
-    public function markAsRead(MarkNotificationReadRequest $request, string $notification): JsonResponse
+    public function markAsRead(Request $request, string $notification): JsonResponse
     {
         $notificationModel = $request->user()
             ->notifications()
@@ -71,7 +70,7 @@ class NotificationController extends Controller
      *
      * PATCH /notifications with { read: true }
      */
-    public function markAllAsRead(MarkNotificationReadRequest $request): JsonResponse
+    public function markAllAsRead(Request $request): JsonResponse
     {
         $request->user()->unreadNotifications()->update(['read_at' => now()]);
 

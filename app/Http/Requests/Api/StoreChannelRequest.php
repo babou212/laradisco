@@ -11,6 +11,13 @@ class StoreChannelRequest extends FormRequest
         return true; // Authorization handled by ChannelPolicy
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('channel_type') && ! $this->has('type')) {
+            $this->merge(['type' => $this->input('channel_type')]);
+        }
+    }
+
     /** @return array<string, mixed> */
     public function rules(): array
     {

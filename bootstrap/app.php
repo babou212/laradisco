@@ -61,10 +61,19 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (ValidationException $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json([
-                    'message' => $e->getMessage(),
-                    'errors' => $e->errors(),
-                ], 422);
+                $jsonApiErrors = [];
+                foreach ($e->errors() as $field => $messages) {
+                    foreach ($messages as $message) {
+                        $jsonApiErrors[] = [
+                            'status' => '422',
+                            'title' => 'Validation Error',
+                            'detail' => $message,
+                            'source' => ['pointer' => "/data/attributes/{$field}"],
+                        ];
+                    }
+                }
+
+                return response()->json(['errors' => $jsonApiErrors], 422);
             }
         });
 

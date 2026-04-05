@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 /**
  * @property ChannelType $type
@@ -19,6 +20,15 @@ class Channel extends Model
 {
     /** @use HasFactory<ChannelFactory> */
     use ClearsCaches, HasFactory;
+
+    protected static function booted(): void
+    {
+        static::creating(function (Channel $channel): void {
+            if (blank($channel->slug)) {
+                $channel->slug = Str::slug($channel->name);
+            }
+        });
+    }
 
     /**
      * @var list<string>

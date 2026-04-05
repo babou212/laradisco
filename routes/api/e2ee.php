@@ -43,7 +43,6 @@ Route::get('mls/key-packages/{user}', [MlsKeyPackageController::class, 'fetch'])
 
 Route::post('mls/groups/{groupId}/messages', [MlsMessageController::class, 'submit'])->name('mls.groups.messages.submit');
 Route::get('mls/groups/{groupId}/messages', [MlsMessageController::class, 'fetch'])->name('mls.groups.messages.fetch');
-Route::get('mls/groups/{groupId}/history', [MlsMessageController::class, 'fetchHistory'])->name('mls.groups.history.fetch');
 
 Route::post('mls/groups/{groupId}/claim', [MlsGroupController::class, 'claim'])->name('mls.groups.claim');
 Route::get('mls/groups/{groupId}/status', [MlsGroupController::class, 'status'])->name('mls.groups.status');

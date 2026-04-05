@@ -8,13 +8,11 @@ use App\Events\MlsMessageReceived;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\E2EE\FetchMlsMessagesRequest;
 use App\Http\Requests\Api\E2EE\SubmitMlsMessageRequest;
-use App\Models\DirectMessage;
 use App\Models\Message;
 use App\Models\MlsMessage;
 use App\Models\UserDevice;
 use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class MlsMessageController extends Controller
 {
@@ -114,42 +112,6 @@ class MlsMessageController extends Controller
         $messages = $query->orderBy('id', 'asc')
             ->limit($limit)
             ->get(['id', 'group_id', 'sender_user_id', 'sender_device_id', 'message_type', 'message_bytes', 'epoch', 'created_at']);
-
-        return $this->successResponse($messages);
-    }
-
-    /**
-     * Fetch history-encrypted messages for a group (for new-device history sync).
-     */
-    public function fetchHistory(Request $request, string $groupId): JsonResponse
-    {
-        $authError = $this->authorizeGroupAccess($request->user(), $groupId);
-        if ($authError) {
-            return $authError;
-        }
-
-        $beforeId = $request->query('before_id');
-        $limit = max(1, min((int) $request->query('limit', 100), 200));
-
-        if (preg_match('/^channel:(\d+)$/', $groupId, $m)) {
-            $query = Message::where('channel_id', (int) $m[1])
-                ->whereNotNull('history_ciphertext')
-                ->where('history_ciphertext', '!=', '');
-        } elseif (preg_match('/^dm:(\d+)$/', $groupId, $m)) {
-            $query = DirectMessage::where('direct_message_group_id', (int) $m[1])
-                ->whereNotNull('history_ciphertext')
-                ->where('history_ciphertext', '!=', '');
-        } else {
-            return $this->errorResponse('Invalid group ID format.', 422);
-        }
-
-        if ($beforeId) {
-            $query->where('id', '<', (int) $beforeId);
-        }
-
-        $messages = $query->orderBy('id', 'desc')
-            ->limit($limit)
-            ->get(['id', 'history_ciphertext', 'created_at']);
 
         return $this->successResponse($messages);
     }

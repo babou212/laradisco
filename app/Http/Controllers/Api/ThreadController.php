@@ -140,7 +140,6 @@ class ThreadController extends Controller
             $message,
             [
                 'sender_device_id' => $request->validated('sender_device_id'),
-                'history_ciphertext' => $request->validated('history_ciphertext'),
                 'message_bytes' => $request->validated('message_bytes'),
                 'epoch' => $request->validated('epoch', 0),
                 'thread_name' => $request->validated('thread_name', 'Thread'),
@@ -179,7 +178,6 @@ class ThreadController extends Controller
 
         $message->update([
             'sender_device_id' => $request->validated('sender_device_id', $message->sender_device_id),
-            'history_ciphertext' => $request->validated('history_ciphertext', $message->history_ciphertext),
             'message_bytes' => $request->validated('message_bytes', $message->message_bytes),
             'epoch' => $request->validated('epoch', $message->epoch),
             'is_edited' => true,

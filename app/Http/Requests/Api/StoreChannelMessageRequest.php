@@ -22,7 +22,6 @@ class StoreChannelMessageRequest extends FormRequest
             'mention_user_ids.*' => ['integer', 'exists:users,id'],
             'mention_everyone' => ['sometimes', 'boolean'],
             'mention_here' => ['sometimes', 'boolean'],
-            'history_ciphertext' => ['nullable', 'string', 'max:32000'],
             'message_bytes' => ['required', 'string', 'max:65535'],
             'epoch' => ['sometimes', 'integer', 'min:0'],
             'thread_name' => ['sometimes', 'string', 'max:100'],

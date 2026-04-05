@@ -102,7 +102,6 @@ class MessageController extends Controller
             'user_id' => $user->id,
             'reply_to_id' => $request->validated('reply_to_id'),
             'sender_device_id' => $request->validated('sender_device_id'),
-            'history_ciphertext' => $request->validated('history_ciphertext'),
             'message_bytes' => $request->validated('message_bytes'),
             'epoch' => $request->validated('epoch', 0),
         ]);
@@ -154,7 +153,6 @@ class MessageController extends Controller
 
         $message->update([
             'sender_device_id' => $request->validated('sender_device_id', $message->sender_device_id),
-            'history_ciphertext' => $request->validated('history_ciphertext', $message->history_ciphertext),
             'message_bytes' => $request->validated('message_bytes', $message->message_bytes),
             'epoch' => $request->validated('epoch', $message->epoch),
             'is_edited' => true,

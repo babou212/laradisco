@@ -23,7 +23,7 @@ class CreateThreadReplyAction
     ) {}
 
     /**
-     * @param  array{sender_device_id: string|null, history_ciphertext: string|null, message_bytes: string|null, epoch: int, thread_name: string|null, mention_user_ids: array<int>, mention_everyone: bool, mention_here: bool}  $data
+     * @param  array{sender_device_id: string|null, message_bytes: string|null, epoch: int, thread_name: string|null, mention_user_ids: array<int>, mention_everyone: bool, mention_here: bool}  $data
      */
     public function execute(User $user, Channel $channel, Message $parentMessage, array $data): CreateThreadReplyResult
     {
@@ -60,7 +60,6 @@ class CreateThreadReplyAction
                 'user_id' => $user->id,
                 'thread_id' => $thread->id,
                 'sender_device_id' => $data['sender_device_id'] ?? null,
-                'history_ciphertext' => $data['history_ciphertext'] ?? null,
                 'message_bytes' => $data['message_bytes'] ?? null,
                 'epoch' => $data['epoch'],
             ]);

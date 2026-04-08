@@ -29,7 +29,14 @@ class DirectMessageGroupResource extends JsonApiResource
 
         return [
             'name' => $this->name ?? $otherParticipant->username ?? 'Unknown',
-            'other_user' => fn () => $otherParticipant ? new UserSummaryResource($otherParticipant) : null,
+            'other_user' => fn () => $otherParticipant ? [
+                'id' => (string) $otherParticipant->id,
+                'username' => $otherParticipant->username,
+                'display_name' => $otherParticipant->display_name ?? $otherParticipant->nickname ?? $otherParticipant->name,
+                'avatar_urls' => $otherParticipant->avatar_urls,
+                'status' => $otherParticipant->status ?? 'offline',
+                'custom_status' => $otherParticipant->custom_status,
+            ] : null,
             'last_message' => fn () => $lastMessage ? [
                 'id' => $lastMessage->id,
                 'created_at' => $lastMessage->created_at,

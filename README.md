@@ -31,13 +31,12 @@ A privacy-focused, end-to-end encrypted communication platform built with Larave
 | Queue | Redis + Laravel Horizon |
 | Storage | Spatie MediaLibrary |
 | Encryption | E2EE + MLS protocol |
-| Monitoring | Prometheus metrics |
+| Monitoring | Laravel Nightwatch |
 
 ## Requirements
 
 - PHP 8.5+
 - Composer
-- PostgreSQL
 - Redis
 - Docker & Docker Compose (local development)
 
@@ -51,7 +50,7 @@ docker compose up -d
 docker compose exec laravel.test composer setup
 ```
 
-This spins up all services: the app (FrankenPHP/Octane), Reverb (WebSocket), Horizon (queues), PostgreSQL, Redis, LiveKit, MinIO, and Mailpit.
+This spins up all services: the app (FrankenPHP/Octane), Reverb (WebSocket), Horizon (queues), PostgreSQL, Redis, LiveKit, and Mailpit.
 
 ## Services (Docker Compose)
 

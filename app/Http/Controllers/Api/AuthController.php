@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Concerns\ApiResponse;
 use App\Enums\UserStatusType;
+use App\Events\ServerMemberJoined;
 use App\Events\UserPresenceUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\ForgotPasswordRequest;
@@ -230,6 +231,8 @@ class AuthController extends Controller
 
             return $user;
         });
+
+        event(new ServerMemberJoined($user));
 
         return $this->issueToken($user, $request->validated('device_name'));
     }

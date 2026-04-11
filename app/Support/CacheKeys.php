@@ -73,6 +73,11 @@ class CacheKeys
         return "user.{$userId}.accessible_channels";
     }
 
+    public static function channelViewers(int $channelId): string
+    {
+        return "channel.{$channelId}.viewers";
+    }
+
     public static function rolesListWithCounts(): string
     {
         return 'roles.list_with_counts';

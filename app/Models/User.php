@@ -17,6 +17,8 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Spatie\Permission\Contracts\Permission;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements HasMedia
@@ -100,6 +102,16 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
+     * @return BelongsToMany<Channel, $this>
+     */
+    public function channels(): BelongsToMany
+    {
+        return $this->belongsToMany(Channel::class)
+            ->withPivot('last_read_at')
+            ->withTimestamps();
+    }
+
+    /**
      * @return HasMany<MessageReaction, $this>
      */
     public function reactions(): HasMany
@@ -145,11 +157,11 @@ class User extends Authenticatable implements HasMedia
      * When the permissions table hasn't been seeded yet, Spatie throws
      * PermissionDoesNotExist. We catch it and return false instead of crashing.
      */
-    public function hasPermissionTo(string|\Spatie\Permission\Contracts\Permission $permission, ?string $guardName = null): bool
+    public function hasPermissionTo(string|Permission $permission, ?string $guardName = null): bool
     {
         try {
             return $this->spatieHasPermissionTo($permission, $guardName);
-        } catch (\Spatie\Permission\Exceptions\PermissionDoesNotExist) {
+        } catch (PermissionDoesNotExist) {
             return false;
         }
     }
@@ -196,7 +208,7 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * @return HasMany<\App\Models\Ban, $this>
+     * @return HasMany<Ban, $this>
      */
     public function bans(): HasMany
     {

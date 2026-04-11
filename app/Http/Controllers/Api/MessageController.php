@@ -6,6 +6,7 @@ use App\Concerns\ApiResponse;
 use App\Enums\AttachmentStatus;
 use App\Enums\ModerationAction;
 use App\Enums\PermissionFlag;
+use App\Events\ChannelActivity;
 use App\Events\MessageDeleted;
 use App\Events\MessageEdited;
 use App\Events\MessageSent;
@@ -181,6 +182,15 @@ class MessageController extends Controller
 
         broadcast(new MessageSent($message))->toOthers();
 
+        $recipientIds = $this->permissionService->getUsersWithChannelAccess($channel);
+        $createdAt = $message->created_at?->toISOString() ?? now()->toISOString();
+        foreach ($recipientIds as $recipientId) {
+            if ($recipientId === $user->id) {
+                continue;
+            }
+            broadcast(new ChannelActivity($recipientId, $channel->id, $createdAt));
+        }
+
         $this->mentionService->processMentionsFromMetadata(
             $message,
             $request->validated('mention_user_ids', []),
@@ -193,6 +203,26 @@ class MessageController extends Controller
             ->response()
             ->setStatusCode(Response::HTTP_CREATED)
             ->header('Location', route('api.channels.messages.store', $channel).'/'.$message->id);
+    }
+
+    /**
+     * Mark a channel as read for the authenticated user.
+     */
+    public function markRead(Request $request, Channel $channel): JsonResponse|Response
+    {
+        $user = $request->user();
+
+        if (! $this->permissionService->userCanViewChannel($user, $channel)) {
+            return $this->forbiddenResponse('You do not have access to this channel.');
+        }
+
+        $user->channels()->syncWithoutDetaching([
+            $channel->id => ['last_read_at' => now()],
+        ]);
+
+        Cache::tags([CacheKeys::userTag($user->id)])->flush();
+
+        return $this->noContentResponse();
     }
 
     /**

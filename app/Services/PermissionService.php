@@ -138,6 +138,29 @@ class PermissionService
     }
 
     /**
+     * Get IDs of all users who can view the given channel.
+     *
+     * @return list<int>
+     */
+    public function getUsersWithChannelAccess(Channel $channel): array
+    {
+        $cacheKey = CacheKeys::channelViewers($channel->id);
+        $tags = [CacheKeys::channelTag($channel->id)];
+
+        /** @var list<int> */
+        return Cache::tags($tags)->remember($cacheKey, CacheKeys::TTL_WARM, function () use ($channel) {
+            return User::query()
+                ->select('id')
+                ->with('roles')
+                ->get()
+                ->filter(fn (User $user) => $this->userCanViewChannel($user, $channel))
+                ->pluck('id')
+                ->values()
+                ->all();
+        });
+    }
+
+    /**
      * Check if the user is an administrator (via Spatie).
      */
     public function isAdministrator(User $user): bool

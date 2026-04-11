@@ -12,6 +12,10 @@ Broadcast::channel('App.Models.User.{id}', function (User $user, int $id) {
     return (int) $user->id === $id;
 });
 
+Broadcast::channel('user.{id}', function (User $user, int $id) {
+    return (int) $user->id === $id;
+});
+
 Broadcast::channel('channel.{channelId}', function (User $user, int $channelId) {
     $channel = Channel::find($channelId);
 

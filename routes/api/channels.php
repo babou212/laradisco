@@ -27,6 +27,7 @@ Route::prefix('channels/{channel}')->as('channels.')->scopeBindings()->group(fun
     Route::post('/messages', [MessageController::class, 'store'])
         ->middleware(['throttle:api-messages', 'idempotency'])
         ->name('messages.store');
+    Route::post('/read', [MessageController::class, 'markRead'])->name('read');
     Route::put('/messages/{message}', [MessageController::class, 'update'])->name('messages.update');
     Route::delete('/messages/{message}', [MessageController::class, 'destroy'])->name('messages.destroy');
 

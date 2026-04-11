@@ -25,6 +25,7 @@ class ChannelResource extends JsonApiResource
             'position' => $this->position,
             'slowmode_seconds' => $this->slowmode_seconds,
             'channelPermissions' => fn () => $this->when($this->channelPermissions !== null, $this->channelPermissions),
+            'has_unread' => false,
             'created_at' => $this->created_at,
         ];
     }

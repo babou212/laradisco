@@ -19,7 +19,10 @@ use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
 use App\Models\EncryptedAttachment;
 use App\Notifications\DirectMessageNotification;
+use App\Services\MessageWindowService;
 use App\Support\CacheKeys;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -30,6 +33,10 @@ use Symfony\Component\HttpFoundation\Response;
 class DirectMessageController extends Controller
 {
     use ApiResponse;
+
+    public function __construct(
+        private readonly MessageWindowService $windowService,
+    ) {}
 
     /**
      * List all DM groups for the authenticated user.
@@ -77,6 +84,46 @@ class DirectMessageController extends Controller
             return $this->forbiddenResponse();
         }
 
+        $allowedIncludes = ['user', 'reactions', 'replyTo', 'replyTo.user', 'encryptedAttachments'];
+
+        $dmGroupMeta = [
+            'dm_group' => (new DirectMessageGroupResource(
+                $dmGroup->load('participants:id,username,name,nickname,status,custom_status')
+            ))->includePreviouslyLoadedRelationships(),
+        ];
+
+        $around = $request->query('around');
+        if ($around) {
+            $target = $dmGroup->messages()->where('id', $around)->first();
+
+            if (! $target) {
+                return $this->notFoundResponse('Target message not found in this conversation.');
+            }
+
+            /** @var Builder<Model> $windowQuery */
+            $windowQuery = QueryBuilder::for(
+                $dmGroup->messages()
+            )
+                ->allowedIncludes(...$allowedIncludes)
+                ->getEloquentBuilder();
+
+            $window = $this->windowService->windowAround($windowQuery, $target);
+
+            $response = DirectMessageResource::collection($window['items'])
+                ->includePreviouslyLoadedRelationships()
+                ->additional(['meta' => $dmGroupMeta])
+                ->response();
+
+            $payload = $response->getData(true);
+            $payload['links'] = [
+                'prev' => $window['prevCursor'] ? $request->url().'?cursor='.$window['prevCursor'] : null,
+                'next' => $window['nextCursor'] ? $request->url().'?cursor='.$window['nextCursor'] : null,
+            ];
+            $response->setData($payload);
+
+            return $response;
+        }
+
         $cursor = $request->query('cursor');
         $includes = $request->query('include', '');
         $cacheKey = CacheKeys::dmGroupMessages($dmGroup->id).'.'.md5($includes);
@@ -91,20 +138,14 @@ class DirectMessageController extends Controller
         $messages = QueryBuilder::for(
             $dmGroup->messages()
         )
-            ->allowedIncludes('user', 'reactions', 'replyTo', 'replyTo.user', 'encryptedAttachments')
+            ->allowedIncludes(...$allowedIncludes)
             ->allowedSorts('created_at')
             ->defaultSort('created_at')
             ->cursorPaginate(50);
 
         $response = DirectMessageResource::collection($messages)
             ->includePreviouslyLoadedRelationships()
-            ->additional([
-                'meta' => [
-                    'dm_group' => (new DirectMessageGroupResource(
-                        $dmGroup->load('participants:id,username,name,nickname,status,custom_status')
-                    ))->includePreviouslyLoadedRelationships(),
-                ],
-            ])
+            ->additional(['meta' => $dmGroupMeta])
             ->response();
 
         if (! $cursor) {

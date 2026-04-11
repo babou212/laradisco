@@ -18,11 +18,15 @@ use App\Models\Channel;
 use App\Models\EncryptedAttachment;
 use App\Models\Message;
 use App\Services\MentionService;
+use App\Services\MessageWindowService;
 use App\Services\ModerationAuditService;
 use App\Services\PermissionService;
 use App\Support\CacheKeys;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,6 +39,7 @@ class MessageController extends Controller
         private readonly MentionService $mentionService,
         private readonly PermissionService $permissionService,
         private readonly ModerationAuditService $auditService,
+        private readonly MessageWindowService $windowService,
     ) {}
 
     /**
@@ -46,6 +51,44 @@ class MessageController extends Controller
 
         if (! $this->permissionService->userCanViewChannel($user, $channel)) {
             return $this->forbiddenResponse('You do not have access to this channel.');
+        }
+
+        $allowedIncludes = [
+            'user',
+            'encryptedAttachments',
+            'reactions',
+            'replyTo',
+            'replyTo.user',
+            'threadStarted',
+            'threadStarted.latestReply',
+            'threadStarted.latestReply.user',
+            'threadStarted.followers',
+        ];
+
+        $around = $request->query('around');
+        if ($around) {
+            $target = $channel->messages()
+                ->whereNull('thread_id')
+                ->where('id', $around)
+                ->first();
+
+            if (! $target) {
+                return $this->notFoundResponse('Target message not found in this channel.');
+            }
+
+            /** @var Builder<Model> $windowQuery */
+            $windowQuery = QueryBuilder::for(
+                $channel->messages()->whereNull('thread_id')
+            )
+                ->allowedIncludes(...$allowedIncludes)
+                ->getEloquentBuilder();
+
+            $window = $this->windowService->windowAround($windowQuery, $target);
+
+            return $this->windowResponse(
+                $window,
+                $request->url()
+            );
         }
 
         // Only cache the initial load (no cursor = latest messages)
@@ -63,17 +106,7 @@ class MessageController extends Controller
         $messages = QueryBuilder::for(
             $channel->messages()->whereNull('thread_id')
         )
-            ->allowedIncludes(
-                'user',
-                'encryptedAttachments',
-                'reactions',
-                'replyTo',
-                'replyTo.user',
-                'threadStarted',
-                'threadStarted.latestReply',
-                'threadStarted.latestReply.user',
-                'threadStarted.followers',
-            )
+            ->allowedIncludes(...$allowedIncludes)
             ->allowedSorts('created_at')
             ->defaultSort('created_at')
             ->cursorPaginate(50);
@@ -86,6 +119,27 @@ class MessageController extends Controller
             Cache::tags([CacheKeys::channelTag($channel->id)])
                 ->put($cacheKey, $response->getData(true), CacheKeys::TTL_HOT);
         }
+
+        return $response;
+    }
+
+    /**
+     * Build a listing-shaped response from a MessageWindowService result.
+     *
+     * @param  array{items: Collection<int, Model>, prevCursor: ?string, nextCursor: ?string}  $window
+     */
+    private function windowResponse(array $window, string $baseUrl): JsonResponse
+    {
+        $response = MessageResource::collection($window['items'])
+            ->includePreviouslyLoadedRelationships()
+            ->response();
+
+        $payload = $response->getData(true);
+        $payload['links'] = [
+            'prev' => $window['prevCursor'] ? $baseUrl.'?cursor='.$window['prevCursor'] : null,
+            'next' => $window['nextCursor'] ? $baseUrl.'?cursor='.$window['nextCursor'] : null,
+        ];
+        $response->setData($payload);
 
         return $response;
     }

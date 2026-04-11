@@ -16,6 +16,7 @@ class CursorPaginateRequest extends FormRequest
     {
         return [
             'cursor' => ['sometimes', 'nullable', 'string', 'max:512'],
+            'around' => ['sometimes', 'nullable', 'string', 'max:64'],
         ];
     }
 }

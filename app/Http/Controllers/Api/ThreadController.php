@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Actions\CreateThreadReplyAction;
 use App\Concerns\ApiResponse;
+use App\Enums\ModerationAction;
 use App\Enums\PermissionFlag;
 use App\Events\ThreadMessageDeleted;
 use App\Events\ThreadMessageEdited;
@@ -17,6 +18,7 @@ use App\Models\Channel;
 use App\Models\Message;
 use App\Models\Thread;
 use App\Services\MentionService;
+use App\Services\ModerationAuditService;
 use App\Services\PermissionService;
 use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
@@ -33,6 +35,7 @@ class ThreadController extends Controller
         private readonly MentionService $mentionService,
         private readonly PermissionService $permissionService,
         private readonly CreateThreadReplyAction $createThreadReplyAction,
+        private readonly ModerationAuditService $auditService,
     ) {}
 
     /**
@@ -220,9 +223,25 @@ class ThreadController extends Controller
         }
 
         $messageId = $message->id;
+        $messageUserId = $message->user_id;
 
         $message->update(['history_ciphertext' => null, 'message_bytes' => null]);
         $message->delete();
+
+        if (! $isOwner && $canManage) {
+            $this->auditService->log(
+                actorId: $request->user()->id,
+                action: ModerationAction::ThreadMessageDelete,
+                targetUserId: $messageUserId,
+                targetResourceId: $messageId,
+                targetResourceType: 'thread_message',
+                metadata: [
+                    'channel_id' => $channel->id,
+                    'channel_name' => $channel->name,
+                    'thread_id' => $thread->id,
+                ],
+            );
+        }
 
         $thread->decrement('message_count');
 

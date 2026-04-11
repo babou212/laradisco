@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Enums\PermissionFlag;
 use App\Enums\UserStatusType;
 use App\Events\UserPresenceUpdated;
 use App\Models\User;
@@ -58,7 +57,7 @@ class AppServiceProvider extends ServiceProvider
     protected function configureGates(): void
     {
         Gate::define('manage-members', function (User $user): bool {
-            return $user->isAdministrator() || $user->hasPermission(PermissionFlag::ManageRoles);
+            return $user->isAdministrator() || $user->hasPermissionTo('manage_roles');
         });
 
     }

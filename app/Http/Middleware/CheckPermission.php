@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Enums\PermissionFlag;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -11,6 +10,7 @@ class CheckPermission
 {
     /**
      * Handle an incoming request.
+     * Uses Spatie's hasPermissionTo under the hood.
      */
     public function handle(Request $request, Closure $next, string ...$permissions): Response
     {
@@ -24,10 +24,8 @@ class CheckPermission
             return $next($request);
         }
 
-        foreach ($permissions as $permissionValue) {
-            $permission = PermissionFlag::tryFrom($permissionValue);
-
-            if ($permission && $user->hasPermission($permission)) {
+        foreach ($permissions as $permissionName) {
+            if ($user->hasPermissionTo($permissionName)) {
                 return $next($request);
             }
         }

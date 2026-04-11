@@ -23,8 +23,8 @@ class RoleResource extends JsonApiResource
             'is_hoisted' => $this->is_hoisted,
             'is_default' => $this->is_default,
             'is_mentionable' => $this->is_mentionable,
-            'permissions' => $this->permissions,
-            'users_count' => fn () => $this->whenCounted('users'),
+            'permissions' => $this->whenLoaded('permissions', fn () => $this->permissions->pluck('name')->values()),
+            'users_count' => $this->whenCounted('users'),
             'created_at' => $this->created_at,
         ];
     }

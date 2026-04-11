@@ -15,7 +15,7 @@ Broadcast::channel('App.Models.User.{id}', function (User $user, int $id) {
 Broadcast::channel('channel.{channelId}', function (User $user, int $channelId) {
     $channel = Channel::find($channelId);
 
-    if (! $channel || ! $user->hasPermission(PermissionFlag::ViewChannels, $channel)) {
+    if (! $channel || ! app(PermissionService::class)->userCanViewChannel($user, $channel)) {
         return false;
     }
 
@@ -35,7 +35,7 @@ Broadcast::channel('voice.channel.{channelId}', function (User $user, int $chann
         return false;
     }
 
-    return $user->hasPermission(PermissionFlag::Connect, $channel);
+    return app(PermissionService::class)->userCanInChannel($user, $channel, PermissionFlag::Connect);
 });
 
 Broadcast::channel('direct-message.{groupId}', function (User $user, int $groupId) {

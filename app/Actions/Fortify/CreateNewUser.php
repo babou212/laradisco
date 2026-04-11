@@ -59,7 +59,7 @@ class CreateNewUser implements CreatesNewUsers
         $defaultRole = Role::where('is_default', true)->first();
 
         if ($defaultRole) {
-            $user->roles()->syncWithoutDetaching([$defaultRole->id]);
+            $user->assignRole($defaultRole);
         }
 
         return $user;

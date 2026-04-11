@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CheckBanned;
 use App\Http\Middleware\CheckPermission;
 use App\Http\Middleware\EnsureJsonAccept;
 use App\Http\Middleware\IdempotencyKey;
@@ -30,10 +31,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(append: [
             EnsureJsonAccept::class,
             UpdateUserLastSeen::class,
+            CheckBanned::class,
         ]);
 
         $middleware->alias([
             'permission' => CheckPermission::class,
+            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'cache.headers' => SetCacheHeaders::class,
             'idempotency' => IdempotencyKey::class,
         ]);

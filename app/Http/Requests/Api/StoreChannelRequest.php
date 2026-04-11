@@ -21,11 +21,13 @@ class StoreChannelRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
+        $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH');
+
         return [
             'category_id' => ['nullable', 'exists:categories,id'],
-            'name' => ['required', 'string', 'max:100'],
+            'name' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:100'],
             'topic' => ['nullable', 'string', 'max:1024'],
-            'type' => ['required', 'in:text,voice'],
+            'type' => [$isUpdate ? 'sometimes' : 'required', 'in:text,voice'],
             'position' => ['sometimes', 'integer', 'min:0'],
             'is_private' => ['sometimes', 'boolean'],
             'slowmode_seconds' => ['sometimes', 'integer', 'min:0', 'max:21600'],

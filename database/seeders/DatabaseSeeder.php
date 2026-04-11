@@ -16,19 +16,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create default roles
-        $everyoneRole = Role::firstOrCreate(
-            ['name' => 'everyone'],
-            Role::factory()->everyone()->make()->toArray()
-        );
-        $adminRole = Role::firstOrCreate(
-            ['name' => 'Admin'],
-            Role::factory()->admin()->make()->toArray()
-        );
-        $moderatorRole = Role::firstOrCreate(
-            ['name' => 'Moderator'],
-            Role::factory()->moderator()->make()->toArray()
-        );
+        // Seed all permissions and roles via Spatie
+        $this->call(RolesAndPermissionsSeeder::class);
+
+        $everyoneRole = Role::where('is_default', true)->first();
+        $adminRole = Role::where('name', 'Admin')->first();
 
         // Create admin user
         $admin = User::factory()->create([
@@ -36,7 +28,7 @@ class DatabaseSeeder extends Seeder
             'username' => 'admin',
             'email' => 'admin@example.com',
         ]);
-        $admin->roles()->attach([$everyoneRole->id, $adminRole->id]);
+        $admin->assignRole([$everyoneRole, $adminRole]);
 
         // Create specific test users
         $testUsers = [
@@ -49,13 +41,13 @@ class DatabaseSeeder extends Seeder
 
         foreach ($testUsers as $userData) {
             $user = User::factory()->create($userData);
-            $user->roles()->attach($everyoneRole->id);
+            $user->assignRole($everyoneRole);
         }
 
         // Create random test users
         $users = User::factory(20)->create();
         foreach ($users as $user) {
-            $user->roles()->attach($everyoneRole->id);
+            $user->assignRole($everyoneRole);
         }
 
         // Create default categories and channels
@@ -74,9 +66,6 @@ class DatabaseSeeder extends Seeder
         $this->createChannel($voiceCategory, 'Music', 'Listen to music together', 2, 'voice');
     }
 
-    /**
-     * Create a channel within a category.
-     */
     private function createChannel(Category $category, string $name, string $topic, int $position, string $type = 'text'): Channel
     {
         return Channel::create([

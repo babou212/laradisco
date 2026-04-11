@@ -226,7 +226,7 @@ class AuthController extends Controller
 
             $everyoneRole = Role::where('name', 'everyone')->first();
             if ($everyoneRole) {
-                $user->roles()->attach($everyoneRole->id);
+                $user->assignRole($everyoneRole);
             }
 
             return $user;

@@ -17,11 +17,14 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements HasMedia
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, InteractsWithMedia, Notifiable, TwoFactorAuthenticatable;
+    use HasApiTokens, HasFactory, HasRoles, InteractsWithMedia, Notifiable, TwoFactorAuthenticatable {
+        HasRoles::hasPermissionTo as protected spatieHasPermissionTo;
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -68,14 +71,6 @@ class User extends Authenticatable implements HasMedia
             'two_factor_confirmed_at' => 'datetime',
             'last_seen_at' => 'datetime',
         ];
-    }
-
-    /**
-     * @return BelongsToMany<Role, $this>
-     */
-    public function roles(): BelongsToMany
-    {
-        return $this->belongsToMany(Role::class)->withTimestamps();
     }
 
     /**
@@ -145,28 +140,30 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Check if the user has a specific permission through any of their roles.
+     * Override Spatie's hasPermissionTo to gracefully handle missing permissions.
+     *
+     * When the permissions table hasn't been seeded yet, Spatie throws
+     * PermissionDoesNotExist. We catch it and return false instead of crashing.
      */
-    public function hasPermission(PermissionFlag $permission, mixed $resource = null): bool
+    public function hasPermissionTo(string|\Spatie\Permission\Contracts\Permission $permission, ?string $guardName = null): bool
     {
-        $cacheKey = "user.{$this->id}.permissions";
+        try {
+            return $this->spatieHasPermissionTo($permission, $guardName);
+        } catch (\Spatie\Permission\Exceptions\PermissionDoesNotExist) {
+            return false;
+        }
+    }
 
-        $permissions = cache()->remember($cacheKey, now()->addMinutes(30), function () {
-            return $this->roles()
-                ->get()
-                ->flatMap(fn (Role $role) => $role->permissions ?? [])
-                ->unique()
-                ->values()
-                ->all();
-        });
-
-        $permissions = collect($permissions);
-
-        if ($permissions->contains(PermissionFlag::Administrator->value)) {
+    /**
+     * Check if the user has a specific permission flag (via Spatie).
+     */
+    public function hasPermissionFlag(PermissionFlag $permission): bool
+    {
+        if ($this->hasPermissionTo('administrator')) {
             return true;
         }
 
-        return $permissions->contains($permission->value);
+        return $this->hasPermissionTo($permission->value);
     }
 
     /**
@@ -174,7 +171,36 @@ class User extends Authenticatable implements HasMedia
      */
     public function isAdministrator(): bool
     {
-        return $this->hasPermission(PermissionFlag::Administrator);
+        return $this->hasPermissionTo('administrator');
+    }
+
+    /**
+     * Check if the user is currently banned.
+     */
+    public function isBanned(): bool
+    {
+        return $this->bans()
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->exists();
+    }
+
+    /**
+     * Check if the user is jailed (has the Jailed role).
+     */
+    public function isJailed(): bool
+    {
+        return $this->hasRole('Jailed');
+    }
+
+    /**
+     * @return HasMany<\App\Models\Ban, $this>
+     */
+    public function bans(): HasMany
+    {
+        return $this->hasMany(Ban::class);
     }
 
     /**

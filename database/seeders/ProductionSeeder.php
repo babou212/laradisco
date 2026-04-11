@@ -18,32 +18,13 @@ class ProductionSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->createRoles();
+        // Seed all permissions and roles via Spatie
+        $this->call(RolesAndPermissionsSeeder::class);
+
         $this->createDefaultChannels();
         $this->createAdminUser();
     }
 
-    /**
-     * Create the default roles if they don't exist.
-     */
-    private function createRoles(): void
-    {
-        if (! Role::where('is_default', true)->exists()) {
-            Role::factory()->everyone()->create();
-        }
-
-        if (! Role::where('name', 'Admin')->exists()) {
-            Role::factory()->admin()->create();
-        }
-
-        if (! Role::where('name', 'Moderator')->exists()) {
-            Role::factory()->moderator()->create();
-        }
-    }
-
-    /**
-     * Create the default categories and channels if they don't exist.
-     */
     private function createDefaultChannels(): void
     {
         $generalCategory = Category::firstOrCreate(['name' => 'General'], ['position' => 0]);
@@ -53,9 +34,6 @@ class ProductionSeeder extends Seeder
         $this->createVoiceChannel($voiceCategory, 'General', 'Hang out and chat', 0);
     }
 
-    /**
-     * Create the default admin user if no admin exists.
-     */
     private function createAdminUser(): void
     {
         if (User::where('username', 'admin')->exists()) {
@@ -72,17 +50,14 @@ class ProductionSeeder extends Seeder
         ]);
 
         $everyoneRole = Role::where('is_default', true)->first();
-        $adminRole = Role::where('name', 'Admin')->first();
+        $ownerRole = Role::where('name', 'Owner')->first();
 
-        $admin->roles()->attach(array_filter([
-            $everyoneRole?->id,
-            $adminRole?->id,
-        ]));
+        $rolesToAssign = array_filter([$everyoneRole, $ownerRole]);
+        if (! empty($rolesToAssign)) {
+            $admin->assignRole($rolesToAssign);
+        }
     }
 
-    /**
-     * Create a text channel within a category if it does not already exist.
-     */
     private function createChannel(Category $category, string $name, string $topic, int $position): Channel
     {
         return Channel::firstOrCreate(
@@ -91,9 +66,6 @@ class ProductionSeeder extends Seeder
         );
     }
 
-    /**
-     * Create a voice channel within a category if it does not already exist.
-     */
     private function createVoiceChannel(Category $category, string $name, string $topic, int $position): Channel
     {
         return Channel::firstOrCreate(

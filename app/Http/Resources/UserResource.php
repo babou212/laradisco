@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources;
 
-use App\Enums\PermissionFlag;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\JsonApi\JsonApiResource;
@@ -28,12 +27,17 @@ class UserResource extends JsonApiResource
             'status' => $this->status ?? 'offline',
             'custom_status' => $this->custom_status,
             'permissions' => fn () => $this->when($this->isCurrentUser($request), fn () => [
-                'canInviteMembers' => $this->isAdministrator() || $this->hasPermission(PermissionFlag::InviteMembers),
-                'canManageRoles' => $this->isAdministrator() || $this->hasPermission(PermissionFlag::ManageRoles),
-                'canManageChannels' => $this->isAdministrator() || $this->hasPermission(PermissionFlag::ManageChannels),
-                'canManageServer' => $this->isAdministrator() || $this->hasPermission(PermissionFlag::ManageServer),
-                'canManageMessages' => $this->isAdministrator() || $this->hasPermission(PermissionFlag::ManageMessages),
+                'canInviteMembers' => $this->isAdministrator() || $this->hasPermissionTo('invite_members'),
+                'canManageRoles' => $this->isAdministrator() || $this->hasPermissionTo('manage_roles'),
+                'canManageChannels' => $this->isAdministrator() || $this->hasPermissionTo('manage_channels'),
+                'canManageServer' => $this->isAdministrator() || $this->hasPermissionTo('manage_server'),
+                'canManageMessages' => $this->isAdministrator() || $this->hasPermissionTo('manage_messages'),
+                'canBanMembers' => $this->isAdministrator() || $this->hasPermissionTo('ban_members'),
+                'canKickMembers' => $this->isAdministrator() || $this->hasPermissionTo('kick_members'),
+                'canViewAuditLog' => $this->isAdministrator() || $this->hasPermissionTo('view_audit_log'),
                 'isAdministrator' => $this->isAdministrator(),
+                'isBanned' => $this->isBanned(),
+                'isJailed' => $this->isJailed(),
             ]),
             'created_at' => $this->created_at,
         ];

@@ -20,14 +20,12 @@ class PermissionService
      */
     public function resolveChannelPermissions(User $user, Channel $channel): array
     {
-        $user->loadMissing('roles');
-
         if ($this->isAdministrator($user)) {
             return array_map(fn (PermissionFlag $p) => $p->value, PermissionFlag::cases());
         }
 
-        $basePermissions = $user->roles
-            ->flatMap(fn (Role $role) => $role->permissions ?? [])
+        $basePermissions = $user->getAllPermissions()
+            ->pluck('name')
             ->unique()
             ->values()
             ->all();
@@ -80,10 +78,8 @@ class PermissionService
             return true;
         }
 
-        $user->loadMissing('roles');
         $roleIds = $user->roles->pluck('id')->all();
 
-        // Use pre-loaded overrides when available (batch path), otherwise query
         if ($preloadedOverrides !== null) {
             $channelOverrides = $preloadedOverrides->where('channel_id', $channel->id);
         } else {
@@ -121,7 +117,6 @@ class PermissionService
         $tags = [CacheKeys::userTag($user->id)];
 
         $channelIds = Cache::tags($tags)->remember($cacheKey, CacheKeys::TTL_WARM, function () use ($user) {
-            $user->loadMissing('roles');
             $channels = Channel::with('category')->get();
 
             $roleIds = $user->roles->pluck('id')->all();
@@ -143,24 +138,18 @@ class PermissionService
     }
 
     /**
-     * Check if the user is an administrator (via any role).
+     * Check if the user is an administrator (via Spatie).
      */
     public function isAdministrator(User $user): bool
     {
-        $user->loadMissing('roles');
-
-        return $user->roles->contains(fn (Role $role) => $role->hasPermission(PermissionFlag::Administrator));
+        return $user->isAdministrator();
     }
 
     /**
      * Check if a user's highest role position is above the target user's highest role position.
-     * Used for hierarchy enforcement.
      */
     public function outranks(User $actor, User $target): bool
     {
-        $actor->loadMissing('roles');
-        $target->loadMissing('roles');
-
         $actorMaxPosition = $actor->roles->max('position') ?? 0;
         $targetMaxPosition = $target->roles->max('position') ?? 0;
 
@@ -173,7 +162,6 @@ class PermissionService
     public function canManageRole(User $user, Role $role): bool
     {
         if ($this->isAdministrator($user)) {
-            $user->loadMissing('roles');
             $userMaxPosition = $user->roles->max('position') ?? 0;
 
             return $role->position < $userMaxPosition;
@@ -184,7 +172,6 @@ class PermissionService
 
     /**
      * Clear all channel permission caches for a user.
-     * Uses tag-based cache flushing when available, otherwise iterates known channel IDs.
      */
     public function clearUserChannelCaches(User $user): void
     {
@@ -192,7 +179,7 @@ class PermissionService
     }
 
     /**
-     * Clear channel permission caches for all users (e.g., when a channel override changes).
+     * Clear channel permission caches for all users.
      */
     public function clearChannelCaches(Channel $channel): void
     {

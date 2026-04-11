@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\Settings\AuditLogController;
 use App\Http\Controllers\Api\Settings\CategoryController;
 use App\Http\Controllers\Api\Settings\ChannelController;
 use App\Http\Controllers\Api\Settings\InviteLinkController;
 use App\Http\Controllers\Api\Settings\MemberController;
+use App\Http\Controllers\Api\Settings\ModerationController;
 use App\Http\Controllers\Api\Settings\PasswordController;
 use App\Http\Controllers\Api\Settings\ProfileController;
 use App\Http\Controllers\Api\Settings\RoleController;
@@ -55,3 +57,15 @@ Route::delete('/channels/{channel}/overrides/{override}', [ChannelController::cl
 Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
 Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
 Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+
+// Moderation: bans
+Route::get('/bans', [ModerationController::class, 'bans'])->name('moderation.bans');
+Route::post('/members/{user}/ban', [ModerationController::class, 'ban'])->name('moderation.ban');
+Route::delete('/members/{user}/ban', [ModerationController::class, 'unban'])->name('moderation.unban');
+
+// Moderation: jail
+Route::post('/members/{user}/jail', [ModerationController::class, 'jail'])->name('moderation.jail');
+Route::delete('/members/{user}/jail', [ModerationController::class, 'unjail'])->name('moderation.unjail');
+
+// Moderation: audit log
+Route::get('/audit-log', [AuditLogController::class, 'index'])->name('moderation.audit-log');

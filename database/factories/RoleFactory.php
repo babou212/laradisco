@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Enums\PermissionFlag;
 use App\Models\Role;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -20,10 +19,10 @@ class RoleFactory extends Factory
     {
         return [
             'name' => 'Role',
+            'guard_name' => 'web',
             'color' => '#000000',
             'is_hoisted' => false,
             'position' => 0,
-            'permissions' => [],
             'is_mentionable' => true,
             'is_default' => false,
         ];
@@ -38,10 +37,6 @@ class RoleFactory extends Factory
             'name' => 'everyone',
             'is_default' => true,
             'position' => 0,
-            'permissions' => array_map(
-                fn (PermissionFlag $p) => $p->value,
-                PermissionFlag::defaultEveryonePermissions()
-            ),
         ]);
     }
 
@@ -55,7 +50,6 @@ class RoleFactory extends Factory
             'color' => '#E74C3C',
             'is_hoisted' => true,
             'position' => 100,
-            'permissions' => [PermissionFlag::Administrator->value],
         ]);
     }
 
@@ -69,14 +63,6 @@ class RoleFactory extends Factory
             'color' => '#3498DB',
             'is_hoisted' => true,
             'position' => 50,
-            'permissions' => [
-                PermissionFlag::ManageMessages->value,
-                PermissionFlag::KickMembers->value,
-                PermissionFlag::BanMembers->value,
-                PermissionFlag::ManageThreads->value,
-                PermissionFlag::PinMessages->value,
-                PermissionFlag::ManageNicknames->value,
-            ],
         ]);
     }
 }

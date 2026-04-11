@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Settings;
 
 use App\Concerns\ApiResponse;
+use App\Enums\ModerationAction;
 use App\Enums\PermissionFlag;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreChannelOverrideRequest;
@@ -14,6 +15,7 @@ use App\Models\Category;
 use App\Models\Channel;
 use App\Models\ChannelPermissionOverride;
 use App\Models\Role;
+use App\Services\ModerationAuditService;
 use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,6 +26,10 @@ use Symfony\Component\HttpFoundation\Response;
 class ChannelController extends Controller
 {
     use ApiResponse;
+
+    public function __construct(
+        private readonly ModerationAuditService $auditService,
+    ) {}
 
     /**
      * List all channels grouped by category.
@@ -66,6 +72,14 @@ class ChannelController extends Controller
 
         $channel = Channel::create($request->validated());
 
+        $this->auditService->log(
+            actorId: $request->user()->id,
+            action: ModerationAction::ChannelCreate,
+            targetResourceId: $channel->id,
+            targetResourceType: 'channel',
+            metadata: ['channel_name' => $channel->name],
+        );
+
         Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
 
         return (new ChannelResource($channel))
@@ -83,6 +97,14 @@ class ChannelController extends Controller
 
         $channel->update($request->validated());
 
+        $this->auditService->log(
+            actorId: $request->user()->id,
+            action: ModerationAction::ChannelUpdate,
+            targetResourceId: $channel->id,
+            targetResourceType: 'channel',
+            metadata: ['channel_name' => $channel->name],
+        );
+
         Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
         Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
 
@@ -98,7 +120,16 @@ class ChannelController extends Controller
         $this->authorize('delete', $channel);
 
         $channelId = $channel->id;
+        $channelName = $channel->name;
         $channel->delete();
+
+        $this->auditService->log(
+            actorId: $request->user()->id,
+            action: ModerationAction::ChannelDelete,
+            targetResourceId: $channelId,
+            targetResourceType: 'channel',
+            metadata: ['channel_name' => $channelName],
+        );
 
         Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
         Cache::tags([CacheKeys::channelTag($channelId)])->flush();
@@ -143,6 +174,18 @@ class ChannelController extends Controller
 
         $override->load(['role:id,name,color', 'user:id,username,name']);
 
+        $this->auditService->log(
+            actorId: $request->user()->id,
+            action: ModerationAction::ChannelOverrideUpdate,
+            targetResourceId: $channel->id,
+            targetResourceType: 'channel',
+            metadata: array_filter([
+                'channel_name' => $channel->name,
+                'role_name' => $override->role?->name,
+                'user_username' => $override->user?->username,
+            ]),
+        );
+
         Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
         Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
 
@@ -155,6 +198,14 @@ class ChannelController extends Controller
     public function destroyOverride(Request $request, Channel $channel, ChannelPermissionOverride $override): JsonResponse|Response
     {
         $this->authorize('manageOverrides', $channel);
+
+        $this->auditService->log(
+            actorId: $request->user()->id,
+            action: ModerationAction::ChannelOverrideDelete,
+            targetResourceId: $channel->id,
+            targetResourceType: 'channel',
+            metadata: ['channel_name' => $channel->name],
+        );
 
         $override->delete();
 

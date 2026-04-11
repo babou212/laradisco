@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Concerns\ApiResponse;
 use App\Enums\AttachmentStatus;
+use App\Enums\ModerationAction;
 use App\Enums\PermissionFlag;
 use App\Events\MessageDeleted;
 use App\Events\MessageEdited;
@@ -17,6 +18,7 @@ use App\Models\Channel;
 use App\Models\EncryptedAttachment;
 use App\Models\Message;
 use App\Services\MentionService;
+use App\Services\ModerationAuditService;
 use App\Services\PermissionService;
 use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
@@ -32,6 +34,7 @@ class MessageController extends Controller
     public function __construct(
         private readonly MentionService $mentionService,
         private readonly PermissionService $permissionService,
+        private readonly ModerationAuditService $auditService,
     ) {}
 
     /**
@@ -186,9 +189,24 @@ class MessageController extends Controller
         }
 
         $messageId = $message->id;
+        $messageUserId = $message->user_id;
 
         $message->update(['history_ciphertext' => null, 'message_bytes' => null]);
         $message->delete();
+
+        if (! $isOwner && $canManage) {
+            $this->auditService->log(
+                actorId: $request->user()->id,
+                action: ModerationAction::MessageDelete,
+                targetUserId: $messageUserId,
+                targetResourceId: $messageId,
+                targetResourceType: 'message',
+                metadata: [
+                    'channel_id' => $channel->id,
+                    'channel_name' => $channel->name,
+                ],
+            );
+        }
 
         Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
 

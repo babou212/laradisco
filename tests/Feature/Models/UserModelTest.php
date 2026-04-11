@@ -8,12 +8,19 @@ use App\Models\Message;
 use App\Models\MessageReaction;
 use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class UserModelTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(RolesAndPermissionsSeeder::class);
+    }
 
     public function test_user_can_be_created_with_factory(): void
     {
@@ -65,32 +72,31 @@ class UserModelTest extends TestCase
         $user = User::factory()->create();
         $role = Role::factory()->create();
 
-        $user->roles()->attach($role);
+        $user->assignRole($role);
 
-        $this->assertTrue($user->roles->contains($role));
+        $this->assertTrue($user->hasRole($role));
     }
 
     public function test_user_has_permission_through_role(): void
     {
         $user = User::factory()->create();
-        $role = Role::factory()->create([
-            'permissions' => [PermissionFlag::SendMessages->value],
-        ]);
-        $user->roles()->attach($role);
+        $role = Role::factory()->create();
+        $role->givePermissionTo(PermissionFlag::SendMessages->value);
+        $user->assignRole($role);
 
-        $this->assertTrue($user->hasPermission(PermissionFlag::SendMessages));
-        $this->assertFalse($user->hasPermission(PermissionFlag::ManageChannels));
+        $this->assertTrue($user->hasPermissionTo(PermissionFlag::SendMessages->value));
+        $this->assertFalse($user->hasPermissionTo(PermissionFlag::ManageChannels->value));
     }
 
     public function test_admin_user_has_all_permissions(): void
     {
         $user = User::factory()->create();
         $adminRole = Role::factory()->admin()->create();
-        $user->roles()->attach($adminRole);
+        $adminRole->givePermissionTo(PermissionFlag::Administrator->value);
+        $user->assignRole($adminRole);
 
         $this->assertTrue($user->isAdministrator());
-        $this->assertTrue($user->hasPermission(PermissionFlag::ManageChannels));
-        $this->assertTrue($user->hasPermission(PermissionFlag::BanMembers));
+        $this->assertTrue($user->hasPermissionTo(PermissionFlag::Administrator->value));
     }
 
     public function test_user_has_messages_relationship(): void

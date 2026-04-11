@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Settings;
 
 use App\Concerns\ApiResponse;
+use App\Events\UserProfileUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\DeleteAccountRequest;
 use App\Http\Requests\Api\UpdateProfileRequest;
@@ -43,6 +44,8 @@ class ProfileController extends Controller
 
         Cache::tags([CacheKeys::userTag($user->id)])->forget(CacheKeys::userProfile($user->id));
 
+        UserProfileUpdated::dispatch($user);
+
         return (new UserResource($user))
             ->response();
     }
@@ -71,7 +74,11 @@ class ProfileController extends Controller
 
         Cache::tags([CacheKeys::userTag($user->id)])->forget(CacheKeys::userProfile($user->id));
 
-        return (new UserResource($user->refresh()))
+        $fresh = $user->refresh();
+
+        UserProfileUpdated::dispatch($fresh);
+
+        return (new UserResource($fresh))
             ->response();
     }
 
@@ -84,6 +91,8 @@ class ProfileController extends Controller
         $user->clearMediaCollection('avatar');
 
         Cache::tags([CacheKeys::userTag($user->id)])->forget(CacheKeys::userProfile($user->id));
+
+        UserProfileUpdated::dispatch($user->refresh());
 
         return $this->noContentResponse();
     }

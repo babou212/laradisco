@@ -10,6 +10,8 @@ class CategoryResource extends JsonApiResource
 {
     /**
      * The resource's attributes.
+     *
+     * @var list<string>
      */
     public $attributes = [
         'name',
@@ -19,6 +21,8 @@ class CategoryResource extends JsonApiResource
 
     /**
      * The resource's relationships.
+     *
+     * @var array<string, class-string>
      */
     public $relationships = [
         'channels' => ChannelResource::class,

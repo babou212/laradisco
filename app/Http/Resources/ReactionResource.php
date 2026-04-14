@@ -10,6 +10,8 @@ class ReactionResource extends JsonApiResource
 {
     /**
      * The resource's attributes.
+     *
+     * @var list<string>
      */
     public $attributes = [
         'user_id',

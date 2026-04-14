@@ -28,6 +28,8 @@ class InviteLinkResource extends JsonApiResource
 
     /**
      * The resource's relationships.
+     *
+     * @var array<string, class-string>
      */
     public $relationships = [
         'creator' => UserSummaryResource::class,

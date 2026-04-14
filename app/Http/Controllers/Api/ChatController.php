@@ -130,7 +130,6 @@ class ChatController extends Controller
     public function members(Request $request): JsonResponse
     {
         $users = QueryBuilder::for(User::class)
-            ->select(['id', 'name', 'username', 'nickname', 'status', 'custom_status'])
             ->allowedFilters(
                 AllowedFilter::partial('search', 'username'),
                 AllowedFilter::partial('search_name', 'name'),
@@ -138,6 +137,7 @@ class ChatController extends Controller
             )
             ->allowedSorts('name', 'username')
             ->defaultSort('name')
+            ->select(['id', 'name', 'username', 'nickname', 'status', 'custom_status'])
             ->cursorPaginate(50);
 
         return UserSummaryResource::collection($users)

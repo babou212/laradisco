@@ -85,8 +85,8 @@ class CreateThreadReplyAction
         $thread->refresh();
         broadcast(new ThreadUpdated($thread))->toOthers();
 
-        Cache::tags([CacheKeys::threadTag($thread->id)])->flush();
-        Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
+        Cache::tags([CacheKeys::threadMessagesTag($thread->id)])->flush();
+        Cache::tags([CacheKeys::channelMessagesTag($channel->id)])->flush();
 
         return CreateThreadReplyResult::success($result);
     }

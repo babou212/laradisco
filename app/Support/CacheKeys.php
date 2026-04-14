@@ -108,6 +108,21 @@ class CacheKeys
         return "channel:{$channelId}";
     }
 
+    public static function channelMessagesTag(int $channelId): string
+    {
+        return "channel:{$channelId}:messages";
+    }
+
+    public static function dmGroupMessagesTag(int $dmGroupId): string
+    {
+        return "dm_group:{$dmGroupId}:messages";
+    }
+
+    public static function threadMessagesTag(int $threadId): string
+    {
+        return "thread:{$threadId}:messages";
+    }
+
     public static function userTag(int $userId): string
     {
         return "user:{$userId}";

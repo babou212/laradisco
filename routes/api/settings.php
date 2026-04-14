@@ -43,8 +43,8 @@ Route::post('/invite-links', [InviteLinkController::class, 'store'])
 Route::apiResource('roles', RoleController::class)->only(['index', 'store', 'update', 'destroy']);
 
 Route::get('/members', [MemberController::class, 'index'])->name('members.index');
-Route::post('/members/{user}/roles', [MemberController::class, 'assignRole'])->name('members.roles.assign');
-Route::delete('/members/{user}/roles/{role}', [MemberController::class, 'removeRole'])->name('members.roles.remove')->scopeBindings();
+Route::post('/members/{user}/roles', [MemberController::class, 'assignRole'])->middleware('throttle:10,1')->name('members.roles.assign');
+Route::delete('/members/{user}/roles/{role}', [MemberController::class, 'removeRole'])->middleware('throttle:10,1')->name('members.roles.remove')->scopeBindings();
 
 Route::get('/channels', [ChannelController::class, 'index'])->name('channels.index');
 Route::post('/channels', [ChannelController::class, 'store'])->name('channels.store');

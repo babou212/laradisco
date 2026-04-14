@@ -149,11 +149,13 @@ class PermissionService
 
         /** @var list<int> */
         return Cache::tags($tags)->remember($cacheKey, CacheKeys::TTL_WARM, function () use ($channel) {
+            $channelOverrides = $channel->permissionOverrides()->get();
+
             return User::query()
                 ->select('id')
                 ->with('roles')
                 ->get()
-                ->filter(fn (User $user) => $this->userCanViewChannel($user, $channel))
+                ->filter(fn (User $user) => $this->userCanViewChannel($user, $channel, $channelOverrides))
                 ->pluck('id')
                 ->values()
                 ->all();

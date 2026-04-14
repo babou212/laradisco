@@ -8,6 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
+/**
+ * @property AttachmentStatus $status
+ * @property string|null $storage_path
+ * @property string|null $thumbnail_path
+ * @property int|null $encrypted_size
+ * @property int|null $thumbnail_size
+ * @property string|null $attachable_type
+ * @property int|string|null $attachable_id
+ */
 class EncryptedAttachment extends Model
 {
     use HasUuids;

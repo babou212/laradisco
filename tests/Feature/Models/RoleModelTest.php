@@ -6,6 +6,7 @@ use App\Enums\PermissionFlag;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -108,7 +109,7 @@ class RoleModelTest extends TestCase
         $role = Role::factory()->create();
         $role->givePermissionTo(PermissionFlag::SendMessages->value);
 
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Collection::class, $role->permissions);
+        $this->assertInstanceOf(Collection::class, $role->permissions);
     }
 
     public function test_role_name_must_be_unique(): void

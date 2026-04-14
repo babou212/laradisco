@@ -129,7 +129,7 @@ class DirectMessageController extends Controller
         $cacheKey = CacheKeys::dmGroupMessages($dmGroup->id).'.'.md5($includes);
 
         if (! $cursor) {
-            $cached = Cache::tags([CacheKeys::dmGroupTag($dmGroup->id)])->get($cacheKey);
+            $cached = Cache::tags([CacheKeys::dmGroupMessagesTag($dmGroup->id)])->get($cacheKey);
             if ($cached) {
                 return response()->json($cached);
             }
@@ -149,7 +149,7 @@ class DirectMessageController extends Controller
             ->response();
 
         if (! $cursor) {
-            Cache::tags([CacheKeys::dmGroupTag($dmGroup->id)])
+            Cache::tags([CacheKeys::dmGroupTag($dmGroup->id), CacheKeys::dmGroupMessagesTag($dmGroup->id)])
                 ->put($cacheKey, $response->getData(true), CacheKeys::TTL_HOT);
         }
 
@@ -188,7 +188,7 @@ class DirectMessageController extends Controller
         $message->load(['user:id,username,name,nickname,status,custom_status', 'replyTo.user:id,username,name,nickname']);
 
         // Flush DM message cache and DM group list cache for all participants
-        Cache::tags([CacheKeys::dmGroupTag($dmGroup->id)])->flush();
+        Cache::tags([CacheKeys::dmGroupMessagesTag($dmGroup->id)])->flush();
         $dmGroup->loadMissing('participants');
         foreach ($dmGroup->participants as $participant) {
             Cache::tags([CacheKeys::userTag($participant->id)])->forget(CacheKeys::userDmGroups($participant->id));
@@ -240,7 +240,7 @@ class DirectMessageController extends Controller
             'edited_at' => now(),
         ]);
 
-        Cache::tags([CacheKeys::dmGroupTag($dmGroup->id)])->flush();
+        Cache::tags([CacheKeys::dmGroupMessagesTag($dmGroup->id)])->flush();
 
         broadcast(new DirectMessageEdited($message))->toOthers();
 
@@ -272,7 +272,7 @@ class DirectMessageController extends Controller
         $message->update(['history_ciphertext' => null, 'message_bytes' => null]);
         $message->delete();
 
-        Cache::tags([CacheKeys::dmGroupTag($dmGroup->id)])->flush();
+        Cache::tags([CacheKeys::dmGroupMessagesTag($dmGroup->id)])->flush();
 
         broadcast(new DirectMessageDeleted($messageId, $dmGroup->id))->toOthers();
 
@@ -289,10 +289,7 @@ class DirectMessageController extends Controller
         $currentUser = $request->user();
         $otherUserId = $request->validated('user_id');
 
-        $existingDm = DirectMessageGroup::whereHas('participants', fn ($q) => $q->where('users.id', $currentUser->id))
-            ->whereHas('participants', fn ($q) => $q->where('users.id', $otherUserId))
-            ->whereDoesntHave('participants', fn ($q) => $q->whereNotIn('users.id', [$currentUser->id, $otherUserId]))
-            ->first();
+        $existingDm = $this->findOneOnOneDmGroup((int) $currentUser->id, (int) $otherUserId);
 
         if (! $existingDm) {
             return $this->notFoundResponse('No existing DM group found.');
@@ -315,10 +312,7 @@ class DirectMessageController extends Controller
             return $this->validationErrorResponse('Cannot start a conversation with yourself.');
         }
 
-        $existingDm = DirectMessageGroup::whereHas('participants', fn ($q) => $q->where('users.id', $currentUser->id))
-            ->whereHas('participants', fn ($q) => $q->where('users.id', $otherUserId))
-            ->whereDoesntHave('participants', fn ($q) => $q->whereNotIn('users.id', [$currentUser->id, $otherUserId]))
-            ->first();
+        $existingDm = $this->findOneOnOneDmGroup((int) $currentUser->id, (int) $otherUserId);
 
         if ($existingDm) {
             return response()->json(['data' => ['dm_group_id' => $existingDm->id]]);
@@ -335,5 +329,13 @@ class DirectMessageController extends Controller
             ->response()
             ->setStatusCode(Response::HTTP_CREATED)
             ->header('Location', route('api.direct-messages.show', $dmGroup));
+    }
+
+    private function findOneOnOneDmGroup(int $userA, int $userB): ?DirectMessageGroup
+    {
+        return DirectMessageGroup::whereHas('participants', fn ($q) => $q->where('users.id', $userA))
+            ->whereHas('participants', fn ($q) => $q->where('users.id', $userB))
+            ->whereDoesntHave('participants', fn ($q) => $q->whereNotIn('users.id', [$userA, $userB]))
+            ->first();
     }
 }

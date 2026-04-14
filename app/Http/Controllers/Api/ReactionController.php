@@ -42,7 +42,7 @@ class ReactionController extends Controller
         if ($existing) {
             $existing->delete();
 
-            Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
+            Cache::tags([CacheKeys::channelMessagesTag($channel->id)])->flush();
 
             broadcast(new ReactionToggled($channel->id, [
                 'id' => $existing->id,
@@ -61,7 +61,7 @@ class ReactionController extends Controller
             'emoji' => $validated['emoji'],
         ]);
 
-        Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
+        Cache::tags([CacheKeys::channelMessagesTag($channel->id)])->flush();
 
         broadcast(new ReactionToggled($channel->id, [
             'id' => $reaction->id,
@@ -101,7 +101,7 @@ class ReactionController extends Controller
         if ($existing) {
             $existing->delete();
 
-            Cache::tags([CacheKeys::channelTag($channel->id), CacheKeys::threadTag($thread->id)])->flush();
+            Cache::tags([CacheKeys::channelMessagesTag($channel->id), CacheKeys::threadMessagesTag($thread->id)])->flush();
 
             broadcast(new ReactionToggled($channel->id, [
                 'id' => $existing->id,
@@ -120,7 +120,7 @@ class ReactionController extends Controller
             'emoji' => $validated['emoji'],
         ]);
 
-        Cache::tags([CacheKeys::channelTag($channel->id), CacheKeys::threadTag($thread->id)])->flush();
+        Cache::tags([CacheKeys::channelMessagesTag($channel->id), CacheKeys::threadMessagesTag($thread->id)])->flush();
 
         broadcast(new ReactionToggled($channel->id, [
             'id' => $reaction->id,
@@ -160,7 +160,7 @@ class ReactionController extends Controller
         if ($existing) {
             $existing->delete();
 
-            Cache::tags([CacheKeys::dmGroupTag($dmGroup->id)])->flush();
+            Cache::tags([CacheKeys::dmGroupMessagesTag($dmGroup->id)])->flush();
 
             broadcast(new ReactionToggled($dmGroup->id, [
                 'id' => $existing->id,
@@ -179,7 +179,7 @@ class ReactionController extends Controller
             'emoji' => $validated['emoji'],
         ]);
 
-        Cache::tags([CacheKeys::dmGroupTag($dmGroup->id)])->flush();
+        Cache::tags([CacheKeys::dmGroupMessagesTag($dmGroup->id)])->flush();
 
         broadcast(new ReactionToggled($dmGroup->id, [
             'id' => $reaction->id,

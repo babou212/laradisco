@@ -34,6 +34,8 @@ class ThreadResource extends JsonApiResource
 
     /**
      * Get the resource's relationships.
+     *
+     * @return array<string, class-string>
      */
     public function toRelationships(Request $request): array
     {

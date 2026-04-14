@@ -50,6 +50,8 @@ class DirectMessageGroupResource extends JsonApiResource
 
     /**
      * The resource's relationships.
+     *
+     * @var array<string, class-string>
      */
     public $relationships = [
         'participants' => UserSummaryResource::class,

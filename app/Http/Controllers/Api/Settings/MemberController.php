@@ -70,7 +70,8 @@ class MemberController extends Controller
     {
         Gate::authorize('manage-members');
 
-        $role = Role::findOrFail($request->validated('role_id'));
+        /** @var Role $role */
+        $role = Role::query()->findOrFail($request->validated('role_id'));
         $user->assignRole($role);
 
         $this->auditService->log(

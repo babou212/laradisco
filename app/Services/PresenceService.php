@@ -73,7 +73,7 @@ class PresenceService
     /**
      * Get all currently online users, cleaning up stale entries.
      *
-     * @return array<int, array{id: int, username: string, display_name: string, avatar_urls: array|null, status: string, custom_status: string|null}>
+     * @return array<int, array{id: int, username: string, display_name: string, avatar_urls: array<string, mixed>|null, status: string, custom_status: string|null}>
      */
     public function getOnlineUsers(): array
     {
@@ -109,7 +109,7 @@ class PresenceService
     /**
      * Sweep stale presence entries from Redis and return their user data.
      *
-     * @return array<int, array{id: int, username: string, display_name: string, avatar_urls: array|null, status: string, custom_status: string|null}>
+     * @return array<int, array{id: int, username: string, display_name: string, avatar_urls: array<string, mixed>|null, status: string, custom_status: string|null}>
      */
     public function sweepStale(): array
     {

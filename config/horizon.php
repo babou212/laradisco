@@ -17,6 +17,8 @@ return [
 
     'name' => env('HORIZON_NAME'),
 
+    'allowed_emails' => array_filter(explode(',', (string) env('HORIZON_ALLOWED_EMAILS', ''))),
+
     /*
     |--------------------------------------------------------------------------
     | Horizon Domain

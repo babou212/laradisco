@@ -17,7 +17,6 @@ use App\Http\Resources\ThreadResource;
 use App\Models\Channel;
 use App\Models\Message;
 use App\Models\Thread;
-use App\Services\MentionService;
 use App\Services\ModerationAuditService;
 use App\Services\PermissionService;
 use App\Support\CacheKeys;
@@ -32,7 +31,6 @@ class ThreadController extends Controller
     use ApiResponse;
 
     public function __construct(
-        private readonly MentionService $mentionService,
         private readonly PermissionService $permissionService,
         private readonly CreateThreadReplyAction $createThreadReplyAction,
         private readonly ModerationAuditService $auditService,
@@ -98,7 +96,7 @@ class ThreadController extends Controller
         $cacheKey = CacheKeys::threadMessages($thread->id).'.'.md5($includes);
 
         if (! $cursor) {
-            $cached = Cache::tags([CacheKeys::threadTag($thread->id)])->get($cacheKey);
+            $cached = Cache::tags([CacheKeys::threadMessagesTag($thread->id)])->get($cacheKey);
             if ($cached) {
                 return response()->json($cached);
             }
@@ -117,7 +115,7 @@ class ThreadController extends Controller
             ->response();
 
         if (! $cursor) {
-            Cache::tags([CacheKeys::threadTag($thread->id)])
+            Cache::tags([CacheKeys::threadTag($thread->id), CacheKeys::threadMessagesTag($thread->id)])
                 ->put($cacheKey, $response->getData(true), CacheKeys::TTL_HOT);
         }
 
@@ -187,7 +185,7 @@ class ThreadController extends Controller
             'edited_at' => now(),
         ]);
 
-        Cache::tags([CacheKeys::threadTag($thread->id)])->flush();
+        Cache::tags([CacheKeys::threadMessagesTag($thread->id)])->flush();
 
         broadcast(new ThreadMessageEdited($message))->toOthers();
 
@@ -228,7 +226,7 @@ class ThreadController extends Controller
         $message->update(['history_ciphertext' => null, 'message_bytes' => null]);
         $message->delete();
 
-        if (! $isOwner && $canManage) {
+        if (! $isOwner) {
             $this->auditService->log(
                 actorId: $request->user()->id,
                 action: ModerationAction::ThreadMessageDelete,
@@ -248,7 +246,7 @@ class ThreadController extends Controller
         $latestReply = $thread->messages()->latest()->first();
         $thread->update(['last_message_at' => $latestReply?->created_at]);
 
-        Cache::tags([CacheKeys::threadTag($thread->id)])->flush();
+        Cache::tags([CacheKeys::threadMessagesTag($thread->id)])->flush();
 
         broadcast(new ThreadMessageDeleted($messageId, $thread->id))->toOthers();
 

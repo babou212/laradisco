@@ -50,9 +50,7 @@ class MessageController extends Controller
     {
         $user = $request->user();
 
-        if (! $this->permissionService->userCanViewChannel($user, $channel)) {
-            return $this->forbiddenResponse('You do not have access to this channel.');
-        }
+        $this->authorize('viewChannel', [Message::class, $channel]);
 
         $allowedIncludes = [
             'user',
@@ -98,7 +96,7 @@ class MessageController extends Controller
         $cacheKey = CacheKeys::channelMessages($channel->id).'.'.md5($includes);
 
         if (! $cursor) {
-            $cached = Cache::tags([CacheKeys::channelTag($channel->id)])->get($cacheKey);
+            $cached = Cache::tags([CacheKeys::channelMessagesTag($channel->id)])->get($cacheKey);
             if ($cached) {
                 return response()->json($cached);
             }
@@ -117,7 +115,7 @@ class MessageController extends Controller
             ->response();
 
         if (! $cursor) {
-            Cache::tags([CacheKeys::channelTag($channel->id)])
+            Cache::tags([CacheKeys::channelTag($channel->id), CacheKeys::channelMessagesTag($channel->id)])
                 ->put($cacheKey, $response->getData(true), CacheKeys::TTL_HOT);
         }
 
@@ -152,9 +150,7 @@ class MessageController extends Controller
     {
         $user = $request->user();
 
-        if (! $this->permissionService->userCanInChannel($user, $channel, PermissionFlag::SendMessages)) {
-            return $this->forbiddenResponse('You do not have permission to send messages in this channel.');
-        }
+        $this->authorize('send', [Message::class, $channel]);
 
         $message = $channel->messages()->create([
             'user_id' => $user->id,
@@ -178,7 +174,7 @@ class MessageController extends Controller
 
         $message->load(['user:id,username,name,nickname,status,custom_status', 'replyTo.user:id,username,name,nickname,status,custom_status']);
 
-        Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
+        Cache::tags([CacheKeys::channelMessagesTag($channel->id)])->flush();
 
         broadcast(new MessageSent($message))->toOthers();
 
@@ -212,9 +208,7 @@ class MessageController extends Controller
     {
         $user = $request->user();
 
-        if (! $this->permissionService->userCanViewChannel($user, $channel)) {
-            return $this->forbiddenResponse('You do not have access to this channel.');
-        }
+        $this->authorize('viewChannel', [Message::class, $channel]);
 
         $user->channels()->syncWithoutDetaching([
             $channel->id => ['last_read_at' => now()],
@@ -234,9 +228,7 @@ class MessageController extends Controller
             return $this->notFoundResponse('Message not found in this channel.');
         }
 
-        if ($request->user()->id !== $message->user_id) {
-            return $this->forbiddenResponse('You can only edit your own messages.');
-        }
+        $this->authorize('update', $message);
 
         $message->update([
             'sender_device_id' => $request->validated('sender_device_id', $message->sender_device_id),
@@ -246,7 +238,7 @@ class MessageController extends Controller
             'edited_at' => now(),
         ]);
 
-        Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
+        Cache::tags([CacheKeys::channelMessagesTag($channel->id)])->flush();
 
         broadcast(new MessageEdited($message))->toOthers();
 
@@ -263,14 +255,12 @@ class MessageController extends Controller
             return $this->notFoundResponse('Message not found in this channel.');
         }
 
+        $this->authorize('delete', [$message, $channel]);
+
         $isOwner = $request->user()->id === $message->user_id;
-        $canManage = $this->permissionService->userCanInChannel(
+        $canManage = ! $isOwner && $this->permissionService->userCanInChannel(
             $request->user(), $channel, PermissionFlag::ManageMessages
         );
-
-        if (! $isOwner && ! $canManage) {
-            return $this->forbiddenResponse('You do not have permission to delete this message.');
-        }
 
         $messageId = $message->id;
         $messageUserId = $message->user_id;
@@ -292,7 +282,7 @@ class MessageController extends Controller
             );
         }
 
-        Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
+        Cache::tags([CacheKeys::channelMessagesTag($channel->id)])->flush();
 
         broadcast(new MessageDeleted($messageId, $channel->id))->toOthers();
 

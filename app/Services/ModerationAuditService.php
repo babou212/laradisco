@@ -7,11 +7,14 @@ use App\Models\ModerationAuditLog;
 
 class ModerationAuditService
 {
+    /**
+     * @param  array<string, mixed>|null  $metadata
+     */
     public function log(
         int $actorId,
         ModerationAction $action,
         ?int $targetUserId = null,
-        ?int $targetResourceId = null,
+        int|string|null $targetResourceId = null,
         ?string $targetResourceType = null,
         ?array $metadata = null,
     ): ModerationAuditLog {

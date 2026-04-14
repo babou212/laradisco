@@ -10,6 +10,7 @@ use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
 use App\Models\EncryptedAttachment;
 use App\Models\Message;
+use App\Models\User;
 use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,7 +26,7 @@ class AttachmentController extends Controller
 
     private const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
 
-    private const DOWNLOAD_EXPIRY = 900; // 15 minutes
+    public const DOWNLOAD_EXPIRY = 900; // 15 minutes
 
     private const NGINX_ACCEL_PREFIX = '/internal-attachments';
 
@@ -145,7 +146,7 @@ class AttachmentController extends Controller
     /**
      * Handle the file upload, store to local disk, and create an attachment record.
      */
-    private function handleUpload(mixed $user, Request $request): JsonResponse
+    private function handleUpload(User $user, Request $request): JsonResponse
     {
         $request->validate([
             'file' => ['required', 'file', 'max:'.(self::MAX_FILE_SIZE / 1024)],
@@ -194,7 +195,7 @@ class AttachmentController extends Controller
     /**
      * Check if the user has access to the attachment through the associated message's channel or DM group.
      */
-    private function userCanAccessAttachment(mixed $user, EncryptedAttachment $attachment): bool
+    private function userCanAccessAttachment(User $user, EncryptedAttachment $attachment): bool
     {
         $attachable = $attachment->attachable;
 

@@ -45,6 +45,8 @@ class UserResource extends JsonApiResource
 
     /**
      * The resource's relationships.
+     *
+     * @var array<string, class-string>
      */
     public $relationships = [
         'roles' => RoleResource::class,

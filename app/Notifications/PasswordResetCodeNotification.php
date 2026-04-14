@@ -14,6 +14,7 @@ class PasswordResetCodeNotification extends Notification implements ShouldQueue
 
     public int $tries = 3;
 
+    /** @var list<int> */
     public array $backoff = [10, 60];
 
     public function __construct(

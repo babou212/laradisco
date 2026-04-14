@@ -9,6 +9,14 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Spatie\Permission\Models\Role as SpatieRole;
 use Spatie\Permission\PermissionRegistrar;
 
+/**
+ * @property string $name
+ * @property string|null $color
+ * @property bool $is_hoisted
+ * @property int $position
+ * @property bool $is_mentionable
+ * @property bool $is_default
+ */
 class Role extends SpatieRole
 {
     /** @use HasFactory<RoleFactory> */
@@ -19,6 +27,9 @@ class Role extends SpatieRole
      *
      * Spatie's default implementation uses getModelForGuard() which can
      * return NULL when the config is cached or the guard resolution fails.
+     */
+    /**
+     * @return MorphToMany<User, $this>
      */
     public function users(): MorphToMany
     {
@@ -61,6 +72,6 @@ class Role extends SpatieRole
      */
     public function clearCaches(): void
     {
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }
 }

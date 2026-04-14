@@ -2,31 +2,17 @@
 
 namespace App\Providers;
 
-use App\Enums\UserStatusType;
-use App\Events\UserPresenceUpdated;
-use App\Models\User;
 use App\Services\LiveKitService;
-use App\Services\PresenceService;
 use Carbon\CarbonImmutable;
-use Illuminate\Auth\Events\Login;
-use Illuminate\Auth\Events\Logout;
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\JsonApi\AnonymousResourceCollection;
 use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         $this->app->singleton(LiveKitService::class, function ($app): LiveKitService {
@@ -39,64 +25,12 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         $this->configureDefaults();
-        $this->configureGates();
-        $this->configureAuthListeners();
-        $this->configureRateLimiting();
         $this->configureJsonApiMacros();
     }
 
-    /**
-     * Register Gate abilities for cross-model authorization.
-     */
-    protected function configureGates(): void
-    {
-        Gate::define('manage-members', function (User $user): bool {
-            return $user->isAdministrator() || $user->hasPermissionTo('manage_roles');
-        });
-
-    }
-
-    /**
-     * Register authentication event listeners.
-     */
-    protected function configureAuthListeners(): void
-    {
-        Event::listen(Login::class, function (Login $event): void {
-            /** @var User $user */
-            $user = $event->user;
-
-            $user->update(['status' => UserStatusType::Online->value]);
-
-            app(PresenceService::class)->register($user);
-
-            event(new UserPresenceUpdated(
-                $user,
-                UserStatusType::Online,
-                $user->custom_status,
-            ));
-        });
-
-        Event::listen(Logout::class, function (Logout $event): void {
-            /** @var User $user */
-            $user = $event->user;
-            app(PresenceService::class)->unregister($user);
-
-            event(new UserPresenceUpdated(
-                $user,
-                UserStatusType::Offline,
-            ));
-        });
-    }
-
-    /**
-     * Configure default behaviors for production-ready applications.
-     */
     protected function configureDefaults(): void
     {
         Date::use(CarbonImmutable::class);
@@ -116,32 +50,6 @@ class AppServiceProvider extends ServiceProvider
         );
     }
 
-    /**
-     * Configure rate limiters for the API.
-     */
-    protected function configureRateLimiting(): void
-    {
-        RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(100)->by($request->user()?->id ?: $request->ip());
-        });
-
-        RateLimiter::for('api-auth', function (Request $request) {
-            return Limit::perMinute(100)->by($request->ip());
-        });
-
-        RateLimiter::for('api-messages', function (Request $request) {
-            return Limit::perMinute(100)->by($request->user()?->id ?: $request->ip());
-        });
-
-        RateLimiter::for('api-search', function (Request $request) {
-            return Limit::perMinute(100)->by($request->user()?->id ?: $request->ip());
-        });
-    }
-
-    /**
-     * Register macros so JsonApi\AnonymousResourceCollection supports
-     * includePreviouslyLoadedRelationships() the same way individual resources do.
-     */
     protected function configureJsonApiMacros(): void
     {
         AnonymousResourceCollection::macro('includePreviouslyLoadedRelationships', function () {

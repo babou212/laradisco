@@ -47,10 +47,16 @@ class AuthController extends Controller
     {
         $user = User::where('email', $request->validated('email'))->first();
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        $driver = str_starts_with((string) $user?->password, '$2y$') ? 'bcrypt' : null;
+
+        if (! $user || ! Hash::driver($driver)->check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
+        }
+
+        if (Hash::needsRehash($user->password)) {
+            $user->forceFill(['password' => Hash::make($request->password)])->save();
         }
 
         if ($user->two_factor_secret && $user->two_factor_confirmed_at) {

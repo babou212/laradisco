@@ -135,12 +135,15 @@ class ChatController extends Controller
                 AllowedFilter::partial('search_name', 'name'),
                 AllowedFilter::partial('search_nickname', 'nickname'),
             )
+            ->allowedIncludes('roles')
             ->allowedSorts('name', 'username')
             ->defaultSort('name')
             ->select(['id', 'name', 'username', 'nickname', 'status', 'custom_status'])
+            ->with(['roles' => fn ($q) => $q->orderByDesc('position')])
             ->cursorPaginate(50);
 
         return UserSummaryResource::collection($users)
+            ->includePreviouslyLoadedRelationships()
             ->response();
     }
 }

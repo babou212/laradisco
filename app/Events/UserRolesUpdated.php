@@ -10,7 +10,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class UserProfileUpdated implements ShouldBroadcastNow
+class UserRolesUpdated implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -28,7 +28,7 @@ class UserProfileUpdated implements ShouldBroadcastNow
 
     public function broadcastAs(): string
     {
-        return 'user.profile.updated';
+        return 'user.roles.updated';
     }
 
     /**
@@ -36,13 +36,24 @@ class UserProfileUpdated implements ShouldBroadcastNow
      */
     public function broadcastWith(): array
     {
+        $roles = $this->user->roles
+            ->sortByDesc('position')
+            ->values()
+            ->map(fn ($role) => [
+                'id' => (string) $role->id,
+                'name' => $role->name,
+                'color' => $role->color,
+                'position' => $role->position,
+                'is_hoisted' => $role->is_hoisted,
+                'is_default' => $role->is_default,
+                'is_mentionable' => $role->is_mentionable,
+            ])
+            ->all();
+
         return [
             'user_id' => $this->user->id,
-            'username' => $this->user->username,
-            'display_name' => $this->user->display_name,
-            'nickname' => $this->user->nickname,
-            'about_me' => $this->user->about_me,
-            'avatar_urls' => $this->user->avatar_urls,
+            'roles' => $roles,
+            'permissions' => $this->user->permissionsPayload(),
         ];
     }
 }

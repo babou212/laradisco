@@ -208,6 +208,28 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
+     * Permission flags derived from the user's roles.
+     *
+     * @return array<string, bool>
+     */
+    public function permissionsPayload(): array
+    {
+        return [
+            'canInviteMembers' => $this->isAdministrator() || $this->hasPermissionTo('invite_members'),
+            'canManageRoles' => $this->isAdministrator() || $this->hasPermissionTo('manage_roles'),
+            'canManageChannels' => $this->isAdministrator() || $this->hasPermissionTo('manage_channels'),
+            'canManageServer' => $this->isAdministrator() || $this->hasPermissionTo('manage_server'),
+            'canManageMessages' => $this->isAdministrator() || $this->hasPermissionTo('manage_messages'),
+            'canBanMembers' => $this->isAdministrator() || $this->hasPermissionTo('ban_members'),
+            'canKickMembers' => $this->isAdministrator() || $this->hasPermissionTo('kick_members'),
+            'canViewAuditLog' => $this->isAdministrator() || $this->hasPermissionTo('view_audit_log'),
+            'isAdministrator' => $this->isAdministrator(),
+            'isBanned' => $this->isBanned(),
+            'isJailed' => $this->isJailed(),
+        ];
+    }
+
+    /**
      * @return HasMany<Ban, $this>
      */
     public function bans(): HasMany

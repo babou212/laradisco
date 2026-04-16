@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Settings;
 
 use App\Concerns\ApiResponse;
 use App\Enums\ModerationAction;
+use App\Events\UserRolesUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\AssignRoleRequest;
 use App\Http\Resources\RoleResource;
@@ -89,6 +90,8 @@ class MemberController extends Controller
         Cache::tags([CacheKeys::userTag($user->id)])->forget(CacheKeys::userProfile($user->id));
         Cache::tags([CacheKeys::TAG_ROLES])->flush();
 
+        UserRolesUpdated::dispatch($user->fresh()->load('roles'));
+
         return $this->successResponse(message: 'Role assigned successfully');
     }
 
@@ -119,6 +122,8 @@ class MemberController extends Controller
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         Cache::tags([CacheKeys::userTag($user->id)])->forget(CacheKeys::userProfile($user->id));
         Cache::tags([CacheKeys::TAG_ROLES])->flush();
+
+        UserRolesUpdated::dispatch($user->fresh()->load('roles'));
 
         return $this->noContentResponse();
     }

@@ -111,7 +111,10 @@ class MlsGroupController extends Controller
             $existing = MlsGroup::where('group_id', $groupId)->first();
 
             if ($existing && (int) $existing->creator_user_id === (int) $user->id) {
-                $existing->update(['creator_device_id' => $deviceId]);
+                $existing->update([
+                    'creator_device_id' => $deviceId,
+                    'current_epoch' => 0,
+                ]);
 
                 MlsWelcomeMessage::where('group_id', $groupId)->delete();
                 MlsMessage::where('group_id', $groupId)->delete();
@@ -135,6 +138,7 @@ class MlsGroupController extends Controller
                 $existing->update([
                     'creator_user_id' => $user->id,
                     'creator_device_id' => $deviceId,
+                    'current_epoch' => 0,
                 ]);
                 MlsWelcomeMessage::where('group_id', $groupId)->delete();
                 MlsMessage::where('group_id', $groupId)->delete();

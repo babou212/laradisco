@@ -12,6 +12,12 @@ class MlsGroup extends Model
         'group_id',
         'creator_user_id',
         'creator_device_id',
+        'current_epoch',
+    ];
+
+    /** @var array<string, string> */
+    protected $casts = [
+        'current_epoch' => 'integer',
     ];
 
     /**

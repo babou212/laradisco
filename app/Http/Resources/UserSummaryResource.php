@@ -23,6 +23,7 @@ class UserSummaryResource extends JsonApiResource
             'avatar_urls' => $this->avatar_urls,
             'status' => $this->status ?? 'offline',
             'custom_status' => $this->custom_status,
+            'created_at' => $this->created_at,
         ];
     }
 

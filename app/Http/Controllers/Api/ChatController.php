@@ -138,7 +138,7 @@ class ChatController extends Controller
             ->allowedIncludes('roles')
             ->allowedSorts('name', 'username')
             ->defaultSort('name')
-            ->select(['id', 'name', 'username', 'nickname', 'status', 'custom_status'])
+            ->select(['id', 'name', 'username', 'nickname', 'status', 'custom_status', 'created_at'])
             ->with(['roles' => fn ($q) => $q->orderByDesc('position')])
             ->cursorPaginate(50);
 

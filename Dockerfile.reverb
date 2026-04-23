@@ -1,0 +1,16 @@
+# =============================================================================
+# Dockerfile for Laradisco Reverb (WebSocket) server
+# Uses the same base as the main app but runs reverb:start instead
+# =============================================================================
+
+ARG BASE_IMAGE=ghcr.io/babou212/laradisco:latest
+FROM ${BASE_IMAGE}
+
+ENV AUTORUN_ENABLED="false"
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8080/ || exit 1
+
+CMD ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]

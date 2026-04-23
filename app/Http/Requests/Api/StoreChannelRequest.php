@@ -1,0 +1,36 @@
+<?php
+
+namespace App\Http\Requests\Api;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class StoreChannelRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true; // Authorization handled by ChannelPolicy
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('channel_type') && ! $this->has('type')) {
+            $this->merge(['type' => $this->input('channel_type')]);
+        }
+    }
+
+    /** @return array<string, mixed> */
+    public function rules(): array
+    {
+        $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH');
+
+        return [
+            'category_id' => ['nullable', 'exists:categories,id'],
+            'name' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:100'],
+            'topic' => ['nullable', 'string', 'max:1024'],
+            'type' => [$isUpdate ? 'sometimes' : 'required', 'in:text,voice'],
+            'position' => ['sometimes', 'integer', 'min:0'],
+            'is_private' => ['sometimes', 'boolean'],
+            'slowmode_seconds' => ['sometimes', 'integer', 'min:0', 'max:21600'],
+        ];
+    }
+}

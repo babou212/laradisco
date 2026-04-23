@@ -1,0 +1,135 @@
+services:
+    laravel.test:
+        build:
+            context: .
+            dockerfile: docker/Dockerfile.frankenphp
+        image: laradisco-frankenphp/app
+        extra_hosts:
+            - 'host.docker.internal:host-gateway'
+        ports:
+            - '${APP_PORT:-80}:8080'
+        command: php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080 --watch
+        environment:
+            AUTORUN_ENABLED: 'false'
+            PHP_OPCACHE_ENABLE: '0'
+            PHP_POST_MAX_SIZE: '120M'
+            PHP_UPLOAD_MAX_FILESIZE: '110M'
+            OCTANE_SERVER: frankenphp
+            XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
+            IGNITION_LOCAL_SITES_PATH: '${PWD}'
+            PUID: '${WWWUSER:-1000}'
+            PGID: '${WWWGROUP:-1000}'
+        volumes:
+            - '.:/var/www/html'
+            - './docker/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini'
+        networks:
+            - sail
+        depends_on:
+            - pgsql
+            - redis
+            - reverb
+            - livekit
+            - mailpit
+    queue:
+        build:
+            context: .
+            dockerfile: docker/Dockerfile.frankenphp
+        image: laradisco-frankenphp/app
+        environment:
+            AUTORUN_ENABLED: 'false'
+            PUID: '${WWWUSER:-1000}'
+            PGID: '${WWWGROUP:-1000}'
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            - pgsql
+            - redis
+        command: php artisan horizon
+        restart: unless-stopped
+    reverb:
+        build:
+            context: .
+            dockerfile: docker/Dockerfile.frankenphp
+        image: laradisco-frankenphp/app
+        ports:
+            - '${FORWARD_REVERB_PORT:-8080}:8080'
+        environment:
+            AUTORUN_ENABLED: 'false'
+            PUID: '${WWWUSER:-1000}'
+            PGID: '${WWWGROUP:-1000}'
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            - redis
+        command: php artisan reverb:start --host=0.0.0.0 --port=8080
+    redis:
+        image: 'redis:alpine'
+        ports:
+            - '${FORWARD_REDIS_PORT:-6379}:6379'
+        volumes:
+            - 'sail-redis:/data'
+        networks:
+            - sail
+        healthcheck:
+            test:
+                - CMD
+                - redis-cli
+                - ping
+            retries: 3
+            timeout: 5s
+    mailpit:
+        image: 'axllent/mailpit:latest'
+        ports:
+            - '${FORWARD_MAILPIT_PORT:-1025}:1025'
+            - '${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025'
+        networks:
+            - sail
+    livekit:
+        image: 'livekit/livekit-server:latest'
+        ports:
+            - '${FORWARD_LIVEKIT_PORT:-7880}:7880'
+            - '${FORWARD_LIVEKIT_TCP_PORT:-7881}:7881'
+            - '${FORWARD_LIVEKIT_UDP_PORT:-7882}:7882/udp'
+        environment:
+            LIVEKIT_KEYS: '${LIVEKIT_API_KEY:-devkey}: ${LIVEKIT_API_SECRET:-secret}'
+        command: --dev --bind 0.0.0.0
+        networks:
+            - sail
+    pgsql:
+        image: 'postgres:18-alpine'
+        ports:
+            - '${FORWARD_DB_PORT:-5432}:5432'
+        environment:
+            PGPASSWORD: '${DB_PASSWORD:-secret}'
+            POSTGRES_DB: '${DB_DATABASE}'
+            POSTGRES_USER: '${DB_USERNAME}'
+            POSTGRES_PASSWORD: '${DB_PASSWORD:-secret}'
+        volumes:
+            - 'sail-pgsql:/var/lib/postgresql'
+            - './vendor/laravel/sail/database/pgsql/create-testing-database.sql:/docker-entrypoint-initdb.d/10-create-testing-database.sql'
+        networks:
+            - sail
+        healthcheck:
+            test:
+                - CMD
+                - pg_isready
+                - '-q'
+                - '-d'
+                - '${DB_DATABASE}'
+                - '-U'
+                - '${DB_USERNAME}'
+            retries: 3
+            timeout: 5s
+networks:
+    sail:
+        driver: bridge
+volumes:
+    sail-redis:
+        driver: local
+    sail-pgsql:
+        driver: local
+

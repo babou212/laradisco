@@ -1,0 +1,31 @@
+# =============================================================================
+# Local development Dockerfile for FrankenPHP + Laravel Octane
+# Based on serversideup/docker-php
+# Used by compose.yaml for the laravel.test service
+# =============================================================================
+
+FROM serversideup/php:8.5-frankenphp
+
+# Switch to root to install additional extensions & dev tools
+USER root
+
+# Install additional PHP extensions not included by default
+# Pre-installed: opcache, pcntl, pdo_mysql, pdo_pgsql, redis, zip, mbstring
+RUN install-php-extensions intl gd bcmath sockets pgsql exif
+
+# Install dev tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nodejs \
+    npm \
+    git \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /var/www/html
+
+EXPOSE 8080 8443 5173
+
+# Switch back to unprivileged user
+USER www-data
+
+CMD sh -c "npm install && npm run build && php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080 --watch"

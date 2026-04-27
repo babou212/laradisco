@@ -182,6 +182,7 @@ class MessageController extends Controller
                 ->first();
             if ($existing) {
                 $existing->load(['user:id,username,name,nickname,status,custom_status', 'replyTo.user:id,username,name,nickname,status,custom_status']);
+
                 return (new MessageResource($existing))
                     ->includePreviouslyLoadedRelationships()
                     ->response()

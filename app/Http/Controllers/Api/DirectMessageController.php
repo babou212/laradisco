@@ -124,6 +124,22 @@ class DirectMessageController extends Controller
             return $response;
         }
 
+        // Local-first delta sync — see MessageController::index for parity.
+        $sinceId = $request->query('since_id');
+        if ($sinceId !== null) {
+            $messages = QueryBuilder::for(
+                $dmGroup->messages()->where('id', '>', (int) $sinceId)
+            )
+                ->allowedIncludes(...$allowedIncludes)
+                ->orderBy('id', 'asc')
+                ->cursorPaginate(50);
+
+            return DirectMessageResource::collection($messages)
+                ->includePreviouslyLoadedRelationships()
+                ->additional(['meta' => $dmGroupMeta])
+                ->response();
+        }
+
         $cursor = $request->query('cursor');
         $includes = $request->query('include', '');
         $cacheKey = CacheKeys::dmGroupMessages($dmGroup->id).'.'.md5($includes);
@@ -163,10 +179,27 @@ class DirectMessageController extends Controller
     {
         $user = $request->user();
 
+        // Idempotent send via client_temp_id — see MessageController::store.
+        $clientTempId = $request->validated('client_temp_id');
+        if ($clientTempId) {
+            $existing = $dmGroup->messages()
+                ->where('user_id', $user->id)
+                ->where('client_temp_id', $clientTempId)
+                ->first();
+            if ($existing) {
+                $existing->load(['user:id,username,name,nickname,status,custom_status', 'replyTo.user:id,username,name,nickname,status,custom_status']);
+                return (new DirectMessageResource($existing))
+                    ->includePreviouslyLoadedRelationships()
+                    ->response()
+                    ->setStatusCode(Response::HTTP_OK);
+            }
+        }
+
         $message = $dmGroup->messages()->create([
             'user_id' => $user->id,
             'reply_to_id' => $request->validated('reply_to_id'),
             'sender_device_id' => $request->validated('sender_device_id'),
+            'client_temp_id' => $clientTempId,
             'message_bytes' => $request->validated('message_bytes'),
             'epoch' => $request->validated('epoch', 0),
         ]);
@@ -211,6 +244,31 @@ class DirectMessageController extends Controller
             ->response()
             ->setStatusCode(Response::HTTP_CREATED)
             ->header('Location', route('api.direct-messages.show', $dmGroup));
+    }
+
+    /**
+     * Lightweight head check: returns latest message id and (if since_id given)
+     * count of newer messages for local-first sync.
+     */
+    public function head(Request $request, DirectMessageGroup $dmGroup): JsonResponse
+    {
+        $user = $request->user();
+        if (! $dmGroup->participants()->where('users.id', $user->id)->exists()) {
+            return $this->forbiddenResponse();
+        }
+
+        $latestId = $dmGroup->messages()->max('id');
+        $sinceId = (int) $request->query('since_id', 0);
+        $countSinceId = $sinceId > 0
+            ? $dmGroup->messages()->where('id', '>', $sinceId)->count()
+            : null;
+
+        return response()->json([
+            'data' => [
+                'latest_id' => $latestId,
+                'count_since_id' => $countSinceId,
+            ],
+        ]);
     }
 
     /**

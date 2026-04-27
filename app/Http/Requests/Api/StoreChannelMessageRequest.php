@@ -27,6 +27,7 @@ class StoreChannelMessageRequest extends FormRequest
             'thread_name' => ['sometimes', 'string', 'max:100'],
             'attachment_ids' => ['sometimes', 'array', 'max:10'],
             'attachment_ids.*' => ['uuid'],
+            'client_temp_id' => ['sometimes', 'nullable', 'uuid'],
         ];
     }
 

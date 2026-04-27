@@ -64,6 +64,7 @@ class DirectMessageSent implements ShouldBroadcast
                 'reply_to_id' => $this->message->reply_to_id,
                 'epoch' => $this->message->epoch,
                 'is_edited' => $this->message->is_edited ?? false,
+                'client_temp_id' => $this->message->client_temp_id,
                 'reactions' => [],
                 'user' => $this->message->user ? [
                     'id' => $this->message->user->id,

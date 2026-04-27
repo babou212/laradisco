@@ -23,6 +23,7 @@ class StoreThreadReplyRequest extends FormRequest
             'mention_everyone' => ['sometimes', 'boolean'],
             'mention_here' => ['sometimes', 'boolean'],
             'thread_name' => ['sometimes', 'string', 'max:100'],
+            'client_temp_id' => ['sometimes', 'nullable', 'uuid'],
         ];
     }
 

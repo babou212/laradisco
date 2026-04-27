@@ -23,10 +23,24 @@ class CreateThreadReplyAction
     ) {}
 
     /**
-     * @param  array{sender_device_id: string|null, message_bytes: string|null, epoch: int, thread_name: string|null, mention_user_ids: array<int>, mention_everyone: bool, mention_here: bool}  $data
+     * @param  array{sender_device_id: string|null, message_bytes: string|null, epoch: int, thread_name: string|null, mention_user_ids: array<int>, mention_everyone: bool, mention_here: bool, client_temp_id?: string|null}  $data
      */
     public function execute(User $user, Channel $channel, Message $parentMessage, array $data): CreateThreadReplyResult
     {
+        $clientTempId = $data['client_temp_id'] ?? null;
+        if ($clientTempId) {
+            $existing = $channel->messages()
+                ->where('user_id', $user->id)
+                ->where('client_temp_id', $clientTempId)
+                ->whereNotNull('thread_id')
+                ->first();
+            if ($existing) {
+                $existing->load(['user:id,username,name,nickname,status,custom_status', 'attachments']);
+
+                return CreateThreadReplyResult::duplicate($existing);
+            }
+        }
+
         $thread = $parentMessage->threadStarted;
 
         if (! $thread) {
@@ -55,11 +69,12 @@ class CreateThreadReplyAction
             return CreateThreadReplyResult::forbidden('This thread is locked.');
         }
 
-        $result = DB::transaction(function () use ($data, $channel, $user, $thread) {
+        $result = DB::transaction(function () use ($data, $channel, $user, $thread, $clientTempId) {
             $reply = $channel->messages()->create([
                 'user_id' => $user->id,
                 'thread_id' => $thread->id,
                 'sender_device_id' => $data['sender_device_id'] ?? null,
+                'client_temp_id' => $clientTempId,
                 'message_bytes' => $data['message_bytes'] ?? null,
                 'epoch' => $data['epoch'],
             ]);

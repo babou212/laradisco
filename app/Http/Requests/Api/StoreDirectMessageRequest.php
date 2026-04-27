@@ -25,6 +25,7 @@ class StoreDirectMessageRequest extends FormRequest
             'epoch' => ['sometimes', 'integer', 'min:0'],
             'attachment_ids' => ['sometimes', 'array', 'max:10'],
             'attachment_ids.*' => ['uuid'],
+            'client_temp_id' => ['sometimes', 'nullable', 'uuid'],
         ];
     }
 }

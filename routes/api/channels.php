@@ -24,6 +24,7 @@ Route::prefix('channels/{channel}')->as('channels.')->scopeBindings()->group(fun
         ->name('show');
 
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
+    Route::get('/messages/head', [MessageController::class, 'head'])->name('messages.head');
     Route::post('/messages', [MessageController::class, 'store'])
         ->middleware(['throttle:api-messages', 'idempotency'])
         ->name('messages.store');

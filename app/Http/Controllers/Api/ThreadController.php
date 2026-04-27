@@ -147,6 +147,7 @@ class ThreadController extends Controller
                 'mention_user_ids' => $request->validated('mention_user_ids', []),
                 'mention_everyone' => $request->validated('mention_everyone', false),
                 'mention_here' => $request->validated('mention_here', false),
+                'client_temp_id' => $request->validated('client_temp_id'),
             ],
         );
 
@@ -157,7 +158,7 @@ class ThreadController extends Controller
         return (new MessageResource($result->reply))
             ->includePreviouslyLoadedRelationships()
             ->response()
-            ->setStatusCode(Response::HTTP_CREATED);
+            ->setStatusCode($result->duplicate ? Response::HTTP_OK : Response::HTTP_CREATED);
     }
 
     /**

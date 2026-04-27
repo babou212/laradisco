@@ -53,10 +53,12 @@ class MessageSent implements ShouldBroadcast
                 'user_id' => $this->message->user_id,
                 'content' => $this->message->message_bytes,
                 'sender_device_id' => $this->message->sender_device_id,
+                'epoch' => $this->message->epoch,
                 'reply_to_id' => $this->message->reply_to_id,
                 'thread_id' => $this->message->thread_id,
                 'is_pinned' => $this->message->is_pinned,
                 'is_edited' => $this->message->is_edited ?? false,
+                'client_temp_id' => $this->message->client_temp_id,
                 'reactions' => [],
                 'user' => $this->message->user ? [
                     'id' => $this->message->user->id,

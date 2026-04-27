@@ -90,6 +90,24 @@ class MessageController extends Controller
             );
         }
 
+        // Local-first delta sync: clients pass since_id to fetch only rows
+        // newer than the largest id they already hold. Returns ASC-ordered
+        // pages so the client can append. Bypasses the latest-page cache
+        // because each delta is request-specific.
+        $sinceId = $request->query('since_id');
+        if ($sinceId !== null) {
+            $messages = QueryBuilder::for(
+                $channel->messages()->whereNull('thread_id')->where('id', '>', (int) $sinceId)
+            )
+                ->allowedIncludes(...$allowedIncludes)
+                ->orderBy('id', 'asc')
+                ->cursorPaginate(50);
+
+            return MessageResource::collection($messages)
+                ->includePreviouslyLoadedRelationships()
+                ->response();
+        }
+
         // Only cache the initial load (no cursor = latest messages)
         $cursor = $request->query('cursor');
         $includes = $request->query('include', '');
@@ -152,10 +170,32 @@ class MessageController extends Controller
 
         $this->authorize('send', [Message::class, $channel]);
 
+        // Idempotent send: if the client supplied a client_temp_id and we
+        // already created a row for it, return that row instead of creating
+        // a duplicate. This handles outbox retries where the original 2xx
+        // response was lost in transit.
+        $clientTempId = $request->validated('client_temp_id');
+        if ($clientTempId) {
+            $existing = $channel->messages()
+                ->where('user_id', $user->id)
+                ->where('client_temp_id', $clientTempId)
+                ->first();
+            if ($existing) {
+                $existing->load(['user:id,username,name,nickname,status,custom_status', 'replyTo.user:id,username,name,nickname,status,custom_status']);
+
+                return (new MessageResource($existing))
+                    ->includePreviouslyLoadedRelationships()
+                    ->response()
+                    ->setStatusCode(Response::HTTP_OK)
+                    ->header('Location', route('api.channels.messages.store', $channel).'/'.$existing->id);
+            }
+        }
+
         $message = $channel->messages()->create([
             'user_id' => $user->id,
             'reply_to_id' => $request->validated('reply_to_id'),
             'sender_device_id' => $request->validated('sender_device_id'),
+            'client_temp_id' => $clientTempId,
             'message_bytes' => $request->validated('message_bytes'),
             'epoch' => $request->validated('epoch', 0),
         ]);
@@ -199,6 +239,30 @@ class MessageController extends Controller
             ->response()
             ->setStatusCode(Response::HTTP_CREATED)
             ->header('Location', route('api.channels.messages.store', $channel).'/'.$message->id);
+    }
+
+    /**
+     * Lightweight head check for local-first sync. Returns the channel's
+     * largest message id and (optionally) how many newer messages exist
+     * past `since_id`. Single indexed MAX/COUNT — cheap enough to call on
+     * every channel open.
+     */
+    public function head(Request $request, Channel $channel): JsonResponse
+    {
+        $this->authorize('viewChannel', [Message::class, $channel]);
+
+        $latestId = $channel->messages()->whereNull('thread_id')->max('id');
+        $sinceId = (int) $request->query('since_id', 0);
+        $countSinceId = $sinceId > 0
+            ? $channel->messages()->whereNull('thread_id')->where('id', '>', $sinceId)->count()
+            : null;
+
+        return response()->json([
+            'data' => [
+                'latest_id' => $latestId,
+                'count_since_id' => $countSinceId,
+            ],
+        ]);
     }
 
     /**

@@ -44,6 +44,8 @@ class ThreadMessageSent implements ShouldBroadcast
                 'thread_id' => $this->message->thread_id,
                 'sender_device_id' => $this->message->sender_device_id,
                 'reply_to_id' => $this->message->reply_to_id,
+                'client_temp_id' => $this->message->client_temp_id,
+                'epoch' => $this->message->epoch,
                 'user' => $this->message->user ? [
                     'id' => $this->message->user->id,
                     'username' => $this->message->user->username,

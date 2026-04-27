@@ -21,11 +21,13 @@ class MessageResource extends JsonApiResource
             'user_id' => $this->user_id,
             'content' => $this->message_bytes,
             'sender_device_id' => $this->sender_device_id,
+            'epoch' => $this->epoch,
             'is_pinned' => $this->is_pinned ?? false,
             'is_edited' => $this->is_edited ?? false,
             'edited_at' => $this->edited_at,
             'reply_to_id' => $this->reply_to_id,
             'thread_id' => $this->thread_id,
+            'client_temp_id' => $this->client_temp_id,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

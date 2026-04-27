@@ -31,6 +31,7 @@ class Message extends Model
         'thread_id',
         'reply_to_id',
         'sender_device_id',
+        'client_temp_id',
         'history_ciphertext',
         'message_bytes',
         'epoch',

@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\DirectMessage;
+use App\Models\Message;
+
 return [
 
     /*
@@ -140,7 +143,7 @@ return [
         'host' => env('MEILISEARCH_HOST', 'http://localhost:7700'),
         'key' => env('MEILISEARCH_KEY'),
         'index-settings' => [
-            \App\Models\Message::class => [
+            Message::class => [
                 'filterableAttributes' => ['channel_id', 'thread_id', 'user_id'],
                 'sortableAttributes' => ['created_at_ts'],
                 'searchableAttributes' => ['content', 'user_username'],
@@ -155,7 +158,7 @@ return [
                     'created_at_ts',
                 ],
             ],
-            \App\Models\DirectMessage::class => [
+            DirectMessage::class => [
                 'filterableAttributes' => ['direct_message_group_id', 'user_id'],
                 'sortableAttributes' => ['created_at_ts'],
                 'searchableAttributes' => ['content', 'user_username'],

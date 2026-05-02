@@ -2,9 +2,11 @@
 
 namespace App\Actions;
 
+use App\Enums\AttachmentStatus;
 use App\Enums\PermissionFlag;
 use App\Events\ThreadMessageSent;
 use App\Events\ThreadUpdated;
+use App\Models\Attachment;
 use App\Models\Channel;
 use App\Models\Message;
 use App\Models\Thread;
@@ -23,7 +25,7 @@ class CreateThreadReplyAction
     ) {}
 
     /**
-     * @param  array{sender_device_id: string|null, message_bytes: string|null, epoch: int, thread_name: string|null, mention_user_ids: array<int>, mention_everyone: bool, mention_here: bool, client_temp_id?: string|null}  $data
+     * @param  array{content: string|null, attachment_ids?: array<string>, thread_name: string|null, mention_user_ids: array<int>, mention_everyone: bool, mention_here: bool, client_temp_id?: string|null}  $data
      */
     public function execute(User $user, Channel $channel, Message $parentMessage, array $data): CreateThreadReplyResult
     {
@@ -73,11 +75,21 @@ class CreateThreadReplyAction
             $reply = $channel->messages()->create([
                 'user_id' => $user->id,
                 'thread_id' => $thread->id,
-                'sender_device_id' => $data['sender_device_id'] ?? null,
                 'client_temp_id' => $clientTempId,
-                'message_bytes' => $data['message_bytes'] ?? null,
-                'epoch' => $data['epoch'],
+                'content' => $data['content'] ?? null,
             ]);
+
+            $attachmentIds = $data['attachment_ids'] ?? [];
+            if (! empty($attachmentIds)) {
+                Attachment::where('user_id', $user->id)
+                    ->where('status', AttachmentStatus::Attached)
+                    ->whereNull('attachable_type')
+                    ->whereIn('id', $attachmentIds)
+                    ->update([
+                        'attachable_type' => Message::class,
+                        'attachable_id' => $reply->id,
+                    ]);
+            }
 
             $thread->increment('message_count');
             $thread->update(['last_message_at' => now()]);

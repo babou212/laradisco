@@ -60,10 +60,6 @@ Route::prefix('v1')->group(function () {
         Route::get('/mentions/search', [MentionController::class, 'search'])->name('api.mentions.search');
 
         Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('api.attachments.download');
-
-        Route::prefix('e2ee')->as('api.e2ee.')->group(
-            base_path('routes/api/e2ee.php'),
-        );
     });
 
 });

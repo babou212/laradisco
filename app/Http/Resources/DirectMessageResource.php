@@ -19,9 +19,7 @@ class DirectMessageResource extends JsonApiResource
         return [
             'dm_group_id' => $this->dm_group_id ?? $this->direct_message_group_id,
             'user_id' => $this->user_id,
-            'content' => $this->message_bytes,
-            'sender_device_id' => $this->sender_device_id,
-            'epoch' => $this->epoch,
+            'content' => $this->content,
             'reply_to_id' => $this->reply_to_id,
             'is_pinned' => $this->is_pinned ?? false,
             'is_edited' => $this->is_edited ?? false,
@@ -43,7 +41,7 @@ class DirectMessageResource extends JsonApiResource
             'user' => UserSummaryResource::class,
             'replyTo' => self::class,
             'reactions' => ReactionResource::class,
-            'encryptedAttachments' => EncryptedAttachmentResource::class,
+            'attachments' => AttachmentResource::class,
         ];
     }
 }

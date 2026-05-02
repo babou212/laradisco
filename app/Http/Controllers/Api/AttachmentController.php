@@ -5,10 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Concerns\ApiResponse;
 use App\Enums\AttachmentStatus;
 use App\Http\Controllers\Controller;
+use App\Models\Attachment;
 use App\Models\Channel;
 use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
-use App\Models\EncryptedAttachment;
 use App\Models\Message;
 use App\Models\User;
 use App\Services\PermissionService;
@@ -65,7 +65,7 @@ class AttachmentController extends Controller
     /**
      * Generate signed download URLs for an attachment.
      */
-    public function download(Request $request, EncryptedAttachment $attachment): JsonResponse
+    public function download(Request $request, Attachment $attachment): JsonResponse
     {
         $user = $request->user();
 
@@ -99,7 +99,7 @@ class AttachmentController extends Controller
     /**
      * Serve an attachment file via signed URL.
      */
-    public function serveFile(Request $request, EncryptedAttachment $attachment): Response
+    public function serveFile(Request $request, Attachment $attachment): Response
     {
         if (! $request->hasValidSignature()) {
             abort(403, 'Invalid or expired URL.');
@@ -119,11 +119,15 @@ class AttachmentController extends Controller
         }
 
         $fileSize = $disk->size($path);
+        $mime = $type === 'thumb' ? 'image/jpeg' : ($attachment->mime_type ?: 'application/octet-stream');
+        $disposition = $type === 'thumb'
+            ? 'inline'
+            : 'attachment; filename="'.addslashes($attachment->file_name).'"';
 
         $headers = [
-            'Content-Type' => 'application/octet-stream',
+            'Content-Type' => $mime,
             'Content-Length' => $fileSize,
-            'Content-Disposition' => 'attachment',
+            'Content-Disposition' => $disposition,
             'Cache-Control' => 'private, no-store',
             'X-Content-Type-Options' => 'nosniff',
         ];
@@ -151,6 +155,8 @@ class AttachmentController extends Controller
         $request->validate([
             'file' => ['required', 'file', 'max:'.(self::MAX_FILE_SIZE / 1024)],
             'thumbnail' => ['sometimes', 'file', 'max:5120'],
+            'width' => ['sometimes', 'integer', 'min:0'],
+            'height' => ['sometimes', 'integer', 'min:0'],
         ]);
 
         $attachmentId = Str::uuid()->toString();
@@ -160,9 +166,11 @@ class AttachmentController extends Controller
 
         $disk = Storage::disk('attachments');
 
+        $uploadedFile = $request->file('file');
+
         $disk->putFileAs(
             $directory,
-            $request->file('file'),
+            $uploadedFile,
             'file',
         );
 
@@ -175,19 +183,23 @@ class AttachmentController extends Controller
             );
         }
 
-        $attachment = EncryptedAttachment::create([
+        $attachment = Attachment::create([
             'id' => $attachmentId,
             'user_id' => $user->id,
             'storage_path' => $storagePath,
-            'encrypted_size' => $disk->size($storagePath),
+            'file_name' => $uploadedFile->getClientOriginalName(),
+            'mime_type' => $uploadedFile->getMimeType() ?? 'application/octet-stream',
+            'size' => $disk->size($storagePath),
             'thumbnail_path' => $thumbnailPath,
             'thumbnail_size' => $thumbnailPath ? $disk->size($thumbnailPath) : null,
+            'width' => $request->input('width'),
+            'height' => $request->input('height'),
             'status' => AttachmentStatus::Attached,
         ]);
 
         return $this->successResponse([
             'attachment_id' => $attachment->id,
-            'encrypted_size' => $attachment->encrypted_size,
+            'size' => $attachment->size,
             'thumbnail_size' => $attachment->thumbnail_size,
         ]);
     }
@@ -195,7 +207,7 @@ class AttachmentController extends Controller
     /**
      * Check if the user has access to the attachment through the associated message's channel or DM group.
      */
-    private function userCanAccessAttachment(User $user, EncryptedAttachment $attachment): bool
+    private function userCanAccessAttachment(User $user, Attachment $attachment): bool
     {
         $attachable = $attachment->attachable;
 

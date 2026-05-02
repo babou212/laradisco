@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Laravel\Scout\Searchable;
 
 /**
  * @property Carbon|null $edited_at
@@ -19,7 +20,7 @@ use Illuminate\Support\Carbon;
 class DirectMessage extends Model
 {
     /** @use HasFactory<DirectMessageFactory> */
-    use ClearsCaches, HasFactory, SoftDeletes;
+    use ClearsCaches, HasFactory, Searchable, SoftDeletes;
 
     /**
      * @var list<string>
@@ -28,11 +29,8 @@ class DirectMessage extends Model
         'direct_message_group_id',
         'user_id',
         'reply_to_id',
-        'sender_device_id',
         'client_temp_id',
-        'history_ciphertext',
-        'message_bytes',
-        'epoch',
+        'content',
         'is_pinned',
         'is_edited',
         'edited_at',
@@ -47,7 +45,6 @@ class DirectMessage extends Model
             'is_pinned' => 'boolean',
             'is_edited' => 'boolean',
             'edited_at' => 'datetime',
-            'epoch' => 'integer',
         ];
     }
 
@@ -84,11 +81,39 @@ class DirectMessage extends Model
     }
 
     /**
-     * @return MorphMany<EncryptedAttachment, $this>
+     * @return MorphMany<Attachment, $this>
      */
-    public function encryptedAttachments(): MorphMany
+    public function attachments(): MorphMany
     {
-        return $this->morphMany(EncryptedAttachment::class, 'attachable');
+        return $this->morphMany(Attachment::class, 'attachable');
+    }
+
+    public function searchableAs(): string
+    {
+        return 'direct_messages';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        $this->loadMissing('user');
+
+        return [
+            'id' => (string) $this->id,
+            'content' => (string) $this->content,
+            'user_id' => (int) $this->user_id,
+            'user_username' => (string) ($this->user?->username ?? ''),
+            'direct_message_group_id' => (int) $this->direct_message_group_id,
+            'created_at_ts' => $this->created_at?->timestamp ?? 0,
+            'created_at' => $this->created_at?->toIso8601String(),
+        ];
+    }
+
+    public function shouldBeSearchable(): bool
+    {
+        return $this->deleted_at === null && trim((string) $this->content) !== '';
     }
 
     /**

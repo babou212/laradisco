@@ -83,21 +83,6 @@ class CacheKeys
         return 'roles.list_with_counts';
     }
 
-    public static function e2eeAuditLatest(int $userId): string
-    {
-        return "e2ee.user.{$userId}.audit_latest";
-    }
-
-    public static function e2eeKeyPackageCount(string $deviceId): string
-    {
-        return "e2ee.device.{$deviceId}.key_package_count";
-    }
-
-    public static function e2eeMlsGroups(int $userId): string
-    {
-        return "e2ee.user.{$userId}.mls_groups";
-    }
-
     public static function channelDetails(int $userId, int $channelId): string
     {
         return "user.{$userId}.channel.{$channelId}.details";

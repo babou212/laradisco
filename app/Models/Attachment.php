@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Enums\AttachmentStatus;
+use Database\Factories\AttachmentFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -12,14 +14,19 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property AttachmentStatus $status
  * @property string|null $storage_path
  * @property string|null $thumbnail_path
- * @property int|null $encrypted_size
+ * @property string $file_name
+ * @property string $mime_type
+ * @property int $size
  * @property int|null $thumbnail_size
+ * @property int|null $width
+ * @property int|null $height
  * @property string|null $attachable_type
  * @property int|string|null $attachable_id
  */
-class EncryptedAttachment extends Model
+class Attachment extends Model
 {
-    use HasUuids;
+    /** @use HasFactory<AttachmentFactory> */
+    use HasFactory, HasUuids;
 
     /**
      * @var list<string>
@@ -30,9 +37,13 @@ class EncryptedAttachment extends Model
         'attachable_type',
         'attachable_id',
         'storage_path',
-        'encrypted_size',
+        'file_name',
+        'mime_type',
+        'size',
         'thumbnail_path',
         'thumbnail_size',
+        'width',
+        'height',
         'status',
         'expires_at',
     ];
@@ -44,10 +55,17 @@ class EncryptedAttachment extends Model
     {
         return [
             'status' => AttachmentStatus::class,
-            'encrypted_size' => 'integer',
+            'size' => 'integer',
             'thumbnail_size' => 'integer',
+            'width' => 'integer',
+            'height' => 'integer',
             'expires_at' => 'datetime',
         ];
+    }
+
+    public function isImage(): bool
+    {
+        return str_starts_with($this->mime_type, 'image/');
     }
 
     /**

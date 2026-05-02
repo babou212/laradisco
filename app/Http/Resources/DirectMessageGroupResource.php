@@ -41,7 +41,7 @@ class DirectMessageGroupResource extends JsonApiResource
                 'id' => $lastMessage->id,
                 'created_at' => $lastMessage->created_at,
                 'user_id' => $lastMessage->user_id,
-                'sender_device_id' => $lastMessage->sender_device_id,
+                'content' => $lastMessage->content,
             ] : null,
             'last_message_at' => $this->last_message_at,
             'created_at' => $this->created_at,

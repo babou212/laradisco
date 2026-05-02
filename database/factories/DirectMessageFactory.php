@@ -22,7 +22,7 @@ class DirectMessageFactory extends Factory
         return [
             'direct_message_group_id' => DirectMessageGroup::factory(),
             'user_id' => User::factory(),
-            'message_bytes' => fake()->paragraph(),
+            'content' => fake()->paragraph(),
             'is_edited' => false,
             'edited_at' => null,
         ];

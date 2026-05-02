@@ -2,9 +2,9 @@
 
 namespace Tests\Feature\Models;
 
+use App\Models\Attachment;
 use App\Models\Channel;
 use App\Models\Message;
-use App\Models\MessageAttachment;
 use App\Models\MessageReaction;
 use App\Models\Thread;
 use App\Models\User;
@@ -50,7 +50,10 @@ class MessageModelTest extends TestCase
     public function test_message_has_attachments(): void
     {
         $message = Message::factory()->create();
-        MessageAttachment::factory()->for($message)->create();
+        Attachment::factory()->create([
+            'attachable_type' => Message::class,
+            'attachable_id' => $message->id,
+        ]);
 
         $this->assertCount(1, $message->attachments);
     }
@@ -104,8 +107,8 @@ class MessageModelTest extends TestCase
 
     public function test_attachment_is_image_method(): void
     {
-        $imageAttachment = MessageAttachment::factory()->create(['mime_type' => 'image/png']);
-        $docAttachment = MessageAttachment::factory()->document()->create();
+        $imageAttachment = Attachment::factory()->create(['mime_type' => 'image/png']);
+        $docAttachment = Attachment::factory()->document()->create();
 
         $this->assertTrue($imageAttachment->isImage());
         $this->assertFalse($docAttachment->isImage());

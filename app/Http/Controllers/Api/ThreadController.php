@@ -105,7 +105,7 @@ class ThreadController extends Controller
         $messages = QueryBuilder::for(
             $thread->messages()
         )
-            ->allowedIncludes('user', 'reactions', 'encryptedAttachments')
+            ->allowedIncludes('user', 'reactions', 'attachments')
             ->allowedSorts('created_at')
             ->defaultSort('created_at')
             ->cursorPaginate(50);
@@ -140,9 +140,8 @@ class ThreadController extends Controller
             $channel,
             $message,
             [
-                'sender_device_id' => $request->validated('sender_device_id'),
-                'message_bytes' => $request->validated('message_bytes'),
-                'epoch' => $request->validated('epoch', 0),
+                'content' => $request->validated('content'),
+                'attachment_ids' => $request->validated('attachment_ids', []),
                 'thread_name' => $request->validated('thread_name', 'Thread'),
                 'mention_user_ids' => $request->validated('mention_user_ids', []),
                 'mention_everyone' => $request->validated('mention_everyone', false),
@@ -179,9 +178,7 @@ class ThreadController extends Controller
         }
 
         $message->update([
-            'sender_device_id' => $request->validated('sender_device_id', $message->sender_device_id),
-            'message_bytes' => $request->validated('message_bytes', $message->message_bytes),
-            'epoch' => $request->validated('epoch', $message->epoch),
+            'content' => $request->validated('content', $message->content),
             'is_edited' => true,
             'edited_at' => now(),
         ]);
@@ -224,7 +221,7 @@ class ThreadController extends Controller
         $messageId = $message->id;
         $messageUserId = $message->user_id;
 
-        $message->update(['history_ciphertext' => null, 'message_bytes' => null]);
+        $message->update(['content' => null]);
         $message->delete();
 
         if (! $isOwner) {

@@ -20,8 +20,10 @@
         "laravel/octane": "^2.13",
         "laravel/reverb": "^1.7",
         "laravel/sanctum": "^4.3",
+        "laravel/scout": "^11.1",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.9",
+        "meilisearch/meilisearch-php": "^1.16",
         "spatie/laravel-medialibrary": "^11.21",
         "spatie/laravel-permission": "^7.3",
         "spatie/laravel-query-builder": "^7.0"

@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Enums\AttachmentStatus;
-use App\Models\EncryptedAttachment;
+use App\Models\Attachment;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 
@@ -15,7 +15,7 @@ class CleanOrphanedAttachments extends Command
 
     public function handle(): int
     {
-        $orphaned = EncryptedAttachment::where('status', AttachmentStatus::Pending)
+        $orphaned = Attachment::where('status', AttachmentStatus::Pending)
             ->where('expires_at', '<', now())
             ->limit(100)
             ->get();

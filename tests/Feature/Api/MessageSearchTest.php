@@ -115,7 +115,7 @@ class MessageSearchTest extends TestCase
         );
 
         $response->assertStatus(422);
-        $response->assertJsonValidationErrors('q');
+        $response->assertJsonPath('errors.0.source.pointer', '/data/attributes/q');
     }
 
     public function test_search_unauthenticated_returns_401(): void

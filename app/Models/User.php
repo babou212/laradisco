@@ -8,10 +8,8 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\URL;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\MediaLibrary\HasMedia;
@@ -26,6 +24,18 @@ class User extends Authenticatable implements HasMedia
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, InteractsWithMedia, Notifiable, TwoFactorAuthenticatable {
         HasRoles::hasPermissionTo as protected spatieHasPermissionTo;
+        HasRoles::roles as protected spatieRoles;
+    }
+
+    /**
+     * Narrow Spatie HasRoles' generic-less return type so static analysis
+     * sees `Role` (not `Model`) when iterating `$user->roles`.
+     *
+     * @return BelongsToMany<Role, $this>
+     */
+    public function roles(): BelongsToMany
+    {
+        return $this->spatieRoles();
     }
 
     /**
@@ -117,38 +127,6 @@ class User extends Authenticatable implements HasMedia
     public function reactions(): HasMany
     {
         return $this->hasMany(MessageReaction::class);
-    }
-
-    /**
-     * @return HasOne<UserIdentityKey, $this>
-     */
-    public function identityKey(): HasOne
-    {
-        return $this->hasOne(UserIdentityKey::class);
-    }
-
-    /**
-     * @return HasMany<UserDevice, $this>
-     */
-    public function devices(): HasMany
-    {
-        return $this->hasMany(UserDevice::class);
-    }
-
-    /**
-     * @return HasMany<UserDevice, $this>
-     */
-    public function activeDevices(): HasMany
-    {
-        return $this->devices()->where('is_active', true);
-    }
-
-    /**
-     * Check if the user has E2EE set up.
-     */
-    public function hasE2eeSetup(): bool
-    {
-        return $this->identityKey()->exists();
     }
 
     /**
@@ -250,24 +228,27 @@ class User extends Authenticatable implements HasMedia
         $this->addMediaCollection('avatar')
             ->singleFile()
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+
+        $this->addMediaCollection('pending_attachments');
     }
 
     public function registerMediaConversions(?Media $media = null): void
     {
+        if ($media?->collection_name !== 'avatar') {
+            return;
+        }
+
         $this->addMediaConversion('thumb')
-            ->nonQueued()
             ->width(64)
             ->height(64)
             ->sharpen(10);
 
         $this->addMediaConversion('small')
-            ->nonQueued()
             ->width(128)
             ->height(128)
             ->sharpen(10);
 
         $this->addMediaConversion('medium')
-            ->nonQueued()
             ->width(256)
             ->height(256);
     }
@@ -275,7 +256,7 @@ class User extends Authenticatable implements HasMedia
     /**
      * Get avatar URLs from Spatie Media Library.
      *
-     * @return array{thumb: string, small: string, medium: string, original: string}|null
+     * @return array{thumb: string|null, small: string|null, medium: string|null, original: string}|null
      */
     public function getAvatarUrlsAttribute(): ?array
     {
@@ -285,13 +266,13 @@ class User extends Authenticatable implements HasMedia
             return null;
         }
 
-        $expiration = now()->addHours(24);
+        $expiration = now()->addMinutes(15);
 
         return [
-            'thumb' => URL::signedRoute('api.media.serve', ['media' => $media->id, 'conversion' => 'thumb'], $expiration),
-            'small' => URL::signedRoute('api.media.serve', ['media' => $media->id, 'conversion' => 'small'], $expiration),
-            'medium' => URL::signedRoute('api.media.serve', ['media' => $media->id, 'conversion' => 'medium'], $expiration),
-            'original' => URL::signedRoute('api.media.serve', ['media' => $media->id], $expiration),
+            'thumb' => $media->hasGeneratedConversion('thumb') ? $media->getTemporaryUrl($expiration, 'thumb') : null,
+            'small' => $media->hasGeneratedConversion('small') ? $media->getTemporaryUrl($expiration, 'small') : null,
+            'medium' => $media->hasGeneratedConversion('medium') ? $media->getTemporaryUrl($expiration, 'medium') : null,
+            'original' => $media->getTemporaryUrl($expiration),
         ];
     }
 }

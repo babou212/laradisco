@@ -2,40 +2,45 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\AttachmentStatus;
-use App\Models\EncryptedAttachment;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Carbon;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class CleanOrphanedAttachments extends Command
 {
     protected $signature = 'attachments:clean-orphaned';
 
-    protected $description = 'Delete expired pending attachments and their stored files';
+    protected $description = 'Delete expired pending attachment media and their stored files';
 
     public function handle(): int
     {
-        $orphaned = EncryptedAttachment::where('status', AttachmentStatus::Pending)
-            ->where('expires_at', '<', now())
-            ->limit(100)
+        $candidates = Media::query()
+            ->where('collection_name', 'pending_attachments')
+            ->limit(500)
             ->get();
 
-        if ($orphaned->isEmpty()) {
+        $now = now();
+        $deleted = 0;
+
+        foreach ($candidates as $media) {
+            $expiresAt = $media->getCustomProperty('expires_at');
+
+            if (! is_string($expiresAt)) {
+                continue;
+            }
+
+            if (Carbon::parse($expiresAt)->greaterThan($now)) {
+                continue;
+            }
+
+            $media->delete();
+            $deleted++;
+        }
+
+        if ($deleted === 0) {
             $this->info('No orphaned attachments to clean up.');
 
             return self::SUCCESS;
-        }
-
-        $disk = Storage::disk('attachments');
-        $deleted = 0;
-
-        foreach ($orphaned as $attachment) {
-            $paths = array_filter([$attachment->storage_path, $attachment->thumbnail_path]);
-            foreach ($paths as $path) {
-                $disk->delete($path);
-            }
-            $attachment->delete();
-            $deleted++;
         }
 
         $this->info("Cleaned up {$deleted} orphaned attachment(s).");

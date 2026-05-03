@@ -39,7 +39,7 @@ class ThreadMessageEdited implements ShouldBroadcast
                 'channel_id' => $this->message->channel_id,
                 'user_id' => $this->message->user_id,
                 'thread_id' => $this->message->thread_id,
-                'sender_device_id' => $this->message->sender_device_id,
+                'content' => $this->message->content,
                 'is_edited' => $this->message->is_edited,
                 'edited_at' => $this->message->edited_at?->toISOString(),
                 'created_at' => $this->message->created_at?->toISOString(),

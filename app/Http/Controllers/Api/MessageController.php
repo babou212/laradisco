@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Concerns\ApiResponse;
-use App\Enums\AttachmentStatus;
 use App\Enums\ModerationAction;
 use App\Enums\PermissionFlag;
 use App\Events\ChannelActivity;
@@ -12,17 +11,18 @@ use App\Events\MessageEdited;
 use App\Events\MessageSent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\CursorPaginateRequest;
+use App\Http\Requests\Api\SearchMessagesRequest;
 use App\Http\Requests\Api\StoreChannelMessageRequest;
 use App\Http\Requests\Api\UpdateChannelMessageRequest;
 use App\Http\Resources\MessageResource;
 use App\Models\Channel;
-use App\Models\EncryptedAttachment;
 use App\Models\Message;
 use App\Services\MentionService;
 use App\Services\MessageWindowService;
 use App\Services\ModerationAuditService;
 use App\Services\PermissionService;
 use App\Support\CacheKeys;
+use App\Support\Media\AttachmentRebinder;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
@@ -41,6 +41,7 @@ class MessageController extends Controller
         private readonly PermissionService $permissionService,
         private readonly ModerationAuditService $auditService,
         private readonly MessageWindowService $windowService,
+        private readonly AttachmentRebinder $attachmentRebinder,
     ) {}
 
     /**
@@ -54,7 +55,7 @@ class MessageController extends Controller
 
         $allowedIncludes = [
             'user',
-            'encryptedAttachments',
+            'attachments',
             'reactions',
             'replyTo',
             'replyTo.user',
@@ -194,23 +195,11 @@ class MessageController extends Controller
         $message = $channel->messages()->create([
             'user_id' => $user->id,
             'reply_to_id' => $request->validated('reply_to_id'),
-            'sender_device_id' => $request->validated('sender_device_id'),
             'client_temp_id' => $clientTempId,
-            'message_bytes' => $request->validated('message_bytes'),
-            'epoch' => $request->validated('epoch', 0),
+            'content' => $request->validated('content'),
         ]);
 
-        $attachmentIds = $request->validated('attachment_ids', []);
-        if (! empty($attachmentIds)) {
-            EncryptedAttachment::where('user_id', $user->id)
-                ->where('status', AttachmentStatus::Attached)
-                ->whereNull('attachable_type')
-                ->whereIn('id', $attachmentIds)
-                ->update([
-                    'attachable_type' => Message::class,
-                    'attachable_id' => $message->id,
-                ]);
-        }
+        $this->attachmentRebinder->rebind($user, $message, $request->validated('attachment_ids', []));
 
         $message->load(['user:id,username,name,nickname,status,custom_status', 'replyTo.user:id,username,name,nickname,status,custom_status']);
 
@@ -266,6 +255,28 @@ class MessageController extends Controller
     }
 
     /**
+     * Full-text search messages within a channel.
+     */
+    public function search(SearchMessagesRequest $request, Channel $channel): JsonResponse
+    {
+        $this->authorize('viewChannel', [Message::class, $channel]);
+
+        $query = (string) $request->validated('q');
+        $perPage = (int) $request->validated('per_page', 30);
+
+        $paginator = Message::search($query)
+            ->where('channel_id', $channel->id)
+            ->paginate($perPage);
+
+        Message::query()->getModel()->newCollection($paginator->items())
+            ->loadMissing(['user:id,username,name,nickname,status,custom_status', 'attachments']);
+
+        return MessageResource::collection($paginator)
+            ->additional(['meta' => ['query' => $query]])
+            ->response();
+    }
+
+    /**
      * Mark a channel as read for the authenticated user.
      */
     public function markRead(Request $request, Channel $channel): JsonResponse|Response
@@ -295,9 +306,7 @@ class MessageController extends Controller
         $this->authorize('update', $message);
 
         $message->update([
-            'sender_device_id' => $request->validated('sender_device_id', $message->sender_device_id),
-            'message_bytes' => $request->validated('message_bytes', $message->message_bytes),
-            'epoch' => $request->validated('epoch', $message->epoch),
+            'content' => $request->validated('content', $message->content),
             'is_edited' => true,
             'edited_at' => now(),
         ]);
@@ -329,7 +338,7 @@ class MessageController extends Controller
         $messageId = $message->id;
         $messageUserId = $message->user_id;
 
-        $message->update(['history_ciphertext' => null, 'message_bytes' => null]);
+        $message->update(['content' => null]);
         $message->delete();
 
         if (! $isOwner && $canManage) {

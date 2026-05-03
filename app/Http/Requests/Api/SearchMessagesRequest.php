@@ -4,7 +4,7 @@ namespace App\Http\Requests\Api;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateDirectMessageRequest extends FormRequest
+class SearchMessagesRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -15,7 +15,8 @@ class UpdateDirectMessageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'content' => ['required', 'string', 'max:65535'],
+            'q' => ['required', 'string', 'min:1', 'max:200'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ];
     }
 }

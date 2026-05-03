@@ -18,7 +18,7 @@ class ThreadMessageSent implements ShouldBroadcast
 
     public function __construct(public Message $message)
     {
-        $this->message->load('user');
+        $this->message->load(['user', 'attachments']);
     }
 
     /**
@@ -42,10 +42,16 @@ class ThreadMessageSent implements ShouldBroadcast
                 'channel_id' => $this->message->channel_id,
                 'user_id' => $this->message->user_id,
                 'thread_id' => $this->message->thread_id,
-                'sender_device_id' => $this->message->sender_device_id,
+                'content' => $this->message->content,
                 'reply_to_id' => $this->message->reply_to_id,
                 'client_temp_id' => $this->message->client_temp_id,
-                'epoch' => $this->message->epoch,
+                'attachments' => $this->message->attachments->map(fn ($a) => [
+                    'id' => $a->uuid,
+                    'file_name' => $a->file_name,
+                    'mime_type' => $a->mime_type,
+                    'size' => $a->size,
+                    'has_thumbnail' => $a->hasGeneratedConversion('thumb'),
+                ])->all(),
                 'user' => $this->message->user ? [
                     'id' => $this->message->user->id,
                     'username' => $this->message->user->username,

@@ -13,14 +13,19 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Laravel\Scout\Searchable;
+use Spatie\Image\Enums\Fit;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * @property Carbon|null $edited_at
  */
-class Message extends Model
+class Message extends Model implements HasMedia
 {
     /** @use HasFactory<MessageFactory> */
-    use ClearsCaches, HasFactory, SoftDeletes;
+    use ClearsCaches, HasFactory, InteractsWithMedia, Searchable, SoftDeletes;
 
     /**
      * @var list<string>
@@ -30,11 +35,8 @@ class Message extends Model
         'user_id',
         'thread_id',
         'reply_to_id',
-        'sender_device_id',
         'client_temp_id',
-        'history_ciphertext',
-        'message_bytes',
-        'epoch',
+        'content',
         'is_pinned',
         'is_edited',
         'edited_at',
@@ -49,7 +51,6 @@ class Message extends Model
             'is_pinned' => 'boolean',
             'is_edited' => 'boolean',
             'edited_at' => 'datetime',
-            'epoch' => 'integer',
         ];
     }
 
@@ -86,19 +87,27 @@ class Message extends Model
     }
 
     /**
-     * @return HasMany<MessageAttachment, $this>
+     * @return MorphMany<Media, $this>
      */
-    public function attachments(): HasMany
+    public function attachments(): MorphMany
     {
-        return $this->hasMany(MessageAttachment::class);
+        return $this->media()->where('collection_name', 'attachments');
     }
 
-    /**
-     * @return MorphMany<EncryptedAttachment, $this>
-     */
-    public function encryptedAttachments(): MorphMany
+    public function registerMediaCollections(): void
     {
-        return $this->morphMany(EncryptedAttachment::class, 'attachable');
+        $this->addMediaCollection('attachments');
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        if ($media?->collection_name !== 'attachments') {
+            return;
+        }
+
+        $this->addMediaConversion('thumb')
+            ->nonOptimized()
+            ->fit(Fit::Max, 320, 320);
     }
 
     /**
@@ -125,6 +134,35 @@ class Message extends Model
     public function threadStarted(): HasOne
     {
         return $this->hasOne(Thread::class, 'message_id');
+    }
+
+    public function searchableAs(): string
+    {
+        return 'messages';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        $this->loadMissing('user');
+
+        return [
+            'id' => (string) $this->id,
+            'content' => (string) $this->content,
+            'user_id' => (int) $this->user_id,
+            'user_username' => (string) ($this->user->username ?? ''),
+            'channel_id' => (int) $this->channel_id,
+            'thread_id' => $this->thread_id !== null ? (int) $this->thread_id : null,
+            'created_at_ts' => $this->created_at->timestamp ?? 0,
+            'created_at' => $this->created_at?->toIso8601String(),
+        ];
+    }
+
+    public function shouldBeSearchable(): bool
+    {
+        return $this->deleted_at === null && trim((string) $this->content) !== '';
     }
 
     /**

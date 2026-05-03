@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Concerns\ApiResponse;
-use App\Enums\AttachmentStatus;
 use App\Events\DirectMessageDeleted;
 use App\Events\DirectMessageEdited;
 use App\Events\DirectMessageSent;
@@ -11,16 +10,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\CreateDirectMessageGroupRequest;
 use App\Http\Requests\Api\CursorPaginateRequest;
 use App\Http\Requests\Api\FindDirectMessageGroupRequest;
+use App\Http\Requests\Api\SearchMessagesRequest;
 use App\Http\Requests\Api\StoreDirectMessageRequest;
 use App\Http\Requests\Api\UpdateDirectMessageRequest;
 use App\Http\Resources\DirectMessageGroupResource;
 use App\Http\Resources\DirectMessageResource;
 use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
-use App\Models\EncryptedAttachment;
 use App\Notifications\DirectMessageNotification;
 use App\Services\MessageWindowService;
 use App\Support\CacheKeys;
+use App\Support\Media\AttachmentRebinder;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
@@ -36,6 +36,7 @@ class DirectMessageController extends Controller
 
     public function __construct(
         private readonly MessageWindowService $windowService,
+        private readonly AttachmentRebinder $attachmentRebinder,
     ) {}
 
     /**
@@ -84,7 +85,7 @@ class DirectMessageController extends Controller
             return $this->forbiddenResponse();
         }
 
-        $allowedIncludes = ['user', 'reactions', 'replyTo', 'replyTo.user', 'encryptedAttachments'];
+        $allowedIncludes = ['user', 'reactions', 'replyTo', 'replyTo.user', 'attachments'];
 
         $dmGroupMeta = [
             'dm_group' => (new DirectMessageGroupResource(
@@ -199,23 +200,11 @@ class DirectMessageController extends Controller
         $message = $dmGroup->messages()->create([
             'user_id' => $user->id,
             'reply_to_id' => $request->validated('reply_to_id'),
-            'sender_device_id' => $request->validated('sender_device_id'),
             'client_temp_id' => $clientTempId,
-            'message_bytes' => $request->validated('message_bytes'),
-            'epoch' => $request->validated('epoch', 0),
+            'content' => $request->validated('content'),
         ]);
 
-        $attachmentIds = $request->validated('attachment_ids', []);
-        if (! empty($attachmentIds)) {
-            EncryptedAttachment::where('user_id', $user->id)
-                ->where('status', AttachmentStatus::Attached)
-                ->whereNull('attachable_type')
-                ->whereIn('id', $attachmentIds)
-                ->update([
-                    'attachable_type' => DirectMessage::class,
-                    'attachable_id' => $message->id,
-                ]);
-        }
+        $this->attachmentRebinder->rebind($user, $message, $request->validated('attachment_ids', []));
 
         $dmGroup->update(['last_message_at' => now()]);
 
@@ -245,6 +234,31 @@ class DirectMessageController extends Controller
             ->response()
             ->setStatusCode(Response::HTTP_CREATED)
             ->header('Location', route('api.direct-messages.show', $dmGroup));
+    }
+
+    /**
+     * Full-text search messages within a DM group.
+     */
+    public function search(SearchMessagesRequest $request, DirectMessageGroup $dmGroup): JsonResponse
+    {
+        $user = $request->user();
+        if (! $dmGroup->participants()->where('users.id', $user->id)->exists()) {
+            return $this->forbiddenResponse();
+        }
+
+        $query = (string) $request->validated('q');
+        $perPage = (int) $request->validated('per_page', 30);
+
+        $paginator = DirectMessage::search($query)
+            ->where('direct_message_group_id', $dmGroup->id)
+            ->paginate($perPage);
+
+        DirectMessage::query()->getModel()->newCollection($paginator->items())
+            ->loadMissing(['user:id,username,name,nickname,status,custom_status', 'attachments']);
+
+        return DirectMessageResource::collection($paginator)
+            ->additional(['meta' => ['query' => $query]])
+            ->response();
     }
 
     /**
@@ -292,9 +306,7 @@ class DirectMessageController extends Controller
         }
 
         $message->update([
-            'sender_device_id' => $request->validated('sender_device_id', $message->sender_device_id),
-            'message_bytes' => $request->validated('message_bytes', $message->message_bytes),
-            'epoch' => $request->validated('epoch', $message->epoch),
+            'content' => $request->validated('content', $message->content),
             'is_edited' => true,
             'edited_at' => now(),
         ]);
@@ -328,7 +340,7 @@ class DirectMessageController extends Controller
 
         $messageId = $message->id;
 
-        $message->update(['history_ciphertext' => null, 'message_bytes' => null]);
+        $message->update(['content' => null]);
         $message->delete();
 
         Cache::tags([CacheKeys::dmGroupMessagesTag($dmGroup->id)])->flush();

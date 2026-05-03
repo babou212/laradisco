@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api;
 
 use App\Models\DirectMessageGroup;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreDirectMessageRequest extends FormRequest
@@ -20,12 +21,21 @@ class StoreDirectMessageRequest extends FormRequest
     {
         return [
             'reply_to_id' => ['nullable', 'integer', 'exists:direct_messages,id'],
-            'sender_device_id' => ['required', 'string', 'uuid'],
-            'message_bytes' => ['required', 'string', 'max:65535'],
-            'epoch' => ['sometimes', 'integer', 'min:0'],
+            'content' => ['nullable', 'string', 'max:65535'],
             'attachment_ids' => ['sometimes', 'array', 'max:10'],
             'attachment_ids.*' => ['uuid'],
             'client_temp_id' => ['sometimes', 'nullable', 'uuid'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $v) {
+            $content = trim((string) $this->input('content', ''));
+            $attachments = (array) $this->input('attachment_ids', []);
+            if ($content === '' && count($attachments) === 0) {
+                $v->errors()->add('content', 'Either content or attachment_ids is required.');
+            }
+        });
     }
 }

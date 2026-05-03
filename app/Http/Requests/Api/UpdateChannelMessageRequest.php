@@ -15,9 +15,7 @@ class UpdateChannelMessageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'sender_device_id' => ['nullable', 'string', 'uuid'],
-            'message_bytes' => ['nullable', 'string', 'max:65535'],
-            'epoch' => ['sometimes', 'integer', 'min:0'],
+            'content' => ['required', 'string', 'max:65535'],
         ];
     }
 }

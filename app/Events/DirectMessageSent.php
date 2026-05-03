@@ -24,7 +24,7 @@ class DirectMessageSent implements ShouldBroadcast
      */
     public function __construct(public DirectMessage $message)
     {
-        $this->message->load('user');
+        $this->message->load(['user', 'attachments']);
     }
 
     /**
@@ -59,13 +59,18 @@ class DirectMessageSent implements ShouldBroadcast
                 'id' => $this->message->id,
                 'dm_group_id' => $this->message->direct_message_group_id,
                 'user_id' => $this->message->user_id,
-                'content' => $this->message->message_bytes,
-                'sender_device_id' => $this->message->sender_device_id,
+                'content' => $this->message->content,
                 'reply_to_id' => $this->message->reply_to_id,
-                'epoch' => $this->message->epoch,
                 'is_edited' => $this->message->is_edited ?? false,
                 'client_temp_id' => $this->message->client_temp_id,
                 'reactions' => [],
+                'attachments' => $this->message->attachments->map(fn ($a) => [
+                    'id' => $a->uuid,
+                    'file_name' => $a->file_name,
+                    'mime_type' => $a->mime_type,
+                    'size' => $a->size,
+                    'has_thumbnail' => $a->hasGeneratedConversion('thumb'),
+                ])->all(),
                 'user' => $this->message->user ? [
                     'id' => $this->message->user->id,
                     'username' => $this->message->user->username,

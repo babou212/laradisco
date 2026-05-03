@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\MentionService;
 use App\Services\PermissionService;
 use App\Support\CacheKeys;
+use App\Support\Media\AttachmentRebinder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -20,10 +21,11 @@ class CreateThreadReplyAction
     public function __construct(
         private readonly MentionService $mentionService,
         private readonly PermissionService $permissionService,
+        private readonly AttachmentRebinder $attachmentRebinder,
     ) {}
 
     /**
-     * @param  array{sender_device_id: string|null, message_bytes: string|null, epoch: int, thread_name: string|null, mention_user_ids: array<int>, mention_everyone: bool, mention_here: bool, client_temp_id?: string|null}  $data
+     * @param  array{content: string|null, attachment_ids?: array<string>, thread_name: string|null, mention_user_ids: array<int>, mention_everyone: bool, mention_here: bool, client_temp_id?: string|null}  $data
      */
     public function execute(User $user, Channel $channel, Message $parentMessage, array $data): CreateThreadReplyResult
     {
@@ -73,11 +75,11 @@ class CreateThreadReplyAction
             $reply = $channel->messages()->create([
                 'user_id' => $user->id,
                 'thread_id' => $thread->id,
-                'sender_device_id' => $data['sender_device_id'] ?? null,
                 'client_temp_id' => $clientTempId,
-                'message_bytes' => $data['message_bytes'] ?? null,
-                'epoch' => $data['epoch'],
+                'content' => $data['content'] ?? null,
             ]);
+
+            $this->attachmentRebinder->rebind($user, $reply, $data['attachment_ids'] ?? []);
 
             $thread->increment('message_count');
             $thread->update(['last_message_at' => now()]);

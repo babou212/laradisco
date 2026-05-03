@@ -2,13 +2,13 @@
 
 namespace Tests\Feature\Models;
 
-use App\Models\Attachment;
 use App\Models\Channel;
 use App\Models\Message;
 use App\Models\MessageReaction;
 use App\Models\Thread;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Testing\File;
 use Tests\TestCase;
 
 class MessageModelTest extends TestCase
@@ -49,13 +49,14 @@ class MessageModelTest extends TestCase
 
     public function test_message_has_attachments(): void
     {
+        $this->fakeS3();
+
         $message = Message::factory()->create();
-        Attachment::factory()->create([
-            'attachable_type' => Message::class,
-            'attachable_id' => $message->id,
-        ]);
+        $message->addMedia(File::image('photo.png', 16, 16)->getPathname())
+            ->toMediaCollection('attachments');
 
         $this->assertCount(1, $message->attachments);
+        $this->assertSame('attachments', $message->attachments->first()->collection_name);
     }
 
     public function test_message_has_reactions(): void
@@ -103,14 +104,5 @@ class MessageModelTest extends TestCase
         ]);
 
         $this->assertTrue($threadMessage->thread->is($thread));
-    }
-
-    public function test_attachment_is_image_method(): void
-    {
-        $imageAttachment = Attachment::factory()->create(['mime_type' => 'image/png']);
-        $docAttachment = Attachment::factory()->document()->create();
-
-        $this->assertTrue($imageAttachment->isImage());
-        $this->assertFalse($docAttachment->isImage());
     }
 }

@@ -13,14 +13,18 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Laravel\Scout\Searchable;
+use Spatie\Image\Enums\Fit;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * @property Carbon|null $edited_at
  */
-class DirectMessage extends Model
+class DirectMessage extends Model implements HasMedia
 {
     /** @use HasFactory<DirectMessageFactory> */
-    use ClearsCaches, HasFactory, Searchable, SoftDeletes;
+    use ClearsCaches, HasFactory, InteractsWithMedia, Searchable, SoftDeletes;
 
     /**
      * @var list<string>
@@ -81,11 +85,27 @@ class DirectMessage extends Model
     }
 
     /**
-     * @return MorphMany<Attachment, $this>
+     * @return MorphMany<Media, $this>
      */
     public function attachments(): MorphMany
     {
-        return $this->morphMany(Attachment::class, 'attachable');
+        return $this->media()->where('collection_name', 'attachments');
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('attachments');
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        if ($media?->collection_name !== 'attachments') {
+            return;
+        }
+
+        $this->addMediaConversion('thumb')
+            ->nonOptimized()
+            ->fit(Fit::Max, 320, 320);
     }
 
     public function searchableAs(): string

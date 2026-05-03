@@ -3,22 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Concerns\ApiResponse;
-use App\Enums\AttachmentStatus;
 use App\Http\Controllers\Controller;
-use App\Models\Attachment;
 use App\Models\Channel;
-use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
-use App\Models\Message;
 use App\Models\User;
 use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Str;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttachmentController extends Controller
 {
@@ -26,16 +17,16 @@ class AttachmentController extends Controller
 
     private const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
 
-    public const DOWNLOAD_EXPIRY = 900; // 15 minutes
-
-    private const NGINX_ACCEL_PREFIX = '/internal-attachments';
+    private const PENDING_TTL_HOURS = 24;
 
     public function __construct(
         private readonly PermissionService $permissionService,
     ) {}
 
     /**
-     * Upload an attachment for a channel message.
+     * Upload an attachment for a channel message. The media is staged on the
+     * uploading user's `pending_attachments` collection and rebound to a
+     * Message when the client posts the message referencing this attachment.
      */
     public function uploadForChannel(Request $request, Channel $channel): JsonResponse
     {
@@ -49,7 +40,7 @@ class AttachmentController extends Controller
     }
 
     /**
-     * Upload an attachment for a DM.
+     * Upload an attachment for a DM. See uploadForChannel for the staging flow.
      */
     public function uploadForDm(Request $request, DirectMessageGroup $dmGroup): JsonResponse
     {
@@ -62,176 +53,23 @@ class AttachmentController extends Controller
         return $this->handleUpload($user, $request);
     }
 
-    /**
-     * Generate signed download URLs for an attachment.
-     */
-    public function download(Request $request, Attachment $attachment): JsonResponse
-    {
-        $user = $request->user();
-
-        if ($attachment->status !== AttachmentStatus::Attached) {
-            return $this->notFoundResponse();
-        }
-
-        if (! $this->userCanAccessAttachment($user, $attachment)) {
-            return $this->forbiddenResponse();
-        }
-
-        $urls = [
-            'download_url' => URL::signedRoute(
-                'api.attachments.serve',
-                ['attachment' => $attachment->id, 'type' => 'main'],
-                now()->addSeconds(self::DOWNLOAD_EXPIRY),
-            ),
-        ];
-
-        if ($attachment->thumbnail_path) {
-            $urls['thumbnail_url'] = URL::signedRoute(
-                'api.attachments.serve',
-                ['attachment' => $attachment->id, 'type' => 'thumb'],
-                now()->addSeconds(self::DOWNLOAD_EXPIRY),
-            );
-        }
-
-        return $this->successResponse($urls);
-    }
-
-    /**
-     * Serve an attachment file via signed URL.
-     */
-    public function serveFile(Request $request, Attachment $attachment): Response
-    {
-        if (! $request->hasValidSignature()) {
-            abort(403, 'Invalid or expired URL.');
-        }
-
-        $type = $request->query('type', 'main');
-        $path = $type === 'thumb' ? $attachment->thumbnail_path : $attachment->storage_path;
-
-        if (! $path) {
-            abort(404);
-        }
-
-        $disk = Storage::disk('attachments');
-
-        if (! $disk->exists($path)) {
-            abort(404);
-        }
-
-        $fileSize = $disk->size($path);
-        $mime = $type === 'thumb' ? 'image/jpeg' : ($attachment->mime_type ?: 'application/octet-stream');
-        $disposition = $type === 'thumb'
-            ? 'inline'
-            : 'attachment; filename="'.addslashes($attachment->file_name).'"';
-
-        $headers = [
-            'Content-Type' => $mime,
-            'Content-Length' => $fileSize,
-            'Content-Disposition' => $disposition,
-            'Cache-Control' => 'private, no-store',
-            'X-Content-Type-Options' => 'nosniff',
-        ];
-
-        if ($this->supportsAccelRedirect()) {
-            $accelPath = self::NGINX_ACCEL_PREFIX.'/'.ltrim($path, '/');
-
-            return response('', 200, array_merge($headers, [
-                'X-Accel-Redirect' => $accelPath,
-            ]));
-        }
-
-        return new StreamedResponse(function () use ($disk, $path) {
-            $stream = $disk->readStream($path);
-            fpassthru($stream);
-            fclose($stream);
-        }, 200, $headers);
-    }
-
-    /**
-     * Handle the file upload, store to local disk, and create an attachment record.
-     */
     private function handleUpload(User $user, Request $request): JsonResponse
     {
         $request->validate([
             'file' => ['required', 'file', 'max:'.(self::MAX_FILE_SIZE / 1024)],
-            'thumbnail' => ['sometimes', 'file', 'max:5120'],
-            'width' => ['sometimes', 'integer', 'min:0'],
-            'height' => ['sometimes', 'integer', 'min:0'],
         ]);
 
-        $attachmentId = Str::uuid()->toString();
-        $directory = date('Y/m').'/'.$attachmentId;
-        $storagePath = $directory.'/file';
-        $thumbnailPath = null;
-
-        $disk = Storage::disk('attachments');
-
-        $uploadedFile = $request->file('file');
-
-        $disk->putFileAs(
-            $directory,
-            $uploadedFile,
-            'file',
-        );
-
-        if ($request->hasFile('thumbnail')) {
-            $thumbnailPath = $directory.'/thumb';
-            $disk->putFileAs(
-                $directory,
-                $request->file('thumbnail'),
-                'thumb',
-            );
-        }
-
-        $attachment = Attachment::create([
-            'id' => $attachmentId,
-            'user_id' => $user->id,
-            'storage_path' => $storagePath,
-            'file_name' => $uploadedFile->getClientOriginalName(),
-            'mime_type' => $uploadedFile->getMimeType() ?? 'application/octet-stream',
-            'size' => $disk->size($storagePath),
-            'thumbnail_path' => $thumbnailPath,
-            'thumbnail_size' => $thumbnailPath ? $disk->size($thumbnailPath) : null,
-            'width' => $request->input('width'),
-            'height' => $request->input('height'),
-            'status' => AttachmentStatus::Attached,
-        ]);
+        $media = $user->addMediaFromRequest('file')
+            ->withCustomProperties([
+                'expires_at' => now()->addHours(self::PENDING_TTL_HOURS)->toIso8601String(),
+            ])
+            ->toMediaCollection('pending_attachments');
 
         return $this->successResponse([
-            'attachment_id' => $attachment->id,
-            'size' => $attachment->size,
-            'thumbnail_size' => $attachment->thumbnail_size,
+            'attachment_id' => $media->uuid,
+            'file_name' => $media->file_name,
+            'mime_type' => $media->mime_type,
+            'size' => $media->size,
         ]);
-    }
-
-    /**
-     * Check if the user has access to the attachment through the associated message's channel or DM group.
-     */
-    private function userCanAccessAttachment(User $user, Attachment $attachment): bool
-    {
-        $attachable = $attachment->attachable;
-
-        if (! $attachable) {
-            return false;
-        }
-
-        if ($attachable instanceof Message) {
-            $channel = $attachable->channel;
-
-            return $channel && $this->permissionService->userCanViewChannel($user, $channel);
-        }
-
-        if ($attachable instanceof DirectMessage) {
-            $group = $attachable->group;
-
-            return $group && $group->participants()->where('users.id', $user->id)->exists();
-        }
-
-        return false;
-    }
-
-    private function supportsAccelRedirect(): bool
-    {
-        return ! app()->environment('local', 'testing');
     }
 }

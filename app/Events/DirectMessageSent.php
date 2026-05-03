@@ -65,13 +65,11 @@ class DirectMessageSent implements ShouldBroadcast
                 'client_temp_id' => $this->message->client_temp_id,
                 'reactions' => [],
                 'attachments' => $this->message->attachments->map(fn ($a) => [
-                    'id' => $a->id,
+                    'id' => $a->uuid,
                     'file_name' => $a->file_name,
                     'mime_type' => $a->mime_type,
                     'size' => $a->size,
-                    'width' => $a->width,
-                    'height' => $a->height,
-                    'has_thumbnail' => $a->thumbnail_path !== null,
+                    'has_thumbnail' => $a->hasGeneratedConversion('thumb'),
                 ])->all(),
                 'user' => $this->message->user ? [
                     'id' => $this->message->user->id,

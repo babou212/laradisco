@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Concerns\ApiResponse;
-use App\Enums\AttachmentStatus;
 use App\Enums\ModerationAction;
 use App\Enums\PermissionFlag;
 use App\Events\ChannelActivity;
@@ -16,7 +15,6 @@ use App\Http\Requests\Api\SearchMessagesRequest;
 use App\Http\Requests\Api\StoreChannelMessageRequest;
 use App\Http\Requests\Api\UpdateChannelMessageRequest;
 use App\Http\Resources\MessageResource;
-use App\Models\Attachment;
 use App\Models\Channel;
 use App\Models\Message;
 use App\Services\MentionService;
@@ -24,6 +22,7 @@ use App\Services\MessageWindowService;
 use App\Services\ModerationAuditService;
 use App\Services\PermissionService;
 use App\Support\CacheKeys;
+use App\Support\Media\AttachmentRebinder;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
@@ -42,6 +41,7 @@ class MessageController extends Controller
         private readonly PermissionService $permissionService,
         private readonly ModerationAuditService $auditService,
         private readonly MessageWindowService $windowService,
+        private readonly AttachmentRebinder $attachmentRebinder,
     ) {}
 
     /**
@@ -199,17 +199,7 @@ class MessageController extends Controller
             'content' => $request->validated('content'),
         ]);
 
-        $attachmentIds = $request->validated('attachment_ids', []);
-        if (! empty($attachmentIds)) {
-            Attachment::where('user_id', $user->id)
-                ->where('status', AttachmentStatus::Attached)
-                ->whereNull('attachable_type')
-                ->whereIn('id', $attachmentIds)
-                ->update([
-                    'attachable_type' => Message::class,
-                    'attachable_id' => $message->id,
-                ]);
-        }
+        $this->attachmentRebinder->rebind($user, $message, $request->validated('attachment_ids', []));
 
         $message->load(['user:id,username,name,nickname,status,custom_status', 'replyTo.user:id,username,name,nickname,status,custom_status']);
 

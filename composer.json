@@ -23,7 +23,9 @@
         "laravel/scout": "^11.1",
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.9",
+        "league/flysystem-aws-s3-v3": "^3.29",
         "meilisearch/meilisearch-php": "^1.16",
+        "php-ffmpeg/php-ffmpeg": "^1.4",
         "spatie/laravel-medialibrary": "^11.21",
         "spatie/laravel-permission": "^7.3",
         "spatie/laravel-query-builder": "^7.0"

@@ -102,6 +102,7 @@ return [
         'redis:default' => 60,
         'redis:broadcasting' => 30,
         'redis:notifications' => 30,
+        'redis:media' => 300,
     ],
 
     /*
@@ -240,6 +241,19 @@ return [
             'timeout' => 30,
             'nice' => 0,
         ],
+        'supervisor-media' => [
+            'connection' => 'redis',
+            'queue' => ['media'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 1,
+            'maxTime' => 3600,
+            'maxJobs' => 100,
+            'memory' => 512,
+            'tries' => 2,
+            'timeout' => 1200,
+            'nice' => 5,
+        ],
     ],
 
     'environments' => [
@@ -259,6 +273,11 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 1,
             ],
+            'supervisor-media' => [
+                'maxProcesses' => 4,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 5,
+            ],
         ],
 
         'local' => [
@@ -270,6 +289,9 @@ return [
             ],
             'supervisor-notifications' => [
                 'maxProcesses' => 3,
+            ],
+            'supervisor-media' => [
+                'maxProcesses' => 1,
             ],
         ],
     ],

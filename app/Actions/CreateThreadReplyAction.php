@@ -2,11 +2,9 @@
 
 namespace App\Actions;
 
-use App\Enums\AttachmentStatus;
 use App\Enums\PermissionFlag;
 use App\Events\ThreadMessageSent;
 use App\Events\ThreadUpdated;
-use App\Models\Attachment;
 use App\Models\Channel;
 use App\Models\Message;
 use App\Models\Thread;
@@ -14,6 +12,7 @@ use App\Models\User;
 use App\Services\MentionService;
 use App\Services\PermissionService;
 use App\Support\CacheKeys;
+use App\Support\Media\AttachmentRebinder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -22,6 +21,7 @@ class CreateThreadReplyAction
     public function __construct(
         private readonly MentionService $mentionService,
         private readonly PermissionService $permissionService,
+        private readonly AttachmentRebinder $attachmentRebinder,
     ) {}
 
     /**
@@ -79,17 +79,7 @@ class CreateThreadReplyAction
                 'content' => $data['content'] ?? null,
             ]);
 
-            $attachmentIds = $data['attachment_ids'] ?? [];
-            if (! empty($attachmentIds)) {
-                Attachment::where('user_id', $user->id)
-                    ->where('status', AttachmentStatus::Attached)
-                    ->whereNull('attachable_type')
-                    ->whereIn('id', $attachmentIds)
-                    ->update([
-                        'attachable_type' => Message::class,
-                        'attachable_id' => $reply->id,
-                    ]);
-            }
+            $this->attachmentRebinder->rebind($user, $reply, $data['attachment_ids'] ?? []);
 
             $thread->increment('message_count');
             $thread->update(['last_message_at' => now()]);

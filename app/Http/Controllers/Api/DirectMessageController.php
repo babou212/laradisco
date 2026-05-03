@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Concerns\ApiResponse;
-use App\Enums\AttachmentStatus;
 use App\Events\DirectMessageDeleted;
 use App\Events\DirectMessageEdited;
 use App\Events\DirectMessageSent;
@@ -16,12 +15,12 @@ use App\Http\Requests\Api\StoreDirectMessageRequest;
 use App\Http\Requests\Api\UpdateDirectMessageRequest;
 use App\Http\Resources\DirectMessageGroupResource;
 use App\Http\Resources\DirectMessageResource;
-use App\Models\Attachment;
 use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
 use App\Notifications\DirectMessageNotification;
 use App\Services\MessageWindowService;
 use App\Support\CacheKeys;
+use App\Support\Media\AttachmentRebinder;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
@@ -37,6 +36,7 @@ class DirectMessageController extends Controller
 
     public function __construct(
         private readonly MessageWindowService $windowService,
+        private readonly AttachmentRebinder $attachmentRebinder,
     ) {}
 
     /**
@@ -204,17 +204,7 @@ class DirectMessageController extends Controller
             'content' => $request->validated('content'),
         ]);
 
-        $attachmentIds = $request->validated('attachment_ids', []);
-        if (! empty($attachmentIds)) {
-            Attachment::where('user_id', $user->id)
-                ->where('status', AttachmentStatus::Attached)
-                ->whereNull('attachable_type')
-                ->whereIn('id', $attachmentIds)
-                ->update([
-                    'attachable_type' => DirectMessage::class,
-                    'attachable_id' => $message->id,
-                ]);
-        }
+        $this->attachmentRebinder->rebind($user, $message, $request->validated('attachment_ids', []));
 
         $dmGroup->update(['last_message_at' => now()]);
 

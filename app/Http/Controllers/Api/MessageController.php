@@ -268,7 +268,8 @@ class MessageController extends Controller
             ->where('channel_id', $channel->id)
             ->paginate($perPage);
 
-        $paginator->loadMissing(['user:id,username,name,nickname,status,custom_status', 'attachments']);
+        Message::query()->getModel()->newCollection($paginator->items())
+            ->loadMissing(['user:id,username,name,nickname,status,custom_status', 'attachments']);
 
         return MessageResource::collection($paginator)
             ->additional(['meta' => ['query' => $query]])

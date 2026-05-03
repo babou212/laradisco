@@ -152,10 +152,10 @@ class Message extends Model implements HasMedia
             'id' => (string) $this->id,
             'content' => (string) $this->content,
             'user_id' => (int) $this->user_id,
-            'user_username' => (string) ($this->user?->username ?? ''),
+            'user_username' => (string) ($this->user->username ?? ''),
             'channel_id' => (int) $this->channel_id,
             'thread_id' => $this->thread_id !== null ? (int) $this->thread_id : null,
-            'created_at_ts' => $this->created_at?->timestamp ?? 0,
+            'created_at_ts' => $this->created_at->timestamp ?? 0,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

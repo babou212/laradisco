@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -39,7 +40,7 @@ class UserRolesUpdated implements ShouldBroadcastNow
         $roles = $this->user->roles
             ->sortByDesc('position')
             ->values()
-            ->map(fn ($role) => [
+            ->map(fn (Role $role): array => [
                 'id' => (string) $role->id,
                 'name' => $role->name,
                 'color' => $role->color,

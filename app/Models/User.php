@@ -24,6 +24,18 @@ class User extends Authenticatable implements HasMedia
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, InteractsWithMedia, Notifiable, TwoFactorAuthenticatable {
         HasRoles::hasPermissionTo as protected spatieHasPermissionTo;
+        HasRoles::roles as protected spatieRoles;
+    }
+
+    /**
+     * Narrow Spatie HasRoles' generic-less return type so static analysis
+     * sees `Role` (not `Model`) when iterating `$user->roles`.
+     *
+     * @return BelongsToMany<Role, $this>
+     */
+    public function roles(): BelongsToMany
+    {
+        return $this->spatieRoles();
     }
 
     /**

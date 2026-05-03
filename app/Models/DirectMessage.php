@@ -124,9 +124,9 @@ class DirectMessage extends Model implements HasMedia
             'id' => (string) $this->id,
             'content' => (string) $this->content,
             'user_id' => (int) $this->user_id,
-            'user_username' => (string) ($this->user?->username ?? ''),
+            'user_username' => (string) ($this->user->username ?? ''),
             'direct_message_group_id' => (int) $this->direct_message_group_id,
-            'created_at_ts' => $this->created_at?->timestamp ?? 0,
+            'created_at_ts' => $this->created_at->timestamp ?? 0,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

@@ -22,7 +22,7 @@ class MessageWithAttachmentTest extends TestCase
         $this->mock(PermissionService::class, function (MockInterface $mock): void {
             $mock->shouldReceive('userCanViewChannel')->andReturn(true);
             $mock->shouldReceive('userCanInChannel')->andReturn(true);
-            $mock->shouldReceive('getUsersWithChannelAccess')->andReturn(collect());
+            $mock->shouldReceive('getUsersWithChannelAccess')->andReturn([]);
         });
     }
 

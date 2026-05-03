@@ -94,6 +94,6 @@ class ChannelAttachmentUploadTest extends TestCase
         );
 
         $response->assertUnprocessable();
-        $response->assertJsonValidationErrors(['file']);
+        $response->assertJsonPath('errors.0.source.pointer', '/data/attributes/file');
     }
 }

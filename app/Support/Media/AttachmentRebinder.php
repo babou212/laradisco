@@ -6,7 +6,9 @@ use App\Models\DirectMessage;
 use App\Models\Message;
 use App\Models\User;
 use Spatie\MediaLibrary\Conversions\FileManipulator;
+use Spatie\MediaLibrary\Conversions\ImageGenerators\Image as ImageGenerator;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Spatie\MediaLibrary\ResponsiveImages\Jobs\GenerateResponsiveImagesJob;
 
 class AttachmentRebinder
 {
@@ -46,13 +48,36 @@ class AttachmentRebinder
             ->whereIn('uuid', $uuids)
             ->get();
 
+        $imageGenerator = new ImageGenerator;
+
         foreach ($rebound as $media) {
             $this->fileManipulator->createDerivedFiles(
                 $media,
                 onlyConversionNames: [],
                 onlyMissing: false,
-                withResponsiveImages: true,
             );
+
+            // Spatie's FileManipulator only regenerates responsive_images that were already
+            // seeded at upload-time. Pending media uploaded under the User collection does
+            // not seed them, so dispatch the responsive-images job directly here. Guard on
+            // image-able mime/extension to avoid wasted work for audio/video/PDF/etc.
+            if (! $imageGenerator->canConvert($media)) {
+                continue;
+            }
+
+            /** @var class-string<GenerateResponsiveImagesJob> $jobClass */
+            $jobClass = config(
+                'media-library.jobs.generate_responsive_images',
+                GenerateResponsiveImagesJob::class,
+            );
+
+            $job = new $jobClass($media);
+            $job->onConnection(config('media-library.queue_connection_name'));
+            $job->onQueue(config('media-library.queue_name'));
+
+            config('media-library.queue_conversions_after_database_commit')
+                ? dispatch($job)->afterCommit()
+                : dispatch($job);
         }
     }
 }

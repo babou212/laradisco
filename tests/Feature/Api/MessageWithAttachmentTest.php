@@ -108,7 +108,7 @@ class MessageWithAttachmentTest extends TestCase
         )->assertCreated();
 
         $media = Media::query()->where('uuid', $uuid)->firstOrFail();
-        $this->assertSame('audio/mpeg', $media->mime_type);
+        $this->assertSame('mp3', $media->extension);
         $this->assertFalse($media->hasGeneratedConversion('thumb'));
         $this->assertEmpty($media->responsive_images);
     }

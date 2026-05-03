@@ -40,5 +40,8 @@
         <env name="AWS_ENDPOINT" value="http://localhost:9000"/>
         <env name="AWS_USE_PATH_STYLE_ENDPOINT" value="true"/>
         <env name="QUEUE_CONVERSIONS_BY_DEFAULT" value="false"/>
+        <env name="MEDIA_QUEUE_CONNECTION" value="sync"/>
+        <env name="MEDIA_QUEUE" value=""/>
+        <env name="QUEUE_CONVERSIONS_AFTER_DB_COMMIT" value="false"/>
     </php>
 </phpunit>

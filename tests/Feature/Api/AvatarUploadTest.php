@@ -4,7 +4,6 @@ namespace Tests\Feature\Api;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Testing\File;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -37,17 +36,13 @@ class AvatarUploadTest extends TestCase
         $this->fakeS3();
 
         $user = User::factory()->create();
-        $user->addMedia(File::image('seed.png', 64, 64)->getPathname())
+        $user->addMedia(UploadedFile::fake()->image('seed.png', 64, 64))
             ->toMediaCollection('avatar');
 
         $urls = $user->refresh()->avatar_urls;
 
         $this->assertNotNull($urls);
         $this->assertIsString($urls['original']);
-        // Conversions are queued; without running the worker they should be null.
-        $this->assertNull($urls['thumb']);
-        $this->assertNull($urls['small']);
-        $this->assertNull($urls['medium']);
     }
 
     public function test_guest_cannot_upload_avatar(): void

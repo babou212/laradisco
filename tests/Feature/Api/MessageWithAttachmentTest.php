@@ -5,10 +5,11 @@ namespace Tests\Feature\Api;
 use App\Models\Channel;
 use App\Models\DirectMessageGroup;
 use App\Models\Message;
-use App\Models\Role;
 use App\Models\User;
+use App\Services\PermissionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Mockery\MockInterface;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Tests\TestCase;
 
@@ -16,12 +17,21 @@ class MessageWithAttachmentTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function allowChannelAccess(): void
+    {
+        $this->mock(PermissionService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('userCanViewChannel')->andReturn(true);
+            $mock->shouldReceive('userCanInChannel')->andReturn(true);
+            $mock->shouldReceive('getUsersWithChannelAccess')->andReturn(collect());
+        });
+    }
+
     public function test_pending_attachment_is_rebound_to_channel_message(): void
     {
         $this->fakeS3();
+        $this->allowChannelAccess();
 
         $user = User::factory()->create();
-        Role::factory()->everyone()->create();
         $channel = Channel::factory()->create();
 
         $upload = $this->actingAs($user)->postJson(
@@ -80,9 +90,9 @@ class MessageWithAttachmentTest extends TestCase
     public function test_audio_upload_streams_via_presigned_url_without_thumbnail(): void
     {
         $this->fakeS3();
+        $this->allowChannelAccess();
 
         $user = User::factory()->create();
-        Role::factory()->everyone()->create();
         $channel = Channel::factory()->create();
 
         $upload = $this->actingAs($user)->postJson(
@@ -106,10 +116,10 @@ class MessageWithAttachmentTest extends TestCase
     public function test_other_users_pending_media_cannot_be_attached(): void
     {
         $this->fakeS3();
+        $this->allowChannelAccess();
 
         $user = User::factory()->create();
         $attacker = User::factory()->create();
-        Role::factory()->everyone()->create();
         $channel = Channel::factory()->create();
 
         $upload = $this->actingAs($user)->postJson(

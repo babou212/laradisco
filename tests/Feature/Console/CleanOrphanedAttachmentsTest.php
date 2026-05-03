@@ -5,7 +5,7 @@ namespace Tests\Feature\Console;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Testing\File;
+use Illuminate\Http\UploadedFile;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Tests\TestCase;
 
@@ -19,16 +19,16 @@ class CleanOrphanedAttachmentsTest extends TestCase
 
         $user = User::factory()->create();
 
-        $expired = $user->addMedia(File::image('expired.png', 16, 16)->getPathname())
+        $expired = $user->addMedia(UploadedFile::fake()->image('expired.png', 16, 16))
             ->withCustomProperties(['expires_at' => now()->subHour()->toIso8601String()])
             ->toMediaCollection('pending_attachments');
 
-        $fresh = $user->addMedia(File::image('fresh.png', 16, 16)->getPathname())
+        $fresh = $user->addMedia(UploadedFile::fake()->image('fresh.png', 16, 16))
             ->withCustomProperties(['expires_at' => now()->addHour()->toIso8601String()])
             ->toMediaCollection('pending_attachments');
 
         $message = Message::factory()->create();
-        $bound = $message->addMedia(File::image('bound.png', 16, 16)->getPathname())
+        $bound = $message->addMedia(UploadedFile::fake()->image('bound.png', 16, 16))
             ->toMediaCollection('attachments');
 
         $this->artisan('attachments:clean-orphaned')->assertSuccessful();
@@ -43,7 +43,7 @@ class CleanOrphanedAttachmentsTest extends TestCase
         $this->fakeS3();
 
         $user = User::factory()->create();
-        $media = $user->addMedia(File::image('no-expiry.png', 16, 16)->getPathname())
+        $media = $user->addMedia(UploadedFile::fake()->image('no-expiry.png', 16, 16))
             ->toMediaCollection('pending_attachments');
 
         $this->artisan('attachments:clean-orphaned')->assertSuccessful();

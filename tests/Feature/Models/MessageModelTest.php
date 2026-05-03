@@ -8,7 +8,7 @@ use App\Models\MessageReaction;
 use App\Models\Thread;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Testing\File;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class MessageModelTest extends TestCase
@@ -52,7 +52,7 @@ class MessageModelTest extends TestCase
         $this->fakeS3();
 
         $message = Message::factory()->create();
-        $message->addMedia(File::image('photo.png', 16, 16)->getPathname())
+        $message->addMedia(UploadedFile::fake()->image('photo.png', 16, 16))
             ->toMediaCollection('attachments');
 
         $this->assertCount(1, $message->attachments);

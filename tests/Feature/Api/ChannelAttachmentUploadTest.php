@@ -3,11 +3,12 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Channel;
-use App\Models\Role;
 use App\Models\User;
+use App\Services\PermissionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class ChannelAttachmentUploadTest extends TestCase
@@ -17,9 +18,11 @@ class ChannelAttachmentUploadTest extends TestCase
     public function test_authenticated_member_can_upload_channel_attachment(): void
     {
         $this->fakeS3();
+        $this->mock(PermissionService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('userCanViewChannel')->andReturn(true);
+        });
 
         $user = User::factory()->create();
-        Role::factory()->everyone()->create();
         $channel = Channel::factory()->create();
         $file = UploadedFile::fake()->create('document.pdf', 50, 'application/pdf');
 
@@ -42,6 +45,25 @@ class ChannelAttachmentUploadTest extends TestCase
         Storage::disk('s3')->assertExists($media->getPathRelativeToRoot());
     }
 
+    public function test_user_without_channel_access_is_forbidden(): void
+    {
+        $this->fakeS3();
+        $this->mock(PermissionService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('userCanViewChannel')->andReturn(false);
+        });
+
+        $user = User::factory()->create();
+        $channel = Channel::factory()->create();
+        $file = UploadedFile::fake()->image('photo.png');
+
+        $response = $this->actingAs($user)->postJson(
+            route('api.channels.attachments.upload', $channel),
+            ['file' => $file],
+        );
+
+        $response->assertForbidden();
+    }
+
     public function test_guest_cannot_upload_channel_attachment(): void
     {
         $channel = Channel::factory()->create();
@@ -58,9 +80,11 @@ class ChannelAttachmentUploadTest extends TestCase
     public function test_upload_rejects_oversized_file(): void
     {
         $this->fakeS3();
+        $this->mock(PermissionService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('userCanViewChannel')->andReturn(true);
+        });
 
         $user = User::factory()->create();
-        Role::factory()->everyone()->create();
         $channel = Channel::factory()->create();
         $file = UploadedFile::fake()->create('huge.bin', 200 * 1024); // 200 MB > 100 MB limit
 

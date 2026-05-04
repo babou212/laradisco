@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\MentionController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
@@ -52,6 +53,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/users/{user}', [UserController::class, 'show'])->name('api.users.show');
 
         Route::get('/mentions/search', [MentionController::class, 'search'])->name('api.mentions.search');
+
+        Route::get('/attachments/{uuid}/download', [AttachmentController::class, 'download'])->name('api.attachments.download');
     });
 
 });

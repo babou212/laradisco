@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Channel;
+use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
+use App\Models\Message;
 use App\Models\User;
 use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class AttachmentController extends Controller
 {
@@ -18,6 +21,8 @@ class AttachmentController extends Controller
     private const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
 
     private const PENDING_TTL_HOURS = 24;
+
+    private const DOWNLOAD_URL_TTL_MINUTES = 240;
 
     public function __construct(
         private readonly PermissionService $permissionService,
@@ -51,6 +56,40 @@ class AttachmentController extends Controller
         }
 
         return $this->handleUpload($user, $request);
+    }
+
+    public function download(Request $request, string $uuid): JsonResponse
+    {
+        $user = $request->user();
+
+        $media = Media::query()->where('uuid', $uuid)->first();
+
+        if (! $media || $media->collection_name !== 'attachments') {
+            return $this->notFoundResponse('Attachment not found');
+        }
+
+        $owner = $media->model;
+
+        $authorized = match (true) {
+            $owner instanceof Message => $owner->channel !== null
+                && $this->permissionService->userCanViewChannel($user, $owner->channel),
+            $owner instanceof DirectMessage => $owner->group !== null
+                && $owner->group->participants()->where('users.id', $user->id)->exists(),
+            default => false,
+        };
+
+        if (! $authorized) {
+            return $this->forbiddenResponse();
+        }
+
+        $expiration = now()->addMinutes(self::DOWNLOAD_URL_TTL_MINUTES);
+
+        return $this->successResponse([
+            'download_url' => $media->getTemporaryUrl($expiration),
+            'thumbnail_url' => $media->hasGeneratedConversion('thumb')
+                ? $media->getTemporaryUrl($expiration, 'thumb')
+                : null,
+        ]);
     }
 
     private function handleUpload(User $user, Request $request): JsonResponse

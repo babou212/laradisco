@@ -28,6 +28,7 @@
         "php-ffmpeg/php-ffmpeg": "^1.4",
         "spatie/laravel-medialibrary": "^11.21",
         "spatie/laravel-permission": "^7.3",
+        "spatie/laravel-prometheus": "^1.6",
         "spatie/laravel-query-builder": "^7.0"
     },
     "require-dev": {

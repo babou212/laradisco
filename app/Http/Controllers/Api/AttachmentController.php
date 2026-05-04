@@ -13,6 +13,7 @@ use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 
 class AttachmentController extends Controller
 {
@@ -84,8 +85,15 @@ class AttachmentController extends Controller
 
         $expiration = now()->addMinutes(self::DOWNLOAD_URL_TTL_MINUTES);
 
+        $disposition = HeaderUtils::makeDisposition(
+            HeaderUtils::DISPOSITION_ATTACHMENT,
+            $media->file_name,
+        );
+
         return $this->successResponse([
-            'download_url' => $media->getTemporaryUrl($expiration),
+            'download_url' => $media->getTemporaryUrl($expiration, '', [
+                'ResponseContentDisposition' => $disposition,
+            ]),
             'thumbnail_url' => $media->hasGeneratedConversion('thumb')
                 ? $media->getTemporaryUrl($expiration, 'thumb')
                 : null,
@@ -96,12 +104,27 @@ class AttachmentController extends Controller
     {
         $request->validate([
             'file' => ['required', 'file', 'max:'.(self::MAX_FILE_SIZE / 1024)],
+            'thumbnail' => ['nullable', 'file', 'image'],
+            'width' => ['nullable', 'integer', 'min:1'],
+            'height' => ['nullable', 'integer', 'min:1'],
         ]);
 
+        $customProperties = [
+            'expires_at' => now()->addHours(self::PENDING_TTL_HOURS)->toIso8601String(),
+        ];
+
+        if ($request->filled('width')) {
+            $customProperties['width'] = (int) $request->input('width');
+        }
+        if ($request->filled('height')) {
+            $customProperties['height'] = (int) $request->input('height');
+        }
+        if ($request->hasFile('thumbnail')) {
+            $customProperties['thumbnail_size'] = $request->file('thumbnail')->getSize();
+        }
+
         $media = $user->addMediaFromRequest('file')
-            ->withCustomProperties([
-                'expires_at' => now()->addHours(self::PENDING_TTL_HOURS)->toIso8601String(),
-            ])
+            ->withCustomProperties($customProperties)
             ->toMediaCollection('pending_attachments');
 
         return $this->successResponse([
@@ -109,6 +132,7 @@ class AttachmentController extends Controller
             'file_name' => $media->file_name,
             'mime_type' => $media->mime_type,
             'size' => $media->size,
+            'thumbnail_size' => $customProperties['thumbnail_size'] ?? null,
         ]);
     }
 }

@@ -39,12 +39,18 @@ class AttachmentResource extends JsonApiResource
         $expiration = now()->addMinutes(self::URL_TTL_MINUTES);
         $responsiveImages = $this->responsiveImages();
 
+        $hasThumbnail = $this->hasGeneratedConversion('thumb');
+
         return [
             'file_name' => $this->file_name,
             'mime_type' => $this->mime_type,
             'size' => $this->size,
+            'width' => $this->getCustomProperty('width'),
+            'height' => $this->getCustomProperty('height'),
+            'has_thumbnail' => $hasThumbnail,
+            'thumbnail_size' => $this->getCustomProperty('thumbnail_size'),
             'url' => $this->getTemporaryUrl($expiration),
-            'thumbnail_url' => $this->hasGeneratedConversion('thumb')
+            'thumbnail_url' => $hasThumbnail
                 ? $this->getTemporaryUrl($expiration, 'thumb')
                 : null,
             'srcset' => $responsiveImages !== null ? $this->buildResponsiveSources($expiration) : null,

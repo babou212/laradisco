@@ -4,9 +4,11 @@ use App\Http\Middleware\CheckBanned;
 use App\Http\Middleware\CheckPermission;
 use App\Http\Middleware\EnsureJsonAccept;
 use App\Http\Middleware\IdempotencyKey;
+use App\Http\Middleware\PrometheusRequestMetrics;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetCacheHeaders;
 use App\Http\Middleware\UpdateUserLastSeen;
+use App\Support\Metrics\MetricsRecorder;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
@@ -28,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         $middleware->append(SecurityHeaders::class);
+        $middleware->append(PrometheusRequestMetrics::class);
 
         $middleware->api(append: [
             EnsureJsonAccept::class,
@@ -43,6 +46,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->report(function (Throwable $e) {
+            try {
+                app(MetricsRecorder::class)->recordException($e);
+            } catch (Throwable) {
+            }
+        });
+
         $exceptions->shouldRenderJsonWhen(function ($request, Throwable $e) {
             return $request->is('api/*') || $request->expectsJson();
         });

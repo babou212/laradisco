@@ -10,7 +10,7 @@ use App\Events\MessageDeleted;
 use App\Events\MessageEdited;
 use App\Events\MessageSent;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\CursorPaginateRequest;
+use App\Http\Requests\Api\MessagePaginateRequest;
 use App\Http\Requests\Api\SearchMessagesRequest;
 use App\Http\Requests\Api\StoreChannelMessageRequest;
 use App\Http\Requests\Api\UpdateChannelMessageRequest;
@@ -45,12 +45,11 @@ class MessageController extends Controller
     ) {}
 
     /**
-     * Get cursor-paginated messages for a channel.
+     * List channel messages: latest 50 by default, or anchored on
+     * before/after/around message ids. Response is always ASC.
      */
-    public function index(CursorPaginateRequest $request, Channel $channel): JsonResponse
+    public function index(MessagePaginateRequest $request, Channel $channel): JsonResponse
     {
-        $user = $request->user();
-
         $this->authorize('viewChannel', [Message::class, $channel]);
 
         $allowedIncludes = [
@@ -65,8 +64,9 @@ class MessageController extends Controller
             'threadStarted.followers',
         ];
 
-        $around = $request->query('around');
-        if ($around) {
+        $limit = (int) $request->validated('limit', 50);
+
+        if ($around = $request->validated('around')) {
             $target = $channel->messages()
                 ->whereNull('thread_id')
                 ->where('id', $around)
@@ -85,55 +85,67 @@ class MessageController extends Controller
 
             $window = $this->windowService->windowAround($windowQuery, $target);
 
-            return $this->windowResponse(
-                $window,
-                $request->url()
+            return $this->paginatedResponse(
+                $window['items'],
+                $window['hasMoreBefore'],
+                $window['hasMoreAfter'],
+                $window['oldestId'],
+                $window['newestId'],
             );
         }
 
-        // Local-first delta sync: clients pass since_id to fetch only rows
-        // newer than the largest id they already hold. Returns ASC-ordered
-        // pages so the client can append. Bypasses the latest-page cache
-        // because each delta is request-specific.
-        $sinceId = $request->query('since_id');
-        if ($sinceId !== null) {
-            $messages = QueryBuilder::for(
-                $channel->messages()->whereNull('thread_id')->where('id', '>', (int) $sinceId)
-            )
-                ->allowedIncludes(...$allowedIncludes)
-                ->orderBy('id', 'asc')
-                ->cursorPaginate(50);
+        $before = $request->validated('before');
+        $after = $request->validated('after');
 
-            return MessageResource::collection($messages)
-                ->includePreviouslyLoadedRelationships()
-                ->response();
-        }
+        $base = QueryBuilder::for($channel->messages()->whereNull('thread_id'))
+            ->allowedIncludes(...$allowedIncludes)
+            ->getEloquentBuilder();
 
-        // Only cache the initial load (no cursor = latest messages)
-        $cursor = $request->query('cursor');
-        $includes = $request->query('include', '');
-        $cacheKey = CacheKeys::channelMessages($channel->id).'.'.md5($includes);
+        $includes = (string) $request->query('include', '');
+        $isLatestNoArg = $before === null && $after === null;
+        $cacheKey = CacheKeys::channelMessages($channel->id).'.latest.l'.$limit.'.'.md5($includes);
 
-        if (! $cursor) {
+        if ($isLatestNoArg) {
             $cached = Cache::tags([CacheKeys::channelMessagesTag($channel->id)])->get($cacheKey);
             if ($cached) {
                 return response()->json($cached);
             }
         }
 
-        $messages = QueryBuilder::for(
-            $channel->messages()->whereNull('thread_id')
-        )
-            ->allowedIncludes(...$allowedIncludes)
-            ->allowedSorts('created_at')
-            ->defaultSort('created_at')
-            ->cursorPaginate(50);
+        if ($after !== null) {
+            $rows = (clone $base)
+                ->where('id', '>', (int) $after)
+                ->orderBy('id', 'asc')
+                ->limit($limit + 1)
+                ->get();
 
-        $response = MessageResource::collection($messages)
-            ->includePreviouslyLoadedRelationships()
-            ->response();
+            $hasMoreAfter = $rows->count() > $limit;
+            $items = $rows->take($limit)->values();
+            $hasMoreBefore = true;
+        } else {
+            $q = (clone $base)->orderBy('id', 'desc')->limit($limit + 1);
+            if ($before !== null) {
+                $q->where('id', '<', (int) $before);
+            }
+            $rows = $q->get();
 
-        if (! $cursor) {
+            $hasMoreBefore = $rows->count() > $limit;
+            $items = $rows->take($limit)->reverse()->values();
+            $hasMoreAfter = $before !== null;
+        }
+
+        $oldestId = $items->isNotEmpty() ? (string) $items->first()->getKey() : null;
+        $newestId = $items->isNotEmpty() ? (string) $items->last()->getKey() : null;
+
+        $response = $this->paginatedResponse(
+            $items,
+            $hasMoreBefore,
+            $hasMoreAfter,
+            $oldestId,
+            $newestId,
+        );
+
+        if ($isLatestNoArg) {
             Cache::tags([CacheKeys::channelTag($channel->id), CacheKeys::channelMessagesTag($channel->id)])
                 ->put($cacheKey, $response->getData(true), CacheKeys::TTL_HOT);
         }
@@ -142,21 +154,26 @@ class MessageController extends Controller
     }
 
     /**
-     * Build a listing-shaped response from a MessageWindowService result.
-     *
-     * @param  array{items: Collection<int, Model>, prevCursor: ?string, nextCursor: ?string}  $window
+     * @param  Collection<int, Model>  $items
      */
-    private function windowResponse(array $window, string $baseUrl): JsonResponse
-    {
-        $response = MessageResource::collection($window['items'])
+    private function paginatedResponse(
+        Collection $items,
+        bool $hasMoreBefore,
+        bool $hasMoreAfter,
+        ?string $oldestId,
+        ?string $newestId,
+    ): JsonResponse {
+        $response = MessageResource::collection($items)
             ->includePreviouslyLoadedRelationships()
             ->response();
 
         $payload = $response->getData(true);
-        $payload['links'] = [
-            'prev' => $window['prevCursor'] ? $baseUrl.'?cursor='.$window['prevCursor'] : null,
-            'next' => $window['nextCursor'] ? $baseUrl.'?cursor='.$window['nextCursor'] : null,
-        ];
+        $payload['meta'] = array_merge($payload['meta'] ?? [], [
+            'has_more_before' => $hasMoreBefore,
+            'has_more_after' => $hasMoreAfter,
+            'oldest_id' => $oldestId,
+            'newest_id' => $newestId,
+        ]);
         $response->setData($payload);
 
         return $response;

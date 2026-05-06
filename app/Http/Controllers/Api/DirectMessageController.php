@@ -8,7 +8,7 @@ use App\Events\DirectMessageEdited;
 use App\Events\DirectMessageSent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\CreateDirectMessageGroupRequest;
-use App\Http\Requests\Api\CursorPaginateRequest;
+use App\Http\Requests\Api\MessagePaginateRequest;
 use App\Http\Requests\Api\FindDirectMessageGroupRequest;
 use App\Http\Requests\Api\SearchMessagesRequest;
 use App\Http\Requests\Api\StoreDirectMessageRequest;
@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
 use Spatie\QueryBuilder\QueryBuilder;
@@ -75,9 +76,10 @@ class DirectMessageController extends Controller
     }
 
     /**
-     * Show a specific DM group with messages.
+     * Show a specific DM group with messages. Latest 50 by default, or
+     * anchored on before/after/around message ids. Response is always ASC.
      */
-    public function show(CursorPaginateRequest $request, DirectMessageGroup $dmGroup): JsonResponse
+    public function show(MessagePaginateRequest $request, DirectMessageGroup $dmGroup): JsonResponse
     {
         $user = $request->user();
 
@@ -93,8 +95,9 @@ class DirectMessageController extends Controller
             ))->includePreviouslyLoadedRelationships(),
         ];
 
-        $around = $request->query('around');
-        if ($around) {
+        $limit = (int) $request->validated('limit', 50);
+
+        if ($around = $request->validated('around')) {
             $target = $dmGroup->messages()->where('id', $around)->first();
 
             if (! $target) {
@@ -110,65 +113,100 @@ class DirectMessageController extends Controller
 
             $window = $this->windowService->windowAround($windowQuery, $target);
 
-            $response = DirectMessageResource::collection($window['items'])
-                ->includePreviouslyLoadedRelationships()
-                ->additional(['meta' => $dmGroupMeta])
-                ->response();
-
-            $payload = $response->getData(true);
-            $payload['links'] = [
-                'prev' => $window['prevCursor'] ? $request->url().'?cursor='.$window['prevCursor'] : null,
-                'next' => $window['nextCursor'] ? $request->url().'?cursor='.$window['nextCursor'] : null,
-            ];
-            $response->setData($payload);
-
-            return $response;
+            return $this->dmPaginatedResponse(
+                $window['items'],
+                $window['hasMoreBefore'],
+                $window['hasMoreAfter'],
+                $window['oldestId'],
+                $window['newestId'],
+                $dmGroupMeta,
+            );
         }
 
-        // Local-first delta sync — see MessageController::index for parity.
-        $sinceId = $request->query('since_id');
-        if ($sinceId !== null) {
-            $messages = QueryBuilder::for(
-                $dmGroup->messages()->where('id', '>', (int) $sinceId)
-            )
-                ->allowedIncludes(...$allowedIncludes)
-                ->orderBy('id', 'asc')
-                ->cursorPaginate(50);
+        $before = $request->validated('before');
+        $after = $request->validated('after');
 
-            return DirectMessageResource::collection($messages)
-                ->includePreviouslyLoadedRelationships()
-                ->additional(['meta' => $dmGroupMeta])
-                ->response();
-        }
+        $base = QueryBuilder::for($dmGroup->messages())
+            ->allowedIncludes(...$allowedIncludes)
+            ->getEloquentBuilder();
 
-        $cursor = $request->query('cursor');
-        $includes = $request->query('include', '');
-        $cacheKey = CacheKeys::dmGroupMessages($dmGroup->id).'.'.md5($includes);
+        $includes = (string) $request->query('include', '');
+        $isLatestNoArg = $before === null && $after === null;
+        $cacheKey = CacheKeys::dmGroupMessages($dmGroup->id).'.latest.l'.$limit.'.'.md5($includes);
 
-        if (! $cursor) {
+        if ($isLatestNoArg) {
             $cached = Cache::tags([CacheKeys::dmGroupMessagesTag($dmGroup->id)])->get($cacheKey);
             if ($cached) {
                 return response()->json($cached);
             }
         }
 
-        $messages = QueryBuilder::for(
-            $dmGroup->messages()
-        )
-            ->allowedIncludes(...$allowedIncludes)
-            ->allowedSorts('created_at')
-            ->defaultSort('created_at')
-            ->cursorPaginate(50);
+        if ($after !== null) {
+            $rows = (clone $base)
+                ->where('id', '>', (int) $after)
+                ->orderBy('id', 'asc')
+                ->limit($limit + 1)
+                ->get();
 
-        $response = DirectMessageResource::collection($messages)
-            ->includePreviouslyLoadedRelationships()
-            ->additional(['meta' => $dmGroupMeta])
-            ->response();
+            $hasMoreAfter = $rows->count() > $limit;
+            $items = $rows->take($limit)->values();
+            $hasMoreBefore = true;
+        } else {
+            $q = (clone $base)->orderBy('id', 'desc')->limit($limit + 1);
+            if ($before !== null) {
+                $q->where('id', '<', (int) $before);
+            }
+            $rows = $q->get();
 
-        if (! $cursor) {
+            $hasMoreBefore = $rows->count() > $limit;
+            $items = $rows->take($limit)->reverse()->values();
+            $hasMoreAfter = $before !== null;
+        }
+
+        $oldestId = $items->isNotEmpty() ? (string) $items->first()->getKey() : null;
+        $newestId = $items->isNotEmpty() ? (string) $items->last()->getKey() : null;
+
+        $response = $this->dmPaginatedResponse(
+            $items,
+            $hasMoreBefore,
+            $hasMoreAfter,
+            $oldestId,
+            $newestId,
+            $dmGroupMeta,
+        );
+
+        if ($isLatestNoArg) {
             Cache::tags([CacheKeys::dmGroupTag($dmGroup->id), CacheKeys::dmGroupMessagesTag($dmGroup->id)])
                 ->put($cacheKey, $response->getData(true), CacheKeys::TTL_HOT);
         }
+
+        return $response;
+    }
+
+    /**
+     * @param  Collection<int, Model>  $items
+     * @param  array<string, mixed>  $extraMeta
+     */
+    private function dmPaginatedResponse(
+        Collection $items,
+        bool $hasMoreBefore,
+        bool $hasMoreAfter,
+        ?string $oldestId,
+        ?string $newestId,
+        array $extraMeta,
+    ): JsonResponse {
+        $response = DirectMessageResource::collection($items)
+            ->includePreviouslyLoadedRelationships()
+            ->response();
+
+        $payload = $response->getData(true);
+        $payload['meta'] = array_merge($payload['meta'] ?? [], $extraMeta, [
+            'has_more_before' => $hasMoreBefore,
+            'has_more_after' => $hasMoreAfter,
+            'oldest_id' => $oldestId,
+            'newest_id' => $newestId,
+        ]);
+        $response->setData($payload);
 
         return $response;
     }

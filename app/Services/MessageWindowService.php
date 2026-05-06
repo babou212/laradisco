@@ -4,7 +4,6 @@ namespace App\Services;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Pagination\Cursor;
 use Illuminate\Support\Collection;
 
 class MessageWindowService
@@ -14,12 +13,8 @@ class MessageWindowService
     /**
      * Build a window of messages centered around $target ordered by created_at asc.
      *
-     * Returns the merged item collection plus cursor strings that the frontend
-     * can pass back to the normal cursor-paginated listing endpoint as
-     * `?cursor=<prev|next>` to continue loading older/newer messages.
-     *
      * @param  Builder<Model>  $baseQuery  a fresh query scoped to the container (channel / dm group)
-     * @return array{items: Collection<int, Model>, prevCursor: ?string, nextCursor: ?string}
+     * @return array{items: Collection<int, Model>, hasMoreBefore: bool, hasMoreAfter: bool, oldestId: ?string, newestId: ?string}
      */
     public function windowAround(Builder $baseQuery, Model $target, int $halfWindow = self::HALF_WINDOW): array
     {
@@ -39,7 +34,7 @@ class MessageWindowService
             ->limit($halfWindow + 1)
             ->get();
 
-        $hasPrev = $beforeRaw->count() > $halfWindow;
+        $hasMoreBefore = $beforeRaw->count() > $halfWindow;
         $before = $beforeRaw->take($halfWindow)->reverse()->values();
 
         $afterRaw = (clone $baseQuery)
@@ -55,35 +50,21 @@ class MessageWindowService
             ->limit($halfWindow + 1)
             ->get();
 
-        $hasNext = $afterRaw->count() > $halfWindow;
+        $hasMoreAfter = $afterRaw->count() > $halfWindow;
         $after = $afterRaw->take($halfWindow)->values();
 
         /** @var Collection<int, Model> $items */
         $items = $before->push($target)->concat($after)->values();
 
-        $prevCursor = null;
-        $nextCursor = null;
-
-        if ($hasPrev && $items->isNotEmpty()) {
-            $first = $items->first();
-            $prevCursor = (new Cursor([
-                'created_at' => $first->getAttribute('created_at'),
-                'id' => $first->getKey(),
-            ], false))->encode();
-        }
-
-        if ($hasNext && $items->isNotEmpty()) {
-            $last = $items->last();
-            $nextCursor = (new Cursor([
-                'created_at' => $last->getAttribute('created_at'),
-                'id' => $last->getKey(),
-            ], true))->encode();
-        }
+        $oldestId = $items->isNotEmpty() ? (string) $items->first()->getKey() : null;
+        $newestId = $items->isNotEmpty() ? (string) $items->last()->getKey() : null;
 
         return [
             'items' => $items,
-            'prevCursor' => $prevCursor,
-            'nextCursor' => $nextCursor,
+            'hasMoreBefore' => $hasMoreBefore,
+            'hasMoreAfter' => $hasMoreAfter,
+            'oldestId' => $oldestId,
+            'newestId' => $newestId,
         ];
     }
 }

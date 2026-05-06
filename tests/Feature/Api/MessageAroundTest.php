@@ -51,8 +51,10 @@ class MessageAroundTest extends TestCase
         $this->assertSame((string) $messages[5]->id, $data[0]['id']);
         $this->assertSame((string) $messages[55]->id, $data[50]['id']);
 
-        $this->assertNotNull($response->json('links.prev'));
-        $this->assertNotNull($response->json('links.next'));
+        $this->assertTrue($response->json('meta.has_more_before'));
+        $this->assertTrue($response->json('meta.has_more_after'));
+        $this->assertSame((string) $messages[5]->id, $response->json('meta.oldest_id'));
+        $this->assertSame((string) $messages[55]->id, $response->json('meta.newest_id'));
     }
 
     public function test_around_near_start_returns_partial_before(): void
@@ -79,8 +81,8 @@ class MessageAroundTest extends TestCase
         $data = $response->json('data');
         $this->assertCount(2 + 1 + 25, $data);
         $this->assertSame((string) $target->id, $data[2]['id']);
-        $this->assertNull($response->json('links.prev'));
-        $this->assertNotNull($response->json('links.next'));
+        $this->assertFalse($response->json('meta.has_more_before'));
+        $this->assertTrue($response->json('meta.has_more_after'));
     }
 
     public function test_around_near_end_returns_partial_after(): void
@@ -106,8 +108,8 @@ class MessageAroundTest extends TestCase
         $response->assertOk();
         $data = $response->json('data');
         $this->assertCount(25 + 1 + 1, $data);
-        $this->assertNull($response->json('links.next'));
-        $this->assertNotNull($response->json('links.prev'));
+        $this->assertFalse($response->json('meta.has_more_after'));
+        $this->assertTrue($response->json('meta.has_more_before'));
     }
 
     public function test_around_nonexistent_id_returns_404(): void

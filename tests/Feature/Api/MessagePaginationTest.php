@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\Channel;
 use App\Models\Message;
+use App\Models\Thread;
 use App\Models\User;
 use App\Services\PermissionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -165,10 +166,15 @@ class MessagePaginationTest extends TestCase
         $channel = Channel::factory()->create();
 
         $top = Message::factory()->create(['channel_id' => $channel->id, 'user_id' => $user->id]);
+        $thread = Thread::factory()->create([
+            'channel_id' => $channel->id,
+            'user_id' => $user->id,
+            'message_id' => $top->id,
+        ]);
         Message::factory()->create([
             'channel_id' => $channel->id,
             'user_id' => $user->id,
-            'thread_id' => $top->id,
+            'thread_id' => $thread->id,
         ]);
 
         $response = $this->actingAs($user)->getJson(

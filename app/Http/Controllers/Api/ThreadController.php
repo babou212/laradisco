@@ -10,6 +10,7 @@ use App\Events\ThreadMessageDeleted;
 use App\Events\ThreadMessageEdited;
 use App\Events\ThreadUpdated;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\MessagePaginateRequest;
 use App\Http\Requests\Api\StoreThreadReplyRequest;
 use App\Http\Requests\Api\UpdateChannelMessageRequest;
 use App\Http\Resources\MessageResource;
@@ -17,11 +18,15 @@ use App\Http\Resources\ThreadResource;
 use App\Models\Channel;
 use App\Models\Message;
 use App\Models\Thread;
+use App\Services\MessageWindowService;
 use App\Services\ModerationAuditService;
 use App\Services\PermissionService;
 use App\Support\CacheKeys;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,6 +39,7 @@ class ThreadController extends Controller
         private readonly PermissionService $permissionService,
         private readonly CreateThreadReplyAction $createThreadReplyAction,
         private readonly ModerationAuditService $auditService,
+        private readonly MessageWindowService $windowService,
     ) {}
 
     /**
@@ -79,9 +85,10 @@ class ThreadController extends Controller
     }
 
     /**
-     * Get cursor-paginated messages for a thread.
+     * List thread messages: latest 50 by default, or anchored on
+     * before/after/around message ids. Response is always ASC.
      */
-    public function messages(Request $request, Channel $channel, Thread $thread): JsonResponse
+    public function messages(MessagePaginateRequest $request, Channel $channel, Thread $thread): JsonResponse
     {
         if ($thread->channel_id !== $channel->id) {
             return $this->notFoundResponse('Thread not found in this channel.');
@@ -91,33 +98,116 @@ class ThreadController extends Controller
             return $this->forbiddenResponse('You do not have access to this channel.');
         }
 
-        $cursor = $request->query('cursor');
-        $includes = $request->query('include', '');
-        $cacheKey = CacheKeys::threadMessages($thread->id).'.'.md5($includes);
+        $allowedIncludes = ['user', 'reactions', 'attachments'];
 
-        if (! $cursor) {
+        $limit = (int) $request->validated('limit', 50);
+
+        if ($around = $request->validated('around')) {
+            $target = $thread->messages()
+                ->where('id', $around)
+                ->first();
+
+            if (! $target) {
+                return $this->notFoundResponse('Target message not found in this thread.');
+            }
+
+            /** @var Builder<Model> $windowQuery */
+            $windowQuery = QueryBuilder::for($thread->messages())
+                ->allowedIncludes(...$allowedIncludes)
+                ->getEloquentBuilder();
+
+            $window = $this->windowService->windowAround($windowQuery, $target);
+
+            return $this->paginatedResponse(
+                $window['items'],
+                $window['hasMoreBefore'],
+                $window['hasMoreAfter'],
+                $window['oldestId'],
+                $window['newestId'],
+            );
+        }
+
+        $before = $request->validated('before');
+        $after = $request->validated('after');
+
+        $base = QueryBuilder::for($thread->messages())
+            ->allowedIncludes(...$allowedIncludes)
+            ->getEloquentBuilder();
+
+        $includes = (string) $request->query('include', '');
+        $isLatestNoArg = $before === null && $after === null;
+        $cacheKey = CacheKeys::threadMessages($thread->id).'.latest.l'.$limit.'.'.md5($includes);
+
+        if ($isLatestNoArg) {
             $cached = Cache::tags([CacheKeys::threadMessagesTag($thread->id)])->get($cacheKey);
             if ($cached) {
                 return response()->json($cached);
             }
         }
 
-        $messages = QueryBuilder::for(
-            $thread->messages()
-        )
-            ->allowedIncludes('user', 'reactions', 'attachments')
-            ->allowedSorts('created_at')
-            ->defaultSort('created_at')
-            ->cursorPaginate(50);
+        if ($after !== null) {
+            $rows = (clone $base)
+                ->where('id', '>', (int) $after)
+                ->orderBy('id', 'asc')
+                ->limit($limit + 1)
+                ->get();
 
-        $response = MessageResource::collection($messages)
-            ->includePreviouslyLoadedRelationships()
-            ->response();
+            $hasMoreAfter = $rows->count() > $limit;
+            $items = $rows->take($limit)->values();
+            $hasMoreBefore = true;
+        } else {
+            $q = (clone $base)->orderBy('id', 'desc')->limit($limit + 1);
+            if ($before !== null) {
+                $q->where('id', '<', (int) $before);
+            }
+            $rows = $q->get();
 
-        if (! $cursor) {
+            $hasMoreBefore = $rows->count() > $limit;
+            $items = $rows->take($limit)->reverse()->values();
+            $hasMoreAfter = $before !== null;
+        }
+
+        $oldestId = $items->isNotEmpty() ? (string) $items->first()->getKey() : null;
+        $newestId = $items->isNotEmpty() ? (string) $items->last()->getKey() : null;
+
+        $response = $this->paginatedResponse(
+            $items,
+            $hasMoreBefore,
+            $hasMoreAfter,
+            $oldestId,
+            $newestId,
+        );
+
+        if ($isLatestNoArg) {
             Cache::tags([CacheKeys::threadTag($thread->id), CacheKeys::threadMessagesTag($thread->id)])
                 ->put($cacheKey, $response->getData(true), CacheKeys::TTL_HOT);
         }
+
+        return $response;
+    }
+
+    /**
+     * @param  Collection<int, Model>  $items
+     */
+    private function paginatedResponse(
+        Collection $items,
+        bool $hasMoreBefore,
+        bool $hasMoreAfter,
+        ?string $oldestId,
+        ?string $newestId,
+    ): JsonResponse {
+        $response = MessageResource::collection($items)
+            ->includePreviouslyLoadedRelationships()
+            ->response();
+
+        $payload = $response->getData(true);
+        $payload['meta'] = array_merge($payload['meta'] ?? [], [
+            'has_more_before' => $hasMoreBefore,
+            'has_more_after' => $hasMoreAfter,
+            'oldest_id' => $oldestId,
+            'newest_id' => $newestId,
+        ]);
+        $response->setData($payload);
 
         return $response;
     }

@@ -20,6 +20,7 @@ class MessageResource extends JsonApiResource
             'channel_id' => $this->channel_id,
             'user_id' => $this->user_id,
             'content' => $this->content,
+            'link_preview' => $this->link_preview,
             'is_pinned' => $this->is_pinned ?? false,
             'is_edited' => $this->is_edited ?? false,
             'edited_at' => $this->edited_at,

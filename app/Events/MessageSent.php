@@ -52,6 +52,7 @@ class MessageSent implements ShouldBroadcast
                 'channel_id' => $this->message->channel_id,
                 'user_id' => $this->message->user_id,
                 'content' => $this->message->content,
+                'link_preview' => $this->message->link_preview,
                 'reply_to_id' => $this->message->reply_to_id,
                 'thread_id' => $this->message->thread_id,
                 'is_pinned' => $this->message->is_pinned,

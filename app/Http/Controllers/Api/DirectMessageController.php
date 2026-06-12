@@ -240,6 +240,7 @@ class DirectMessageController extends Controller
             'reply_to_id' => $request->validated('reply_to_id'),
             'client_temp_id' => $clientTempId,
             'content' => $request->validated('content'),
+            'link_preview' => $request->validated('link_preview'),
         ]);
 
         $this->attachmentRebinder->rebind($user, $message, $request->validated('attachment_ids', []));

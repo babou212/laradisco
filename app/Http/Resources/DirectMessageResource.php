@@ -20,6 +20,7 @@ class DirectMessageResource extends JsonApiResource
             'dm_group_id' => $this->dm_group_id ?? $this->direct_message_group_id,
             'user_id' => $this->user_id,
             'content' => $this->content,
+            'link_preview' => $this->link_preview,
             'reply_to_id' => $this->reply_to_id,
             'is_pinned' => $this->is_pinned ?? false,
             'is_edited' => $this->is_edited ?? false,

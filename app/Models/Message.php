@@ -37,6 +37,7 @@ class Message extends Model implements HasMedia
         'reply_to_id',
         'client_temp_id',
         'content',
+        'link_preview',
         'is_pinned',
         'is_edited',
         'edited_at',
@@ -51,6 +52,7 @@ class Message extends Model implements HasMedia
             'is_pinned' => 'boolean',
             'is_edited' => 'boolean',
             'edited_at' => 'datetime',
+            'link_preview' => 'array',
         ];
     }
 

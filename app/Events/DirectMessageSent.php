@@ -60,6 +60,7 @@ class DirectMessageSent implements ShouldBroadcast
                 'dm_group_id' => $this->message->direct_message_group_id,
                 'user_id' => $this->message->user_id,
                 'content' => $this->message->content,
+                'link_preview' => $this->message->link_preview,
                 'reply_to_id' => $this->message->reply_to_id,
                 'is_edited' => $this->message->is_edited ?? false,
                 'client_temp_id' => $this->message->client_temp_id,

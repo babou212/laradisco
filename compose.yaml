@@ -35,6 +35,8 @@ services:
                 condition: service_started
             mailpit:
                 condition: service_started
+            meilisearch:
+                condition: service_started
     queue:
         build:
             context: .
@@ -53,6 +55,8 @@ services:
                 condition: service_healthy
             redis:
                 condition: service_healthy
+            meilisearch:
+                condition: service_started
         command: php artisan horizon
         restart: unless-stopped
     reverb:
@@ -98,6 +102,19 @@ services:
             - '${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025'
         networks:
             - sail
+    meilisearch:
+        image: 'getmeili/meilisearch:v1.35.1'
+        ports:
+            - '${FORWARD_MEILISEARCH_PORT:-7700}:7700'
+        environment:
+            MEILI_MASTER_KEY: '${MEILISEARCH_KEY:-masterKeyForLocalDev}'
+            MEILI_ENV: '${MEILI_ENV:-development}'
+            MEILI_NO_ANALYTICS: 'true'
+        volumes:
+            - 'sail-meilisearch:/meili_data'
+        networks:
+            - sail
+        restart: unless-stopped
     livekit:
         image: 'livekit/livekit-server:latest'
         ports:
@@ -143,5 +160,7 @@ volumes:
     sail-redis:
         driver: local
     sail-pgsql:
+        driver: local
+    sail-meilisearch:
         driver: local
 

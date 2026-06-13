@@ -12,6 +12,9 @@ use App\Models\User;
 use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Spatie\MediaLibrary\Conversions\Conversion;
+use Spatie\MediaLibrary\MediaCollections\Filesystem;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 
@@ -27,6 +30,7 @@ class AttachmentController extends Controller
 
     public function __construct(
         private readonly PermissionService $permissionService,
+        private readonly Filesystem $filesystem,
     ) {}
 
     /**
@@ -109,6 +113,8 @@ class AttachmentController extends Controller
             'height' => ['nullable', 'integer', 'min:1'],
         ]);
 
+        $thumbnail = $request->file('thumbnail');
+
         $customProperties = [
             'expires_at' => now()->addHours(self::PENDING_TTL_HOURS)->toIso8601String(),
         ];
@@ -119,13 +125,17 @@ class AttachmentController extends Controller
         if ($request->filled('height')) {
             $customProperties['height'] = (int) $request->input('height');
         }
-        if ($request->hasFile('thumbnail')) {
-            $customProperties['thumbnail_size'] = $request->file('thumbnail')->getSize();
+        if ($thumbnail) {
+            $customProperties['thumbnail_size'] = $thumbnail->getSize();
         }
 
         $media = $user->addMediaFromRequest('file')
             ->withCustomProperties($customProperties)
             ->toMediaCollection('pending_attachments');
+
+        if ($thumbnail) {
+            $this->storeThumbnailConversion($media, $thumbnail);
+        }
 
         return $this->successResponse([
             'attachment_id' => $media->uuid,
@@ -134,5 +144,26 @@ class AttachmentController extends Controller
             'size' => $media->size,
             'thumbnail_size' => $customProperties['thumbnail_size'] ?? null,
         ]);
+    }
+
+    /**
+     * Persist a client-supplied thumbnail as the media's `thumb` conversion so thumbnails are
+     * available without server-side ffmpeg generation (the client already extracts a webp frame
+     * for videos). This mirrors the deterministic webp file name of the `thumb` conversion
+     * declared on the Message / DirectMessage models the media is later rebound to, so the
+     * download endpoint resolves the same path via getTemporaryUrl(..., 'thumb').
+     */
+    private function storeThumbnailConversion(Media $media, UploadedFile $thumbnail): void
+    {
+        $conversion = Conversion::create('thumb')->format('webp');
+
+        $this->filesystem->copyToMediaLibrary(
+            $thumbnail->getRealPath(),
+            $media,
+            'conversions',
+            $conversion->getConversionFile($media),
+        );
+
+        $media->markAsConversionGenerated('thumb');
     }
 }

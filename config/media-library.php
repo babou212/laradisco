@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\PublicEndpointUrlGenerator;
 use Spatie\ImageOptimizer\Optimizers\Avifenc;
 use Spatie\ImageOptimizer\Optimizers\Cwebp;
 use Spatie\ImageOptimizer\Optimizers\Gifsicle;
@@ -23,7 +24,6 @@ use Spatie\MediaLibrary\ResponsiveImages\WidthCalculator\FileSizeOptimizedWidthC
 use Spatie\MediaLibrary\Support\FileNamer\DefaultFileNamer;
 use Spatie\MediaLibrary\Support\FileRemover\DefaultFileRemover;
 use Spatie\MediaLibrary\Support\PathGenerator\DefaultPathGenerator;
-use Spatie\MediaLibrary\Support\UrlGenerator\DefaultUrlGenerator;
 use Spatie\MediaLibraryPro\Models\TemporaryUpload;
 
 return [
@@ -38,7 +38,7 @@ return [
      * The maximum file size of an item in bytes.
      * Adding a larger file will result in an exception.
      */
-    'max_file_size' => 1024 * 1024 * 10, // 10MB
+    'max_file_size' => 1024 * 1024 * 100, // 100MB (matches AttachmentController::MAX_FILE_SIZE)
 
     /*
      * This queue connection will be used to generate derived and responsive images.
@@ -127,7 +127,7 @@ return [
      * When urls to files get generated, this class will be called. Use the default
      * if your files are stored locally above the site root or on s3.
      */
-    'url_generator' => DefaultUrlGenerator::class,
+    'url_generator' => PublicEndpointUrlGenerator::class,
 
     /*
      * Moves media on updating to keep path consistent. Enable it only with a custom

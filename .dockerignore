@@ -1,9 +1,8 @@
 vendor/
 node_modules/
-storage/logs/*
-storage/framework/cache/*
-storage/framework/sessions/*
-storage/framework/views/*
+# Not needed at build (no COPY; storage is bind-mounted at runtime). Excluding
+# the whole tree also avoids root-owned 0700 dirs breaking the context tar.
+storage
 bootstrap/cache/*.php
 public/build
 public/hot

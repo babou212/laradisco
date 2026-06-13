@@ -107,6 +107,7 @@ class DirectMessage extends Model implements HasMedia
 
         $this->addMediaConversion('thumb')
             ->nonOptimized()
+            ->format('webp')
             ->fit(Fit::Max, 320, 320);
     }
 

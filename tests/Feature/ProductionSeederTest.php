@@ -43,17 +43,16 @@ class ProductionSeederTest extends TestCase
         $this->seed(ProductionSeeder::class);
         $this->seed(ProductionSeeder::class);
 
-        $this->assertSame(3, Category::count());
-        $this->assertSame(5, Channel::count());
+        $this->assertSame(2, Category::count());
+        $this->assertSame(3, Channel::count());
     }
 
     public function test_seeder_creates_all_default_categories(): void
     {
         $this->seed(ProductionSeeder::class);
 
-        $this->assertSame(3, Category::count());
+        $this->assertSame(2, Category::count());
         $this->assertDatabaseHas('categories', ['name' => 'General']);
-        $this->assertDatabaseHas('categories', ['name' => 'Information']);
         $this->assertDatabaseHas('categories', ['name' => 'Voice Channels']);
     }
 
@@ -61,8 +60,8 @@ class ProductionSeederTest extends TestCase
     {
         $this->seed(ProductionSeeder::class);
 
-        $this->assertSame(5, Channel::count());
-        $this->assertSame(4, Channel::where('type', ChannelType::Text)->count());
+        $this->assertSame(3, Channel::count());
+        $this->assertSame(2, Channel::where('type', ChannelType::Text)->count());
         $this->assertSame(1, Channel::where('type', ChannelType::Voice)->count());
     }
 }

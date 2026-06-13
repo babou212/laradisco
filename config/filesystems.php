@@ -55,6 +55,11 @@ return [
             'bucket' => env('AWS_BUCKET'),
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
+            // Optional separate endpoint used only to sign presigned (temporary)
+            // URLs handed to clients, so the backend can use an internal endpoint
+            // for I/O while clients get a host-reachable one. See
+            // App\Support\PublicEndpointUrlGenerator. Leave unset in production.
+            'public_endpoint' => env('AWS_PUBLIC_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', true),
             'visibility' => 'private',
             'throw' => true,

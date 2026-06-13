@@ -37,6 +37,8 @@ services:
                 condition: service_started
             meilisearch:
                 condition: service_started
+            garage-init:
+                condition: service_completed_successfully
     queue:
         build:
             context: .
@@ -57,6 +59,8 @@ services:
                 condition: service_healthy
             meilisearch:
                 condition: service_started
+            garage-init:
+                condition: service_completed_successfully
         command: php artisan horizon
         restart: unless-stopped
     reverb:
@@ -153,6 +157,41 @@ services:
             start_period: 5s
             retries: 5
             timeout: 5s
+    garage:
+        image: 'dxflrs/garage:v1.0.1'
+        ports:
+            - '${FORWARD_GARAGE_PORT:-3900}:3900'
+            - '${FORWARD_GARAGE_ADMIN_PORT:-3903}:3903'
+        volumes:
+            - './docker/garage.toml:/etc/garage.toml:ro'
+            - 'sail-garage-meta:/var/lib/garage/meta'
+            - 'sail-garage-data:/var/lib/garage/data'
+        networks:
+            - sail
+        restart: unless-stopped
+    garage-init:
+        build:
+            context: ./docker
+            dockerfile: Dockerfile.garage-init
+        image: laradisco-garage-init/app
+        # Fixed local-dev credentials, hardcoded as literals (NOT ${AWS_*}) so a
+        # developer's exported AWS_* shell vars can't leak in via compose
+        # substitution. Must match the AWS_* values in .env.
+        environment:
+            GARAGE_BUCKET: 'laradisco'
+            GARAGE_KEY_ID: 'GK3d1f0c9a8b7e6d5c4b3a2f10'
+            GARAGE_KEY_SECRET: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+        volumes:
+            - './docker/garage.toml:/etc/garage.toml:ro'
+            # Shares garage's metadata so the CLI can read the node key and
+            # connect over RPC to drive the bootstrap.
+            - 'sail-garage-meta:/var/lib/garage/meta'
+        networks:
+            - sail
+        depends_on:
+            garage:
+                condition: service_started
+        restart: 'no'
 networks:
     sail:
         driver: bridge
@@ -162,5 +201,9 @@ volumes:
     sail-pgsql:
         driver: local
     sail-meilisearch:
+        driver: local
+    sail-garage-meta:
+        driver: local
+    sail-garage-data:
         driver: local
 

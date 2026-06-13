@@ -27,6 +27,7 @@ class ProductionSeeder extends Seeder
 
     private function createDefaultChannels(): void
     {
+        $generalCategory = Category::firstOrCreate(['name' => 'General'], ['position' => 0]);
         $this->createChannel($generalCategory, 'general', 'General discussion', 0);
         $this->createChannel($generalCategory, 'off-topic', 'Anything goes', 1);
 

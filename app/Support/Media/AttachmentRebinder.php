@@ -51,10 +51,13 @@ class AttachmentRebinder
         $imageGenerator = new ImageGenerator;
 
         foreach ($rebound as $media) {
+            // onlyMissing: a client-supplied `thumb` (stored + marked generated at upload time)
+            // is skipped here, so videos do not depend on server-side ffmpeg. Attachments
+            // without a pre-stored thumb (e.g. images) still get their conversions generated.
             $this->fileManipulator->createDerivedFiles(
                 $media,
                 onlyConversionNames: [],
-                onlyMissing: false,
+                onlyMissing: true,
             );
 
             // Spatie's FileManipulator only regenerates responsive_images that were already

@@ -132,13 +132,11 @@ class ChatController extends Controller
         $users = QueryBuilder::for(User::class)
             ->allowedFilters(
                 AllowedFilter::partial('search', 'username'),
-                AllowedFilter::partial('search_name', 'name'),
-                AllowedFilter::partial('search_nickname', 'nickname'),
             )
             ->allowedIncludes('roles')
-            ->allowedSorts('name', 'username')
-            ->defaultSort('name')
-            ->select(['id', 'name', 'username', 'nickname', 'status', 'custom_status', 'created_at'])
+            ->allowedSorts('username')
+            ->defaultSort('username')
+            ->select(['id', 'username', 'status', 'custom_status', 'created_at'])
             ->with(['roles' => fn ($q) => $q->orderByDesc('position')])
             ->cursorPaginate(50);
 

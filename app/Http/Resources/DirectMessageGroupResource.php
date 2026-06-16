@@ -32,7 +32,7 @@ class DirectMessageGroupResource extends JsonApiResource
             'other_user' => fn () => $otherParticipant ? [
                 'id' => (string) $otherParticipant->id,
                 'username' => $otherParticipant->username,
-                'display_name' => $otherParticipant->display_name ?? $otherParticipant->nickname ?? $otherParticipant->name,
+                'display_name' => $otherParticipant->display_name,
                 'avatar_urls' => $otherParticipant->avatar_urls,
                 'status' => $otherParticipant->status ?? 'offline',
                 'custom_status' => $otherParticipant->custom_status,

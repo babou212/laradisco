@@ -24,7 +24,6 @@ class DatabaseSeeder extends Seeder
 
         // Create admin user
         $admin = User::factory()->create([
-            'name' => 'Admin',
             'username' => 'admin',
             'email' => 'admin@example.com',
         ]);
@@ -32,11 +31,11 @@ class DatabaseSeeder extends Seeder
 
         // Create specific test users
         $testUsers = [
-            ['name' => 'John Doe', 'username' => 'johndoe', 'email' => 'john@example.com'],
-            ['name' => 'Jane Smith', 'username' => 'janesmith', 'email' => 'jane@example.com'],
-            ['name' => 'Bob Johnson', 'username' => 'bobjohnson', 'email' => 'bob@example.com'],
-            ['name' => 'Alice Williams', 'username' => 'alicew', 'email' => 'alice@example.com'],
-            ['name' => 'Charlie Brown', 'username' => 'charlieb', 'email' => 'charlie@example.com'],
+            ['username' => 'johndoe', 'email' => 'john@example.com'],
+            ['username' => 'janesmith', 'email' => 'jane@example.com'],
+            ['username' => 'bobjohnson', 'email' => 'bob@example.com'],
+            ['username' => 'alicew', 'email' => 'alice@example.com'],
+            ['username' => 'charlieb', 'email' => 'charlie@example.com'],
         ];
 
         foreach ($testUsers as $userData) {

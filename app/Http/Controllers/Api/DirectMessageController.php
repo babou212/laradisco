@@ -62,8 +62,8 @@ class DirectMessageController extends Controller
             ->allowedSorts('last_message_at')
             ->defaultSort('-last_message_at')
             ->with([
-                'participants:id,username,name,nickname,status,custom_status',
-                'lastMessage.user:id,username,name,nickname,status,custom_status',
+                'participants:id,username,status,custom_status',
+                'lastMessage.user:id,username,status,custom_status',
             ])
             ->get();
 
@@ -93,7 +93,7 @@ class DirectMessageController extends Controller
 
         $dmGroupMeta = [
             'dm_group' => (new DirectMessageGroupResource(
-                $dmGroup->load('participants:id,username,name,nickname,status,custom_status')
+                $dmGroup->load('participants:id,username,status,custom_status')
             ))->includePreviouslyLoadedRelationships(),
         ];
 
@@ -228,7 +228,7 @@ class DirectMessageController extends Controller
                 ->where('client_temp_id', $clientTempId)
                 ->first();
             if ($existing) {
-                $existing->load(['user:id,username,name,nickname,status,custom_status', 'replyTo.user:id,username,name,nickname,status,custom_status']);
+                $existing->load(['user:id,username,status,custom_status', 'replyTo.user:id,username,status,custom_status']);
 
                 return (new DirectMessageResource($existing))
                     ->includePreviouslyLoadedRelationships()
@@ -249,7 +249,7 @@ class DirectMessageController extends Controller
 
         $dmGroup->update(['last_message_at' => now()]);
 
-        $message->load(['user:id,username,name,nickname,status,custom_status', 'replyTo.user:id,username,name,nickname']);
+        $message->load(['user:id,username,status,custom_status', 'replyTo.user:id,username']);
 
         // Flush DM message cache and DM group list cache for all participants
         Cache::tags([CacheKeys::dmGroupMessagesTag($dmGroup->id)])->flush();
@@ -304,7 +304,7 @@ class DirectMessageController extends Controller
             ->paginate($perPage);
 
         DirectMessage::query()->getModel()->newCollection($paginator->items())
-            ->loadMissing(['user:id,username,name,nickname,status,custom_status', 'attachments']);
+            ->loadMissing(['user:id,username,status,custom_status', 'attachments']);
 
         return DirectMessageResource::collection($paginator)
             ->additional(['meta' => ['query' => $query]])
@@ -445,7 +445,7 @@ class DirectMessageController extends Controller
 
         $dmGroup->participants()->attach([$currentUser->id, $otherUserId]);
 
-        return (new DirectMessageGroupResource($dmGroup->load('participants:id,username,name,nickname,status,custom_status')))
+        return (new DirectMessageGroupResource($dmGroup->load('participants:id,username,status,custom_status')))
             ->includePreviouslyLoadedRelationships()
             ->response()
             ->setStatusCode(Response::HTTP_CREATED)

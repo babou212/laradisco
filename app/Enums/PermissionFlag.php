@@ -13,8 +13,6 @@ enum PermissionFlag: string
     case KickMembers = 'kick_members';
     case BanMembers = 'ban_members';
     case InviteMembers = 'invite_members';
-    case ChangeNickname = 'change_nickname';
-    case ManageNicknames = 'manage_nicknames';
 
     case ViewChannels = 'view_channels';
     case SendMessages = 'send_messages';
@@ -52,8 +50,6 @@ enum PermissionFlag: string
             self::KickMembers => 'Kick Members',
             self::BanMembers => 'Ban Members',
             self::InviteMembers => 'Invite Members',
-            self::ChangeNickname => 'Change Nickname',
-            self::ManageNicknames => 'Manage Nicknames',
             self::ViewChannels => 'View Channels',
             self::SendMessages => 'Send Messages',
             self::SendThreadMessages => 'Send Messages in Threads',
@@ -92,7 +88,6 @@ enum PermissionFlag: string
             self::AttachFiles,
             self::AddReactions,
             self::ReadMessageHistory,
-            self::ChangeNickname,
             self::Connect,
             self::Speak,
             self::Video,

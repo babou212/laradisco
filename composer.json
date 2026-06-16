@@ -26,6 +26,7 @@
         "league/flysystem-aws-s3-v3": "^3.29",
         "meilisearch/meilisearch-php": "^1.16",
         "php-ffmpeg/php-ffmpeg": "^1.4",
+        "resend/resend-laravel": "^1.4",
         "spatie/laravel-medialibrary": "^11.21",
         "spatie/laravel-permission": "^7.3",
         "spatie/laravel-prometheus": "^1.6",

@@ -26,7 +26,7 @@ class MentionService
     {
         User::query()
             ->where('id', '!=', $message->user_id)
-            ->select(['id', 'name', 'email', 'username'])
+            ->select(['id', 'email', 'username'])
             ->cursor()
             ->chunk(100)
             ->each(function ($chunk) use ($message) {
@@ -46,7 +46,7 @@ class MentionService
         User::query()
             ->where('status', '!=', UserStatusType::Offline)
             ->where('id', '!=', $message->user_id)
-            ->select(['id', 'name', 'email', 'username'])
+            ->select(['id', 'email', 'username'])
             ->cursor()
             ->chunk(100)
             ->each(function ($chunk) use ($message) {

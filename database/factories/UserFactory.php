@@ -25,12 +25,10 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
             'username' => str_replace('.', '', fake()->unique()->userName()),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
-            'nickname' => null,
             'about_me' => null,
             'custom_status' => null,
             'last_seen_at' => null,
@@ -79,7 +77,6 @@ class UserFactory extends Factory
     public function withProfile(): static
     {
         return $this->state(fn (array $attributes) => [
-            'nickname' => fake()->firstName(),
             'about_me' => fake()->sentence(),
             'custom_status' => fake()->emoji().' '.fake()->words(3, true),
         ]);

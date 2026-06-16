@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api\Settings;
 
 use App\Concerns\ApiResponse;
+use App\Events\UserDeleted;
 use App\Events\UserProfileUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\DeleteAccountRequest;
 use App\Http\Requests\Api\UpdateProfileRequest;
 use App\Http\Requests\Api\UploadAvatarRequest;
 use App\Http\Resources\UserResource;
+use App\Services\UserDeletionService;
 use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -53,11 +55,16 @@ class ProfileController extends Controller
     /**
      * Delete the authenticated user's account.
      */
-    public function destroy(DeleteAccountRequest $request): JsonResponse|Response
+    public function destroy(DeleteAccountRequest $request, UserDeletionService $userDeletionService): JsonResponse|Response
     {
         $user = $request->user();
-        $user->tokens()->delete();
-        $user->delete();
+
+        $userId = $user->id;
+        $username = $user->username;
+
+        $userDeletionService->delete($user);
+
+        UserDeleted::dispatch($userId, $username);
 
         return $this->noContentResponse();
     }

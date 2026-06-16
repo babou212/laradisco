@@ -18,8 +18,7 @@ class UserSummaryResource extends JsonApiResource
     {
         return [
             'username' => $this->username,
-            'display_name' => $this->display_name ?? $this->nickname ?? $this->name,
-            'nickname' => $this->nickname,
+            'display_name' => $this->display_name,
             'avatar_urls' => $this->avatar_urls,
             'status' => $this->status ?? 'offline',
             'custom_status' => $this->custom_status,

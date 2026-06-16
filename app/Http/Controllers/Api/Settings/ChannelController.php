@@ -145,7 +145,7 @@ class ChannelController extends Controller
         $this->authorize('manageOverrides', $channel);
 
         $overrides = $channel->permissionOverrides()
-            ->with(['role:id,name,color', 'user:id,username,name'])
+            ->with(['role:id,name,color', 'user:id,username'])
             ->get();
 
         return $this->successResponse($overrides);
@@ -172,7 +172,7 @@ class ChannelController extends Controller
             ]
         );
 
-        $override->load(['role:id,name,color', 'user:id,username,name']);
+        $override->load(['role:id,name,color', 'user:id,username']);
 
         $this->auditService->log(
             actorId: $request->user()->id,

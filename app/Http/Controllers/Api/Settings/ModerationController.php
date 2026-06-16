@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Api\Settings;
 
 use App\Concerns\ApiResponse;
 use App\Enums\ModerationAction;
+use App\Events\UserDeleted;
 use App\Http\Controllers\Controller;
 use App\Models\Ban;
 use App\Models\User;
 use App\Services\ModerationAuditService;
 use App\Services\ModerationService;
 use App\Services\PermissionService;
+use App\Services\UserDeletionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,6 +24,7 @@ class ModerationController extends Controller
         private readonly ModerationService $moderationService,
         private readonly PermissionService $permissionService,
         private readonly ModerationAuditService $auditService,
+        private readonly UserDeletionService $userDeletionService,
     ) {}
 
     /**
@@ -35,7 +38,7 @@ class ModerationController extends Controller
             return $this->forbiddenResponse('You do not have permission to view bans.');
         }
 
-        $bans = Ban::with(['user:id,name,username', 'bannedBy:id,name,username'])
+        $bans = Ban::with(['user:id,username', 'bannedBy:id,username'])
             ->where(function ($query) {
                 $query->whereNull('expires_at')
                     ->orWhere('expires_at', '>', now());
@@ -87,7 +90,7 @@ class ModerationController extends Controller
             expiresAt: $request->input('expires_at') ? new \DateTime($request->input('expires_at')) : null,
         );
 
-        $ban->load(['user:id,name,username', 'bannedBy:id,name,username']);
+        $ban->load(['user:id,username', 'bannedBy:id,username']);
 
         $this->auditService->log(
             actorId: $actor->id,
@@ -128,6 +131,48 @@ class ModerationController extends Controller
         );
 
         return $this->successResponse(message: 'User has been unbanned.');
+    }
+
+    /**
+     * Permanently delete a user from the server.
+     *
+     * The account is removed entirely, but the user's messages are retained and
+     * relabelled as authored by a deleted user. This is a stronger, admin-only
+     * alternative to banning.
+     */
+    public function deleteUser(Request $request, User $user): JsonResponse|Response
+    {
+        $actor = $request->user();
+
+        if (! $actor->isAdministrator() && ! $actor->hasPermissionTo('manage_server')) {
+            return $this->forbiddenResponse('You do not have permission to delete members.');
+        }
+
+        if ($user->id === $actor->id) {
+            return $this->forbiddenResponse('You cannot delete your own account from here.');
+        }
+
+        if (! $this->permissionService->outranks($actor, $user)) {
+            return $this->forbiddenResponse('You cannot delete a user with a higher or equal role.');
+        }
+
+        $userId = $user->id;
+        $username = $user->username;
+
+        // Logged before deletion so the audit row's target_user_id FK is valid;
+        // it nulls out on delete, but the username is retained in metadata.
+        $this->auditService->log(
+            actorId: $actor->id,
+            action: ModerationAction::DeleteUser,
+            targetUserId: $userId,
+            metadata: ['target_username' => $username],
+        );
+
+        $this->userDeletionService->delete($user);
+
+        UserDeleted::dispatch($userId, $username);
+
+        return $this->successResponse(message: 'User has been permanently deleted.');
     }
 
     /**

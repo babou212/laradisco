@@ -47,24 +47,13 @@ class UserModelTest extends TestCase
         $this->assertTrue($user->last_seen_at->isToday());
     }
 
-    public function test_user_display_name_returns_nickname_when_set(): void
+    public function test_user_display_name_returns_username(): void
     {
         $user = User::factory()->create([
-            'name' => 'John Doe',
-            'nickname' => 'JD',
+            'username' => 'johndoe',
         ]);
 
-        $this->assertSame('JD', $user->display_name);
-    }
-
-    public function test_user_display_name_returns_name_when_no_nickname(): void
-    {
-        $user = User::factory()->create([
-            'name' => 'John Doe',
-            'nickname' => null,
-        ]);
-
-        $this->assertSame('John Doe', $user->display_name);
+        $this->assertSame('johndoe', $user->display_name);
     }
 
     public function test_user_can_have_roles(): void
@@ -128,7 +117,6 @@ class UserModelTest extends TestCase
     {
         $user = User::factory()->withProfile()->create();
 
-        $this->assertNotNull($user->nickname);
         $this->assertNotNull($user->about_me);
         $this->assertNotNull($user->custom_status);
     }

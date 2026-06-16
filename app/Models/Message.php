@@ -33,6 +33,7 @@ class Message extends Model implements HasMedia
     protected $fillable = [
         'channel_id',
         'user_id',
+        'deleted_author_name',
         'thread_id',
         'reply_to_id',
         'client_temp_id',

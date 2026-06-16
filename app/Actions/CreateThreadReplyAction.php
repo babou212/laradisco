@@ -37,7 +37,7 @@ class CreateThreadReplyAction
                 ->whereNotNull('thread_id')
                 ->first();
             if ($existing) {
-                $existing->load(['user:id,username,name,nickname,status,custom_status', 'attachments']);
+                $existing->load(['user:id,username,status,custom_status', 'attachments']);
 
                 return CreateThreadReplyResult::duplicate($existing);
             }
@@ -88,7 +88,7 @@ class CreateThreadReplyAction
             return $reply;
         });
 
-        $result->load(['user:id,username,name,nickname,status,custom_status', 'attachments']);
+        $result->load(['user:id,username,status,custom_status', 'attachments']);
 
         $this->mentionService->processMentionsFromMetadata(
             $result,

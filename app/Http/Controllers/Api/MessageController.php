@@ -199,7 +199,7 @@ class MessageController extends Controller
                 ->where('client_temp_id', $clientTempId)
                 ->first();
             if ($existing) {
-                $existing->load(['user:id,username,name,nickname,status,custom_status', 'replyTo.user:id,username,name,nickname,status,custom_status']);
+                $existing->load(['user:id,username,status,custom_status', 'replyTo.user:id,username,status,custom_status']);
 
                 return (new MessageResource($existing))
                     ->includePreviouslyLoadedRelationships()
@@ -219,7 +219,7 @@ class MessageController extends Controller
 
         $this->attachmentRebinder->rebind($user, $message, $request->validated('attachment_ids', []));
 
-        $message->load(['user:id,username,name,nickname,status,custom_status', 'replyTo.user:id,username,name,nickname,status,custom_status']);
+        $message->load(['user:id,username,status,custom_status', 'replyTo.user:id,username,status,custom_status']);
 
         Cache::tags([CacheKeys::channelMessagesTag($channel->id)])->flush();
 
@@ -287,7 +287,7 @@ class MessageController extends Controller
             ->paginate($perPage);
 
         Message::query()->getModel()->newCollection($paginator->items())
-            ->loadMissing(['user:id,username,name,nickname,status,custom_status', 'attachments']);
+            ->loadMissing(['user:id,username,status,custom_status', 'attachments']);
 
         return MessageResource::collection($paginator)
             ->additional(['meta' => ['query' => $query]])

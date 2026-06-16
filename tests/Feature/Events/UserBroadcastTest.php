@@ -98,22 +98,18 @@ class UserBroadcastTest extends TestCase
         $this->assertSame('user.roles.updated', $event->broadcastAs());
     }
 
-    public function test_profile_update_broadcasts_nickname_and_about_me(): void
+    public function test_profile_update_broadcasts_about_me(): void
     {
         Event::fake([UserProfileUpdated::class]);
 
         $user = User::factory()->create([
-            'name' => 'Original Name',
             'email' => 'orig@example.com',
-            'nickname' => 'orig',
             'about_me' => 'original bio',
         ]);
 
         $response = $this->actingAs($user)
             ->patchJson(route('api.settings.profile.update'), [
-                'name' => 'Updated Name',
                 'email' => 'updated@example.com',
-                'nickname' => 'newnick',
                 'about_me' => 'updated bio',
             ]);
 
@@ -123,7 +119,6 @@ class UserBroadcastTest extends TestCase
             $payload = $event->broadcastWith();
 
             return $event->user->id === $user->id
-                && $payload['nickname'] === 'newnick'
                 && $payload['about_me'] === 'updated bio'
                 && array_key_exists('avatar_urls', $payload)
                 && array_key_exists('display_name', $payload);

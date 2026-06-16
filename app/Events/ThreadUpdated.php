@@ -19,7 +19,7 @@ class ThreadUpdated implements ShouldBroadcast
 
     public function __construct(public Thread $thread)
     {
-        $this->thread->load(['latestReply.user:id,username,name,nickname,status,custom_status']);
+        $this->thread->load(['latestReply.user:id,username,status,custom_status']);
     }
 
     /**

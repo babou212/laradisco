@@ -23,13 +23,9 @@ class MentionController extends Controller
 
         $users = QueryBuilder::for(
             User::where('id', '!=', $request->user()->id)
-                ->where(function ($q) use ($search) {
-                    $q->where('username', 'like', $search.'%')
-                        ->orWhere('name', 'like', $search.'%')
-                        ->orWhere('nickname', 'like', $search.'%');
-                })
+                ->where('username', 'like', $search.'%')
         )
-            ->allowedSorts('username', 'name')
+            ->allowedSorts('username')
             ->limit(10)
             ->get();
 

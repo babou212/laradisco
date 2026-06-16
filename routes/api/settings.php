@@ -67,5 +67,8 @@ Route::delete('/members/{user}/ban', [ModerationController::class, 'unban'])->na
 Route::post('/members/{user}/jail', [ModerationController::class, 'jail'])->name('moderation.jail');
 Route::delete('/members/{user}/jail', [ModerationController::class, 'unjail'])->name('moderation.unjail');
 
+// Moderation: permanently delete a user
+Route::delete('/members/{user}', [ModerationController::class, 'deleteUser'])->name('moderation.delete-user');
+
 // Moderation: audit log
 Route::get('/audit-log', [AuditLogController::class, 'index'])->name('moderation.audit-log');

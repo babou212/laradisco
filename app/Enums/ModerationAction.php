@@ -8,6 +8,7 @@ enum ModerationAction: string
     case Unban = 'unban';
     case Jail = 'jail';
     case Unjail = 'unjail';
+    case DeleteUser = 'delete_user';
     case MessageDelete = 'message_delete';
     case ThreadMessageDelete = 'thread_message_delete';
     case RoleAssign = 'role_assign';
@@ -28,6 +29,7 @@ enum ModerationAction: string
             self::Unban => 'Unbanned',
             self::Jail => 'Jailed',
             self::Unjail => 'Unjailed',
+            self::DeleteUser => 'Deleted User',
             self::MessageDelete => 'Deleted Message',
             self::ThreadMessageDelete => 'Deleted Thread Reply',
             self::RoleAssign => 'Assigned Role',

@@ -42,7 +42,6 @@ class ProductionSeeder extends Seeder
         }
 
         $admin = User::create([
-            'name' => 'Admin',
             'username' => 'admin',
             'email' => 'admin@laradisco.local',
             'email_verified_at' => now(),

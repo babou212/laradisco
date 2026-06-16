@@ -2,7 +2,6 @@
 
 namespace App\Events;
 
-use App\Models\User;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -10,11 +9,21 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class UserProfileUpdated implements ShouldBroadcastNow
+/**
+ * Broadcast when a user account is permanently removed from the server.
+ *
+ * Clients use this to drop the user from member/presence lists and to flip any
+ * of their already-rendered messages to the "<username> (deleted)" tombstone
+ * state without needing a refetch.
+ */
+class UserDeleted implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(public User $user) {}
+    public function __construct(
+        public int $userId,
+        public string $username,
+    ) {}
 
     /**
      * @return array<int, Channel>
@@ -28,7 +37,7 @@ class UserProfileUpdated implements ShouldBroadcastNow
 
     public function broadcastAs(): string
     {
-        return 'user.profile.updated';
+        return 'user.deleted';
     }
 
     /**
@@ -37,11 +46,8 @@ class UserProfileUpdated implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         return [
-            'user_id' => $this->user->id,
-            'username' => $this->user->username,
-            'display_name' => $this->user->display_name,
-            'about_me' => $this->user->about_me,
-            'avatar_urls' => $this->user->avatar_urls,
+            'user_id' => $this->userId,
+            'username' => $this->username,
         ];
     }
 }

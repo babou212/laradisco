@@ -27,7 +27,7 @@ class InviteLinkController extends Controller
             ->allowedIncludes('creator', 'usedByUser')
             ->allowedSorts('created_at')
             ->defaultSort('-created_at')
-            ->with(['creator:id,name,username', 'usedByUser:id,name,username'])
+            ->with(['creator:id,username', 'usedByUser:id,username'])
             ->cursorPaginate(50);
 
         return InviteLinkResource::collection($inviteLinks)
@@ -48,7 +48,7 @@ class InviteLinkController extends Controller
             'expires_at' => now()->addHour(),
         ]);
 
-        $link->load(['creator:id,name,username']);
+        $link->load(['creator:id,username']);
 
         return (new InviteLinkResource($link))
             ->includePreviouslyLoadedRelationships()

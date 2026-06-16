@@ -17,13 +17,11 @@ class UserResource extends JsonApiResource
     public function toAttributes(Request $request): array
     {
         return [
-            'name' => $this->name,
             'username' => $this->username,
             'email' => fn () => $this->when($this->isCurrentUser($request), $this->email),
             'email_verified_at' => fn () => $this->when($this->isCurrentUser($request), $this->email_verified_at),
             'avatar_urls' => $this->avatar_urls,
             'display_name' => $this->display_name,
-            'nickname' => $this->nickname,
             'status' => $this->status ?? 'offline',
             'custom_status' => $this->custom_status,
             'permissions' => fn () => $this->when($this->isCurrentUser($request), fn () => $this->permissionsPayload()),

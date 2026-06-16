@@ -32,7 +32,7 @@ class AuditLogController extends Controller
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $query = ModerationAuditLog::with(['actor:id,name,username', 'targetUser:id,name,username'])
+        $query = ModerationAuditLog::with(['actor:id,username', 'targetUser:id,username'])
             ->orderByDesc('created_at');
 
         if ($request->filled('action')) {

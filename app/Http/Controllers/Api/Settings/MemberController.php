@@ -38,13 +38,12 @@ class MemberController extends Controller
         Gate::authorize('manage-members');
 
         $members = QueryBuilder::for(
-            User::select(['id', 'name', 'username', 'nickname', 'status', 'custom_status', 'created_at'])
+            User::select(['id', 'username', 'status', 'custom_status', 'created_at'])
         )
             ->allowedIncludes('roles')
-            ->allowedSorts('username', 'name', 'created_at')
+            ->allowedSorts('username', 'created_at')
             ->allowedFilters(
                 AllowedFilter::partial('username'),
-                AllowedFilter::partial('name'),
             )
             ->defaultSort('username')
             ->with(['roles' => fn ($q) => $q->orderByDesc('position')])

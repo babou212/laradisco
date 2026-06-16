@@ -33,7 +33,7 @@ class PasswordResetCodeNotification extends Notification implements ShouldQueue
     {
         return (new MailMessage)
             ->subject('Password Reset Code')
-            ->greeting("Hi {$notifiable->name},")
+            ->greeting("Hi {$notifiable->username},")
             ->line('You requested a password reset. Enter this code in the app:')
             ->line("**{$this->code}**")
             ->line('This code expires in 15 minutes.')

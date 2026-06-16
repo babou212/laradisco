@@ -16,7 +16,6 @@ class UpdateProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'min:1', 'max:255'],
             'email' => [
                 'required', 'string', 'email', 'max:255',
                 Rule::unique('users')->ignore($this->user()->id),
@@ -24,7 +23,6 @@ class UpdateProfileRequest extends FormRequest
             'username' => ['sometimes', 'string', 'min:3', 'max:30', 'regex:/^[a-zA-Z0-9_-]+$/',
                 Rule::unique('users')->ignore($this->user()->id),
             ],
-            'nickname' => ['sometimes', 'nullable', 'string', 'max:255'],
             'about_me' => ['sometimes', 'nullable', 'string', 'max:1000'],
         ];
     }

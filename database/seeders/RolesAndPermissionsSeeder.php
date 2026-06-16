@@ -61,7 +61,6 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionFlag::KickMembers->value,
             PermissionFlag::BanMembers->value,
             PermissionFlag::PinMessages->value,
-            PermissionFlag::ManageNicknames->value,
             PermissionFlag::MuteMembers->value,
             PermissionFlag::DeafenMembers->value,
             PermissionFlag::MoveMembers->value,
@@ -76,7 +75,6 @@ class RolesAndPermissionsSeeder extends Seeder
             PermissionFlag::AddReactions->value,
             PermissionFlag::CreateThreads->value,
             PermissionFlag::SendThreadMessages->value,
-            PermissionFlag::ChangeNickname->value,
         ]);
 
         // --- everyone (default role for all members) ---

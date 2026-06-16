@@ -62,9 +62,9 @@ class ThreadController extends Controller
         }
 
         $thread->load([
-            'user:id,username,name,nickname,status,custom_status',
-            'parentMessage.user:id,username,name,nickname,status,custom_status',
-            'latestReply.user:id,username,name,nickname,status,custom_status',
+            'user:id,username,status,custom_status',
+            'parentMessage.user:id,username,status,custom_status',
+            'latestReply.user:id,username,status,custom_status',
             'followers',
         ]);
 

@@ -32,6 +32,7 @@ class DirectMessage extends Model implements HasMedia
     protected $fillable = [
         'direct_message_group_id',
         'user_id',
+        'deleted_author_name',
         'reply_to_id',
         'client_temp_id',
         'content',

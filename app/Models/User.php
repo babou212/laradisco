@@ -44,11 +44,9 @@ class User extends Authenticatable implements HasMedia
      * @var list<string>
      */
     protected $fillable = [
-        'name',
         'username',
         'email',
         'password',
-        'nickname',
         'about_me',
         'custom_status',
         'must_setup',
@@ -216,11 +214,11 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Get the user's display name (nickname or name).
+     * Get the user's display name (their username).
      */
     public function getDisplayNameAttribute(): string
     {
-        return $this->nickname ?? $this->name;
+        return $this->username;
     }
 
     public function registerMediaCollections(): void

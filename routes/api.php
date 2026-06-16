@@ -46,6 +46,10 @@ Route::prefix('v1')->group(function () {
             base_path('routes/api/notifications.php'),
         );
 
+        Route::prefix('inbox')->as('api.inbox.')->group(
+            base_path('routes/api/inbox.php'),
+        );
+
         Route::prefix('settings')->as('api.settings.')->group(
             base_path('routes/api/settings.php'),
         );

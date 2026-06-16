@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\PermissionFlag;
 use App\Enums\UserStatusType;
+use App\Events\MessageSent;
 use App\Models\Mention;
 use App\Models\Message;
 use App\Models\User;
@@ -15,6 +16,7 @@ class MentionService
 {
     public function __construct(
         private readonly PermissionService $permissionService,
+        private readonly InboxService $inboxService,
     ) {}
 
     /**
@@ -29,7 +31,7 @@ class MentionService
             ->chunk(100)
             ->each(function ($chunk) use ($message) {
                 Notification::send(
-                    $chunk,
+                    $chunk->collect(),
                     new MentionNotification($message, 'everyone')
                 );
             });
@@ -49,7 +51,7 @@ class MentionService
             ->chunk(100)
             ->each(function ($chunk) use ($message) {
                 Notification::send(
-                    $chunk,
+                    $chunk->collect(),
                     new MentionNotification($message, 'here')
                 );
             });
@@ -116,6 +118,15 @@ class MentionService
                 Notification::send(
                     $mentionedUsers,
                     new MentionNotification($message, 'user')
+                );
+
+                // Inbox delivery for offline @mentioned users. @everyone/@here
+                // are broadcast-scale and intentionally not enqueued.
+                $this->inboxService->enqueueForRecipients(
+                    $mentionedUsers->pluck('id'),
+                    'channel',
+                    $message->id,
+                    (new MessageSent($message))->broadcastWith()['message'],
                 );
             }
         }

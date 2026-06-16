@@ -18,6 +18,7 @@ use App\Http\Resources\DirectMessageResource;
 use App\Models\DirectMessage;
 use App\Models\DirectMessageGroup;
 use App\Notifications\DirectMessageNotification;
+use App\Services\InboxService;
 use App\Services\MessageWindowService;
 use App\Support\CacheKeys;
 use App\Support\Media\AttachmentRebinder;
@@ -38,6 +39,7 @@ class DirectMessageController extends Controller
     public function __construct(
         private readonly MessageWindowService $windowService,
         private readonly AttachmentRebinder $attachmentRebinder,
+        private readonly InboxService $inboxService,
     ) {}
 
     /**
@@ -265,6 +267,15 @@ class DirectMessageController extends Controller
             Notification::send(
                 $recipients,
                 new DirectMessageNotification($message)
+            );
+
+            // Persist an inbox row per recipient; deleted when the client acks
+            // (live for online clients, on reconnect-drain for offline ones).
+            $this->inboxService->enqueueForRecipients(
+                $recipients->pluck('id'),
+                'direct_message',
+                $message->id,
+                (new DirectMessageSent($message))->broadcastWith()['message'],
             );
         }
 

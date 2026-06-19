@@ -239,16 +239,19 @@ class User extends Authenticatable implements HasMedia
         $this->addMediaConversion('thumb')
             ->width(64)
             ->height(64)
-            ->sharpen(10);
+            ->sharpen(10)
+            ->nonQueued();
 
         $this->addMediaConversion('small')
             ->width(128)
             ->height(128)
-            ->sharpen(10);
+            ->sharpen(10)
+            ->nonQueued();
 
         $this->addMediaConversion('medium')
             ->width(256)
-            ->height(256);
+            ->height(256)
+            ->nonQueued();
     }
 
     /**

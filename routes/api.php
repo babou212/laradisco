@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AttachmentController;
+use App\Http\Controllers\Api\LiveKitWebhookController;
 use App\Http\Controllers\Api\MentionController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
@@ -23,6 +24,9 @@ Route::prefix('v1')->group(function () {
     Route::prefix('auth')->as('api.auth.')->group(
         base_path('routes/api/auth.php'),
     );
+
+    Route::post('/livekit/webhook', [LiveKitWebhookController::class, 'handle'])
+        ->name('api.livekit.webhook');
 
     Route::middleware('auth:sanctum')->group(function () {
 

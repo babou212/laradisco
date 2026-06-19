@@ -126,7 +126,13 @@ services:
             - '${FORWARD_LIVEKIT_TCP_PORT:-7881}:7881'
             - '${FORWARD_LIVEKIT_UDP_PORT:-7882}:7882/udp'
         environment:
-            LIVEKIT_KEYS: '${LIVEKIT_API_KEY:-devkey}: ${LIVEKIT_API_SECRET:-secret}'
+            LIVEKIT_CONFIG: |
+                keys:
+                  ${LIVEKIT_API_KEY:-devkey}: ${LIVEKIT_API_SECRET:-secret}
+                webhook:
+                  api_key: ${LIVEKIT_API_KEY:-devkey}
+                  urls:
+                    - http://laravel.test:8080/api/v1/livekit/webhook
         command: --dev --bind 0.0.0.0
         networks:
             - sail
@@ -174,17 +180,12 @@ services:
             context: ./docker
             dockerfile: Dockerfile.garage-init
         image: laradisco-garage-init/app
-        # Fixed local-dev credentials, hardcoded as literals (NOT ${AWS_*}) so a
-        # developer's exported AWS_* shell vars can't leak in via compose
-        # substitution. Must match the AWS_* values in .env.
         environment:
             GARAGE_BUCKET: 'laradisco'
             GARAGE_KEY_ID: 'GK3d1f0c9a8b7e6d5c4b3a2f10'
             GARAGE_KEY_SECRET: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
         volumes:
             - './docker/garage.toml:/etc/garage.toml:ro'
-            # Shares garage's metadata so the CLI can read the node key and
-            # connect over RPC to drive the bootstrap.
             - 'sail-garage-meta:/var/lib/garage/meta'
         networks:
             - sail

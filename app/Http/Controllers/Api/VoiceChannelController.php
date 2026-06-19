@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Concerns\ApiResponse;
 use App\Enums\ChannelType;
-use App\Events\VoiceChannelJoined;
-use App\Events\VoiceChannelLeft;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\JoinVoiceChannelRequest;
 use App\Models\Channel;
@@ -14,6 +12,8 @@ use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class VoiceChannelController extends Controller
 {
@@ -37,7 +37,12 @@ class VoiceChannelController extends Controller
         foreach ($accessibleChannels as $channel) {
             if ($channel->type === ChannelType::Voice) {
                 $cached = Cache::get("voice_channel:{$channel->id}:participants", []);
-                $voiceParticipants[$channel->id] = array_values($cached);
+
+                $voiceParticipants[$channel->id] = array_values(array_map(function (array $participant): array {
+                    unset($participant['_sid']);
+
+                    return $participant;
+                }, $cached));
             }
         }
 
@@ -54,25 +59,12 @@ class VoiceChannelController extends Controller
 
         $token = $this->liveKitService->generateToken($user, $roomName);
 
-        // Track the participant in cache
-        $cacheKey = "voice_channel:{$channel->id}:participants";
-        $participants = Cache::get($cacheKey, []);
-        $participants[$user->id] = [
-            'id' => $user->id,
-            'username' => $user->username,
-            'display_name' => $user->display_name,
-            'avatar_urls' => $user->avatar_urls,
-        ];
-        Cache::put($cacheKey, $participants, now()->addHours(2));
-
         // Generate or retrieve E2EE shared key for this room
         $e2eeKey = Cache::remember(
             "voice_channel:{$channel->id}:e2ee_key",
-            now()->addHours(2),
+            now()->addHours(6),
             fn () => bin2hex(random_bytes(32))
         );
-
-        VoiceChannelJoined::dispatch($channel, $user);
 
         return $this->successResponse([
             'token' => $token,
@@ -85,24 +77,29 @@ class VoiceChannelController extends Controller
     }
 
     /**
-     * Leave a voice channel — notifies other participants.
+     * Leave a voice channel.
+     *
+     * Presence removal flows through LiveKit's `participant_left` webhook.
+     * We forcibly remove the participant from the room so an intentional leave
+     * is reflected immediately, rather than waiting on LiveKit's
+     * disconnect-detection timeout.
      */
     public function leave(Request $request, Channel $channel): JsonResponse
     {
         $user = $request->user();
 
-        $cacheKey = "voice_channel:{$channel->id}:participants";
-        $participants = Cache::get($cacheKey, []);
-        unset($participants[$user->id]);
-
-        if (empty($participants)) {
-            Cache::forget($cacheKey);
-            Cache::forget("voice_channel:{$channel->id}:e2ee_key");
-        } else {
-            Cache::put($cacheKey, $participants, now()->addHours(2));
+        try {
+            $this->liveKitService->removeParticipant(
+                "voice-channel-{$channel->id}",
+                (string) $user->id,
+            );
+        } catch (Throwable $e) {
+            Log::debug('LiveKit removeParticipant failed on leave', [
+                'channel_id' => $channel->id,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
         }
-
-        VoiceChannelLeft::dispatch($channel, $user);
 
         return $this->successResponse([
             'channel_id' => $channel->id,

@@ -7,8 +7,10 @@ use Agence104\LiveKit\AccessTokenOptions;
 use Agence104\LiveKit\RoomCreateOptions;
 use Agence104\LiveKit\RoomServiceClient;
 use Agence104\LiveKit\VideoGrant;
+use Agence104\LiveKit\WebhookReceiver;
 use App\Models\User;
 use Livekit\ListParticipantsResponse;
+use Livekit\WebhookEvent;
 
 class LiveKitService
 {
@@ -92,6 +94,19 @@ class LiveKitService
     public function getServerUrl(): string
     {
         return $this->url;
+    }
+
+    /**
+     * Verify and decode an incoming LiveKit webhook payload.
+     *
+     * Validates the signed JWT in the Authorization header and the SHA256
+     * checksum of the raw body before returning the decoded event. Throws if
+     * the signature or checksum does not match our API credentials.
+     */
+    public function receiveWebhook(string $body, ?string $authHeader): WebhookEvent
+    {
+        return (new WebhookReceiver($this->apiKey, $this->apiSecret))
+            ->receive($body, $authHeader);
     }
 
     private function getRoomServiceClient(): RoomServiceClient

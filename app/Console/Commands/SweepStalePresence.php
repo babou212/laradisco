@@ -19,7 +19,7 @@ class SweepStalePresence extends Command
     /**
      * The console command description.
      */
-    protected $description = 'Remove stale users from the presence registry and broadcast offline events';
+    protected $description = 'Recompute heartbeat-based presence and broadcast idle/offline transitions';
 
     public function __construct(
         private PresenceService $presenceService,
@@ -41,21 +41,22 @@ class SweepStalePresence extends Command
         }
 
         try {
-            $staleUsers = $this->presenceService->sweepStale();
+            $transitions = $this->presenceService->sweep();
 
-            foreach ($staleUsers as $userData) {
-                $user = User::find($userData['id']);
+            foreach ($transitions as $entry) {
+                $user = User::find($entry['id']);
 
                 if ($user) {
                     event(new UserPresenceUpdated(
                         $user,
-                        UserStatusType::Offline,
+                        UserStatusType::from($entry['status']),
+                        $entry['custom_status'] ?? null,
                     ));
                 }
             }
 
-            if (count($staleUsers) > 0) {
-                $this->components->info('Swept '.count($staleUsers).' stale presence entries.');
+            if (count($transitions) > 0) {
+                $this->components->info('Broadcast '.count($transitions).' presence transitions.');
             }
         } finally {
             $lock->release();

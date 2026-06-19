@@ -68,7 +68,16 @@ class PresenceController extends Controller
      */
     public function heartbeat(Request $request): JsonResponse
     {
-        $this->presenceService->heartbeat($request->user());
+        $user = $request->user();
+
+        // A heartbeat may revive a user that a prior lapse downgraded to
+        // idle/offline. When it does, broadcast the restored status so other
+        // clients see them come back online immediately.
+        $transition = $this->presenceService->heartbeat($user);
+
+        if ($transition !== null) {
+            event(new UserPresenceUpdated($user, $transition, $user->custom_status));
+        }
 
         return $this->successResponse(message: 'Heartbeat recorded');
     }

@@ -8,6 +8,6 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('presence:sweep')->everyThirtySeconds();
+Schedule::command('presence:sweep')->everyFifteenSeconds();
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
 Schedule::command('attachments:clean-orphaned')->hourly();

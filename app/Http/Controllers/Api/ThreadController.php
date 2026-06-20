@@ -6,6 +6,7 @@ use App\Actions\CreateThreadReplyAction;
 use App\Concerns\ApiResponse;
 use App\Enums\ModerationAction;
 use App\Enums\PermissionFlag;
+use App\Events\ThreadDeleted;
 use App\Events\ThreadMessageDeleted;
 use App\Events\ThreadMessageEdited;
 use App\Events\ThreadUpdated;
@@ -331,12 +332,33 @@ class ThreadController extends Controller
 
         $thread->decrement('message_count');
 
-        $latestReply = $thread->messages()->latest()->first();
-        $thread->update(['last_message_at' => $latestReply?->created_at]);
+        // Determine the live reply count rather than trusting message_count,
+        // which is a raw decrement and can drift.
+        $remainingReplies = $thread->messages()->count();
 
         Cache::tags([CacheKeys::threadMessagesTag($thread->id)])->flush();
 
         broadcast(new ThreadMessageDeleted($messageId, $thread->id))->toOthers();
+
+        // The thread's last reply was just removed: delete the now-empty thread
+        // so it no longer renders a preview on its parent message. The DB cascade
+        // cleans up followers and the (trashed) reply rows; the parent message
+        // (thread_id NULL) is untouched.
+        if ($remainingReplies === 0) {
+            $parentMessageId = $thread->message_id;
+            $threadId = $thread->id;
+
+            Cache::tags([CacheKeys::threadTag($thread->id), CacheKeys::channelTag($channel->id)])->flush();
+
+            $thread->delete();
+
+            broadcast(new ThreadDeleted($parentMessageId, $threadId, $channel->id))->toOthers();
+
+            return $this->noContentResponse();
+        }
+
+        $latestReply = $thread->messages()->latest()->first();
+        $thread->update(['last_message_at' => $latestReply?->created_at]);
 
         $thread->refresh();
         broadcast(new ThreadUpdated($thread))->toOthers();

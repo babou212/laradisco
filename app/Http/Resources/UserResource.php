@@ -24,6 +24,7 @@ class UserResource extends JsonApiResource
             'display_name' => $this->display_name,
             'status' => $this->status ?? 'offline',
             'custom_status' => $this->custom_status,
+            'show_activity' => fn () => $this->when($this->isCurrentUser($request), fn () => (bool) ($this->show_activity ?? true)),
             'permissions' => fn () => $this->when($this->isCurrentUser($request), fn () => $this->permissionsPayload()),
             'created_at' => $this->created_at,
         ];

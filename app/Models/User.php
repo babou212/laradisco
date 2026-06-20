@@ -49,6 +49,7 @@ class User extends Authenticatable implements HasMedia
         'password',
         'about_me',
         'custom_status',
+        'show_activity',
         'must_setup',
         'status',
         'last_seen_at',
@@ -78,6 +79,7 @@ class User extends Authenticatable implements HasMedia
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'must_setup' => 'boolean',
+            'show_activity' => 'boolean',
             'two_factor_confirmed_at' => 'datetime',
             'last_seen_at' => 'datetime',
         ];

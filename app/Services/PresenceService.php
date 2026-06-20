@@ -34,6 +34,9 @@ class PresenceService
             return;
         }
 
+        $existing = Redis::hGet(self::HASH_KEY, (string) $user->id);
+        $activity = $existing ? (json_decode($existing, true)['activity'] ?? null) : null;
+
         Redis::hSet(self::HASH_KEY, (string) $user->id, json_encode([
             'id' => $user->id,
             'username' => $user->username,
@@ -42,8 +45,60 @@ class PresenceService
             'base_status' => $base,
             'status' => $base,
             'custom_status' => $user->custom_status,
+            'activity' => $activity,
             'last_heartbeat' => now()->timestamp,
         ]));
+    }
+
+    /**
+     * Update the authenticated user's live rich-presence activity in Redis.
+     *
+     * Activity is ephemeral presence state (it lives only in the Redis blob,
+     * never the database). The `started_at` timestamp is stamped server-side
+     * when the activity first appears or changes, and preserved otherwise, so
+     * the elapsed timer stays monotonic and isn't subject to client clock skew.
+     *
+     * When the user has disabled activity sharing, any incoming activity is
+     * discarded and stored as null so it is never advertised to other clients.
+     *
+     * @param  array<string, mixed>|null  $activity
+     * @return array<string, mixed>|null the activity that was stored (for broadcasting)
+     */
+    public function updateActivity(User $user, ?array $activity): ?array
+    {
+        if (! ($user->show_activity ?? true)) {
+            $activity = null;
+        }
+
+        $existing = Redis::hGet(self::HASH_KEY, (string) $user->id);
+
+        if (! $existing) {
+            $user->refresh();
+            $this->register($user);
+            $existing = Redis::hGet(self::HASH_KEY, (string) $user->id);
+
+            if (! $existing) {
+                return null;
+            }
+        }
+
+        $data = json_decode($existing, true);
+
+        if ($activity !== null) {
+            $previous = $data['activity'] ?? null;
+            $unchanged = $previous
+                && ($previous['application_id'] ?? null) === ($activity['application_id'] ?? null)
+                && ($previous['name'] ?? null) === ($activity['name'] ?? null);
+
+            $activity['started_at'] = $unchanged
+                ? ($previous['started_at'] ?? now()->timestamp)
+                : now()->timestamp;
+        }
+
+        $data['activity'] = $activity;
+        Redis::hSet(self::HASH_KEY, (string) $user->id, json_encode($data));
+
+        return $activity;
     }
 
     /**

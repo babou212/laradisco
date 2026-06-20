@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Concerns\ApiResponse;
 use App\Enums\UserStatusType;
+use App\Events\UserActivityUpdated;
 use App\Events\UserPresenceUpdated;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\UpdatePresenceActivityRequest;
 use App\Http\Requests\Api\UpdatePresenceRequest;
 use App\Services\PresenceService;
 use Illuminate\Http\JsonResponse;
@@ -61,6 +63,33 @@ class PresenceController extends Controller
         ));
 
         return $this->successResponse(message: 'Presence updated successfully');
+    }
+
+    /**
+     * Update the authenticated user's live rich-presence activity.
+     *
+     * The `started_at` timestamp is stamped server-side, so only the descriptive
+     * fields are accepted here. A null activity clears it. The privacy flag is
+     * enforced inside the service, which discards activity when sharing is off.
+     */
+    public function updateActivity(UpdatePresenceActivityRequest $request): JsonResponse
+    {
+        $user = $request->user();
+        $input = $request->validated('activity');
+
+        $activity = $input === null ? null : [
+            'type' => $input['type'],
+            'name' => $input['name'],
+            'application_id' => $input['application_id'],
+            'details' => $input['details'] ?? null,
+            'icon' => $input['icon'] ?? null,
+        ];
+
+        $stored = $this->presenceService->updateActivity($user, $activity);
+
+        event(new UserActivityUpdated($user, $stored));
+
+        return $this->successResponse(message: 'Activity updated successfully');
     }
 
     /**

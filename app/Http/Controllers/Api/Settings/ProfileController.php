@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Settings;
 
 use App\Concerns\ApiResponse;
+use App\Events\UserActivityUpdated;
 use App\Events\UserDeleted;
 use App\Events\UserProfileUpdated;
 use App\Http\Controllers\Controller;
@@ -10,6 +11,7 @@ use App\Http\Requests\Api\DeleteAccountRequest;
 use App\Http\Requests\Api\UpdateProfileRequest;
 use App\Http\Requests\Api\UploadAvatarRequest;
 use App\Http\Resources\UserResource;
+use App\Services\PresenceService;
 use App\Services\UserDeletionService;
 use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
@@ -33,7 +35,7 @@ class ProfileController extends Controller
     /**
      * Update the authenticated user's profile.
      */
-    public function update(UpdateProfileRequest $request): JsonResponse
+    public function update(UpdateProfileRequest $request, PresenceService $presenceService): JsonResponse
     {
         $user = $request->user();
         $user->fill($request->validated());
@@ -42,7 +44,16 @@ class ProfileController extends Controller
             $user->email_verified_at = null;
         }
 
+        $activityDisabled = $user->isDirty('show_activity') && ! $user->show_activity;
+
         $user->save();
+
+        // Disabling activity sharing must immediately clear any live activity
+        // from the presence registry so other clients stop seeing it.
+        if ($activityDisabled) {
+            $presenceService->updateActivity($user, null);
+            UserActivityUpdated::dispatch($user, null);
+        }
 
         Cache::tags([CacheKeys::userTag($user->id)])->forget(CacheKeys::userProfile($user->id));
 

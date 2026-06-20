@@ -6,6 +6,7 @@ use App\Models\Message;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Str;
 
 class MentionNotification extends Notification implements ShouldQueue
 {
@@ -56,6 +57,7 @@ class MentionNotification extends Notification implements ShouldQueue
             'sender_id' => $this->message->user_id,
             'sender_username' => $this->message->user?->username,
             'sender_avatar' => $this->message->user?->avatar_urls['thumb'] ?? null,
+            'content' => Str::limit((string) $this->message->content, 120),
             'mention_type' => $this->mentionType,
         ];
     }

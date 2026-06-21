@@ -188,10 +188,6 @@ class MessageController extends Controller
 
         $this->authorize('send', [Message::class, $channel]);
 
-        // Idempotent send: if the client supplied a client_temp_id and we
-        // already created a row for it, return that row instead of creating
-        // a duplicate. This handles outbox retries where the original 2xx
-        // response was lost in transit.
         $clientTempId = $request->validated('client_temp_id');
         if ($clientTempId) {
             $existing = $channel->messages()
@@ -218,6 +214,10 @@ class MessageController extends Controller
         ]);
 
         $this->attachmentRebinder->rebind($user, $message, $request->validated('attachment_ids', []));
+
+        $user->channels()->syncWithoutDetaching([
+            $channel->id => ['last_read_at' => $message->created_at],
+        ]);
 
         $message->load(['user:id,username,status,custom_status', 'replyTo.user:id,username,status,custom_status']);
 

@@ -5,7 +5,6 @@ use App\Providers\AuthorizationServiceProvider;
 use App\Providers\FortifyServiceProvider;
 use App\Providers\HorizonServiceProvider;
 use App\Providers\PresenceEventServiceProvider;
-use App\Providers\PrometheusServiceProvider;
 use App\Providers\RateLimitServiceProvider;
 
 return [
@@ -15,5 +14,4 @@ return [
     PresenceEventServiceProvider::class,
     FortifyServiceProvider::class,
     HorizonServiceProvider::class,
-    PrometheusServiceProvider::class,
 ];

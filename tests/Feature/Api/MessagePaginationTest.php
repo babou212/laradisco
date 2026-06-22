@@ -45,7 +45,7 @@ class MessagePaginationTest extends TestCase
         return [$user, $channel, $messages];
     }
 
-    public function test_no_args_returns_latest_50_in_asc_order(): void
+    public function test_no_args_returns_latest_20_in_asc_order(): void
     {
         [$user, $channel, $messages] = $this->seedMessages(60);
 
@@ -55,13 +55,13 @@ class MessagePaginationTest extends TestCase
 
         $response->assertOk();
         $data = $response->json('data');
-        $this->assertCount(50, $data);
-        $this->assertSame((string) $messages[10]->id, $data[0]['id']);
-        $this->assertSame((string) $messages[59]->id, $data[49]['id']);
+        $this->assertCount(20, $data);
+        $this->assertSame((string) $messages[40]->id, $data[0]['id']);
+        $this->assertSame((string) $messages[59]->id, $data[19]['id']);
 
         $this->assertTrue($response->json('meta.has_more_before'));
         $this->assertFalse($response->json('meta.has_more_after'));
-        $this->assertSame((string) $messages[10]->id, $response->json('meta.oldest_id'));
+        $this->assertSame((string) $messages[40]->id, $response->json('meta.oldest_id'));
         $this->assertSame((string) $messages[59]->id, $response->json('meta.newest_id'));
     }
 
@@ -91,9 +91,9 @@ class MessagePaginationTest extends TestCase
 
         $response->assertOk();
         $data = $response->json('data');
-        $this->assertCount(50, $data);
-        $this->assertSame((string) $messages[50]->id, $data[0]['id']);
-        $this->assertSame((string) $messages[99]->id, $data[49]['id']);
+        $this->assertCount(20, $data);
+        $this->assertSame((string) $messages[80]->id, $data[0]['id']);
+        $this->assertSame((string) $messages[99]->id, $data[19]['id']);
 
         $this->assertTrue($response->json('meta.has_more_before'));
         $this->assertTrue($response->json('meta.has_more_after'));
@@ -111,9 +111,9 @@ class MessagePaginationTest extends TestCase
 
         $response->assertOk();
         $data = $response->json('data');
-        $this->assertCount(50, $data);
+        $this->assertCount(20, $data);
         $this->assertSame((string) $messages[11]->id, $data[0]['id']);
-        $this->assertSame((string) $messages[60]->id, $data[49]['id']);
+        $this->assertSame((string) $messages[30]->id, $data[19]['id']);
 
         $this->assertTrue($response->json('meta.has_more_before'));
         $this->assertTrue($response->json('meta.has_more_after'));

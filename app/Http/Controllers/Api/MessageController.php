@@ -45,7 +45,7 @@ class MessageController extends Controller
     ) {}
 
     /**
-     * List channel messages: latest 50 by default, or anchored on
+     * List channel messages: latest 20 by default, or anchored on
      * before/after/around message ids. Response is always ASC.
      */
     public function index(MessagePaginateRequest $request, Channel $channel): JsonResponse
@@ -64,7 +64,7 @@ class MessageController extends Controller
             'threadStarted.followers',
         ];
 
-        $limit = (int) $request->validated('limit', 50);
+        $limit = (int) $request->validated('limit', 20);
 
         if ($around = $request->validated('around')) {
             $target = $channel->messages()
@@ -280,7 +280,7 @@ class MessageController extends Controller
         $this->authorize('viewChannel', [Message::class, $channel]);
 
         $query = (string) $request->validated('q');
-        $perPage = (int) $request->validated('per_page', 30);
+        $perPage = (int) $request->validated('per_page', 20);
 
         $paginator = Message::search($query)
             ->where('channel_id', $channel->id)

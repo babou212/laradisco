@@ -63,6 +63,11 @@ class CacheKeys
         return "user.{$userId}.unread_notification_count";
     }
 
+    public static function userBanStatus(int $userId): string
+    {
+        return "user.{$userId}.ban_status";
+    }
+
     public static function userChannelPermissions(int $userId, int $channelId): string
     {
         return "user.{$userId}.channel.{$channelId}.permissions";

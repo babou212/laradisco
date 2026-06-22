@@ -4,12 +4,14 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\PermissionFlag;
+use App\Support\CacheKeys;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Cache;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\MediaLibrary\HasMedia;
@@ -37,6 +39,16 @@ class User extends Authenticatable implements HasMedia
     {
         return $this->spatieRoles();
     }
+
+    /**
+     * Relationships eager loaded on every query.
+     *
+     * Avatars are exposed via the `avatar_urls` accessor (read from Spatie's
+     * `media` relation)
+     *
+     * @var list<string>
+     */
+    protected $with = ['media'];
 
     /**
      * The attributes that are mass assignable.
@@ -166,15 +178,35 @@ class User extends Authenticatable implements HasMedia
 
     /**
      * Check if the user is currently banned.
+     *
+     * Runs on every authenticated request (CheckBanned middleware) and in the
+     * current-user permissions payload. Only the negative (not-banned) result
+     * is cached: it removes the per-request query for the common case, while a
+     * banned user — and any temporary ban that expires mid-TTL — is always
+     * re-evaluated against the database, so there is no stale lock-out. The
+     * cache is flushed on ban/unban via the user tag in ModerationService.
      */
     public function isBanned(): bool
     {
-        return $this->bans()
+        $tags = [CacheKeys::userTag($this->id)];
+        $key = CacheKeys::userBanStatus($this->id);
+
+        if (Cache::tags($tags)->get($key) === false) {
+            return false;
+        }
+
+        $banned = $this->bans()
             ->where(function ($query) {
                 $query->whereNull('expires_at')
                     ->orWhere('expires_at', '>', now());
             })
             ->exists();
+
+        if (! $banned) {
+            Cache::tags($tags)->put($key, false, CacheKeys::TTL_HOT);
+        }
+
+        return $banned;
     }
 
     /**

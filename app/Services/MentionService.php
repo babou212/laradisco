@@ -25,6 +25,7 @@ class MentionService
     protected function notifyEveryone(Message $message): void
     {
         User::query()
+            ->without('media')
             ->where('id', '!=', $message->user_id)
             ->select(['id', 'email', 'username'])
             ->cursor()
@@ -44,6 +45,7 @@ class MentionService
     protected function notifyHere(Message $message): void
     {
         User::query()
+            ->without('media')
             ->where('status', '!=', UserStatusType::Offline)
             ->where('id', '!=', $message->user_id)
             ->select(['id', 'email', 'username'])

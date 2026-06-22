@@ -152,6 +152,7 @@ class PermissionService
             $channelOverrides = $channel->permissionOverrides()->get();
 
             return User::query()
+                ->without('media')
                 ->select('id')
                 ->with('roles')
                 ->get()

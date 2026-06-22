@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Services\LiveKitService;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Resources\JsonApi\AnonymousResourceCollection;
 use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 use Illuminate\Support\Facades\Date;
@@ -34,6 +35,13 @@ class AppServiceProvider extends ServiceProvider
     protected function configureDefaults(): void
     {
         Date::use(CarbonImmutable::class);
+
+        // Surface N+1s in development/testing by throwing on lazy relation
+        // access. Not full strict mode: the API uses column-constrained eager
+        // loads (e.g. `user:id,username,status,custom_status`) whose resources
+        // read unselected attributes, which preventAccessingMissingAttributes
+        // would wrongly reject.
+        Model::preventLazyLoading(! app()->isProduction());
 
         DB::prohibitDestructiveCommands(
             app()->isProduction(),

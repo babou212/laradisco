@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Ban;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\CacheKeys;
+use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
 
 class ModerationService
@@ -14,12 +16,16 @@ class ModerationService
      */
     public function ban(User $target, User $actor, ?string $reason = null, ?\DateTimeInterface $expiresAt = null): Ban
     {
-        return Ban::create([
+        $ban = Ban::create([
             'user_id' => $target->id,
             'banned_by' => $actor->id,
             'reason' => $reason,
             'expires_at' => $expiresAt,
         ]);
+
+        $this->flushUserCaches($target);
+
+        return $ban;
     }
 
     /**
@@ -33,6 +39,20 @@ class ModerationService
                     ->orWhere('expires_at', '>', now());
             })
             ->delete();
+
+        $this->flushUserCaches($target);
+    }
+
+    /**
+     * Invalidate the target user's cached state after a moderation action.
+     *
+     * Unban uses a mass delete, which does not fire model events, so the cached
+     * ban status (and the rest of the user's permission caches, whose semantics
+     * change with a ban) is flushed explicitly here for both ban and unban.
+     */
+    protected function flushUserCaches(User $target): void
+    {
+        Cache::tags([CacheKeys::userTag($target->id)])->flush();
     }
 
     /**

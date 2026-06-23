@@ -43,6 +43,7 @@ class LiveKitWebhookTest extends TestCase
     private function mockReceiver(WebhookEvent $event): void
     {
         $this->mock(LiveKitService::class, function ($mock) use ($event): void {
+            $mock->makePartial();
             $mock->shouldReceive('receiveWebhook')->once()->andReturn($event);
         });
     }

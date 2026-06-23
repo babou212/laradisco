@@ -9,6 +9,7 @@ use Agence104\LiveKit\RoomServiceClient;
 use Agence104\LiveKit\VideoGrant;
 use Agence104\LiveKit\WebhookReceiver;
 use App\Models\User;
+use Livekit\DataPacket\Kind;
 use Livekit\ListParticipantsResponse;
 use Livekit\WebhookEvent;
 
@@ -18,7 +19,8 @@ class LiveKitService
         private readonly string $apiKey,
         private readonly string $apiSecret,
         private readonly string $url,
-        private readonly int $tokenTtl
+        private readonly int $tokenTtl,
+        private readonly ?string $apiUrl = null,
     ) {}
 
     /**
@@ -89,6 +91,23 @@ class LiveKitService
     }
 
     /**
+     * Send a data packet to participants in a room.
+     *
+     * With no destination identities the packet is delivered to everyone
+     * currently in the room — the mechanism the soundboard uses to tell exactly
+     * the members of a voice channel to play a clip. Reliable delivery is used
+     * so the trigger is not dropped.
+     *
+     * @param  list<string>  $destinationIdentities
+     */
+    public function sendData(string $roomName, string $payload, array $destinationIdentities = [], ?string $topic = null): void
+    {
+        $svc = $this->getRoomServiceClient();
+
+        $svc->sendData($roomName, $payload, Kind::RELIABLE, $destinationIdentities, $topic);
+    }
+
+    /**
      * Get the LiveKit server URL for client-side connections.
      */
     public function getServerUrl(): string
@@ -111,7 +130,12 @@ class LiveKitService
 
     private function getRoomServiceClient(): RoomServiceClient
     {
-        $httpUrl = str_replace(['ws://', 'wss://'], ['http://', 'https://'], $this->url);
+        // Prefer the explicit server-side API host when configured (the backend
+        // may reach LiveKit at a different address than clients do); otherwise
+        // derive it from the client URL by swapping the ws(s) scheme for http(s).
+        $httpUrl = $this->apiUrl !== null && $this->apiUrl !== ''
+            ? $this->apiUrl
+            : str_replace(['ws://', 'wss://'], ['http://', 'https://'], $this->url);
 
         return new RoomServiceClient($httpUrl, $this->apiKey, $this->apiSecret);
     }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\PinController;
 use App\Http\Controllers\Api\ReactionController;
+use App\Http\Controllers\Api\SoundboardController;
 use App\Http\Controllers\Api\ThreadController;
 use App\Http\Controllers\Api\TypingController;
 use App\Http\Controllers\Api\VoiceChannelController;
@@ -62,4 +63,5 @@ Route::prefix('channels/{channel}')->as('channels.')->scopeBindings()->group(fun
 
     Route::post('/voice/join', [VoiceChannelController::class, 'join'])->name('voice.join');
     Route::delete('/voice/membership', [VoiceChannelController::class, 'leave'])->name('voice.leave');
+    Route::post('/voice/soundboard/play', [SoundboardController::class, 'play'])->name('voice.soundboard.play');
 });

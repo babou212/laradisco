@@ -22,6 +22,7 @@ class AppServiceProvider extends ServiceProvider
                 apiSecret: config('livekit.api_secret'),
                 url: config('livekit.url'),
                 tokenTtl: config('livekit.token_ttl'),
+                apiUrl: config('livekit.host'),
             );
         });
     }

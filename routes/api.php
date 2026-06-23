@@ -58,6 +58,10 @@ Route::prefix('v1')->group(function () {
             base_path('routes/api/settings.php'),
         );
 
+        Route::prefix('soundboard')->as('api.soundboard.')->group(
+            base_path('routes/api/soundboard.php'),
+        );
+
         Route::get('/users/{user}', [UserController::class, 'show'])->name('api.users.show');
 
         Route::get('/mentions/search', [MentionController::class, 'search'])->name('api.mentions.search');

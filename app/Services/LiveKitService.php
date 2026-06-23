@@ -38,7 +38,9 @@ class LiveKitService
             ->setRoomJoin()
             ->setRoomName($roomName)
             ->setCanPublish()
-            ->setCanSubscribe();
+            ->setCanSubscribe()
+            ->setCanUpdateOwnMetadata(true)
+            ->setCanPublishData(true);
 
         return (new AccessToken($this->apiKey, $this->apiSecret))
             ->init($tokenOptions)

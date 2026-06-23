@@ -14,6 +14,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | LiveKit Server-side API Host
+    |--------------------------------------------------------------------------
+    |
+    | The HTTP(S) base URL the backend uses for server-side RoomService RPC
+    | calls (token minting is local, but presence removal and soundboard data
+    | packets hit the LiveKit API directly). Leave unset to derive it from
+    | `url`; set it when the server reaches LiveKit at a different address than
+    | clients do — e.g. `http://livekit:7880` inside Docker while clients use
+    | `ws://localhost:7880`.
+    |
+    */
+    'host' => env('LIVEKIT_HOST'),
+
+    /*
+    |--------------------------------------------------------------------------
     | LiveKit API Credentials
     |--------------------------------------------------------------------------
     |

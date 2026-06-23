@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\VoiceChannelJoined;
 use App\Events\VoiceChannelLeft;
+use App\Events\VoiceKeyRotated;
 use App\Http\Controllers\Controller;
 use App\Models\Channel;
 use App\Models\User;
@@ -128,12 +129,21 @@ class LiveKitWebhookController extends Controller
 
         if (empty($participants)) {
             Cache::forget($cacheKey);
-            Cache::forget("voice_channel:{$channelId}:e2ee_key");
-        } else {
-            Cache::put($cacheKey, $participants, now()->addHours(self::PRESENCE_TTL_HOURS));
+            $this->liveKitService->forgetE2eeKey($channelId);
+            VoiceChannelLeft::dispatch($channel, $user);
+
+            return;
         }
 
+        Cache::put($cacheKey, $participants, now()->addHours(self::PRESENCE_TTL_HOURS));
+
         VoiceChannelLeft::dispatch($channel, $user);
+
+        // Rotate the shared E2EE key so the member who just left can no longer
+        // decrypt subsequent audio, and broadcast the new key to those remaining.
+        // The leaver has lost Connect permission, so they won't receive it.
+        $rotated = $this->liveKitService->rotateE2eeKey($channelId);
+        VoiceKeyRotated::dispatch($channel, $rotated['key'], $rotated['index']);
     }
 
     /**
@@ -150,7 +160,7 @@ class LiveKitWebhookController extends Controller
         $participants = Cache::get($cacheKey, []);
 
         Cache::forget($cacheKey);
-        Cache::forget("voice_channel:{$channelId}:e2ee_key");
+        $this->liveKitService->forgetE2eeKey($channelId);
 
         $channel = Channel::find($channelId);
 

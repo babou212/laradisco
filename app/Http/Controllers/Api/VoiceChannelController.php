@@ -59,12 +59,8 @@ class VoiceChannelController extends Controller
 
         $token = $this->liveKitService->generateToken($user, $roomName);
 
-        // Generate or retrieve E2EE shared key for this room
-        $e2eeKey = Cache::remember(
-            "voice_channel:{$channel->id}:e2ee_key",
-            now()->addHours(6),
-            fn () => bin2hex(random_bytes(32))
-        );
+        // Current shared E2EE key + index for this room (rotated when members leave).
+        $e2ee = $this->liveKitService->currentE2eeKey($channel->id);
 
         return $this->successResponse([
             'token' => $token,
@@ -72,7 +68,26 @@ class VoiceChannelController extends Controller
             'room' => $roomName,
             'channel_id' => $channel->id,
             'channel_name' => $channel->name,
-            'e2ee_key' => $e2eeKey,
+            'e2ee_key' => $e2ee['key'],
+            'e2ee_key_index' => $e2ee['index'],
+        ]);
+    }
+
+    /**
+     * Return the current E2EE key + index for a channel.
+     *
+     * Used by clients to resync after a reconnect, in case a rotation broadcast
+     * was missed while their websocket was down. Authorization mirrors join
+     * (Connect permission on the voice channel), so a user who has left — and
+     * lost Connect — cannot fetch the rotated key.
+     */
+    public function key(JoinVoiceChannelRequest $request, Channel $channel): JsonResponse
+    {
+        $e2ee = $this->liveKitService->currentE2eeKey($channel->id);
+
+        return $this->successResponse([
+            'e2ee_key' => $e2ee['key'],
+            'e2ee_key_index' => $e2ee['index'],
         ]);
     }
 

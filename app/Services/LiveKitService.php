@@ -9,6 +9,7 @@ use Agence104\LiveKit\RoomServiceClient;
 use Agence104\LiveKit\VideoGrant;
 use Agence104\LiveKit\WebhookReceiver;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Livekit\DataPacket\Kind;
 use Livekit\ListParticipantsResponse;
 use Livekit\WebhookEvent;
@@ -113,6 +114,53 @@ class LiveKitService
     public function getServerUrl(): string
     {
         return $this->url;
+    }
+
+    /**
+     * Current shared E2EE key + index for a channel. The first joiner mints it;
+     * every later joiner receives the same value until it is rotated (on a member
+     * leaving) or the room empties.
+     *
+     * @return array{key: string, index: int}
+     */
+    public function currentE2eeKey(int $channelId): array
+    {
+        return Cache::remember(
+            $this->e2eeCacheKey($channelId),
+            now()->addHours(6),
+            fn (): array => ['key' => bin2hex(random_bytes(32)), 'index' => 0],
+        );
+    }
+
+    /**
+     * Rotate the shared E2EE key to a fresh value at the next index. Called when
+     * a participant leaves so their old key can no longer decrypt new audio.
+     *
+     * @return array{key: string, index: int}
+     */
+    public function rotateE2eeKey(int $channelId): array
+    {
+        $current = Cache::get($this->e2eeCacheKey($channelId));
+        $next = [
+            'key' => bin2hex(random_bytes(32)),
+            'index' => (int) (($current['index'] ?? 0) + 1),
+        ];
+        Cache::put($this->e2eeCacheKey($channelId), $next, now()->addHours(6));
+
+        return $next;
+    }
+
+    /**
+     * Drop a channel's E2EE key (the room has emptied / finished).
+     */
+    public function forgetE2eeKey(int $channelId): void
+    {
+        Cache::forget($this->e2eeCacheKey($channelId));
+    }
+
+    private function e2eeCacheKey(int $channelId): string
+    {
+        return "voice_channel:{$channelId}:e2ee";
     }
 
     /**

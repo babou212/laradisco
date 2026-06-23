@@ -62,6 +62,7 @@ Route::prefix('channels/{channel}')->as('channels.')->scopeBindings()->group(fun
     });
 
     Route::post('/voice/join', [VoiceChannelController::class, 'join'])->name('voice.join');
+    Route::get('/voice/key', [VoiceChannelController::class, 'key'])->name('voice.key');
     Route::delete('/voice/membership', [VoiceChannelController::class, 'leave'])->name('voice.leave');
     Route::post('/voice/soundboard/play', [SoundboardController::class, 'play'])->name('voice.soundboard.play');
 });

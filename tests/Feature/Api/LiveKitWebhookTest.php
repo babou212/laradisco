@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Events\VoiceChannelJoined;
 use App\Events\VoiceChannelLeft;
+use App\Events\VoiceKeyRotated;
 use App\Models\Channel;
 use App\Models\User;
 use App\Services\LiveKitService;
@@ -69,7 +70,7 @@ class LiveKitWebhookTest extends TestCase
 
     public function test_participant_left_removes_from_cache_and_broadcasts(): void
     {
-        Event::fake([VoiceChannelLeft::class]);
+        Event::fake([VoiceChannelLeft::class, VoiceKeyRotated::class]);
 
         $user = User::factory()->create();
         $other = User::factory()->create();
@@ -90,6 +91,14 @@ class LiveKitWebhookTest extends TestCase
         $this->assertArrayHasKey($other->id, $cached);
 
         Event::assertDispatched(VoiceChannelLeft::class, fn ($e) => $e->user->id === $user->id);
+
+        // The shared E2EE key is rotated for the remaining members so the leaver
+        // can no longer decrypt new audio.
+        Event::assertDispatched(
+            VoiceKeyRotated::class,
+            fn ($e) => $e->channel->id === $channel->id && $e->keyIndex === 1
+        );
+        $this->assertSame(1, Cache::get("voice_channel:{$channel->id}:e2ee")['index']);
     }
 
     public function test_stale_leave_from_superseded_session_is_ignored(): void
@@ -124,7 +133,7 @@ class LiveKitWebhookTest extends TestCase
         Cache::put("voice_channel:{$channel->id}:participants", [
             $user->id => ['id' => $user->id, 'username' => $user->username, '_sid' => 'PA_test'],
         ]);
-        Cache::put("voice_channel:{$channel->id}:e2ee_key", 'deadbeef');
+        Cache::put("voice_channel:{$channel->id}:e2ee", ['key' => 'deadbeef', 'index' => 0]);
 
         $this->mockReceiver($this->webhookEvent('room_finished', $channel, null));
 
@@ -132,7 +141,7 @@ class LiveKitWebhookTest extends TestCase
             ->assertOk();
 
         $this->assertNull(Cache::get("voice_channel:{$channel->id}:participants"));
-        $this->assertNull(Cache::get("voice_channel:{$channel->id}:e2ee_key"));
+        $this->assertNull(Cache::get("voice_channel:{$channel->id}:e2ee"));
     }
 
     public function test_unverifiable_webhook_is_rejected(): void

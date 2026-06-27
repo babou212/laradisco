@@ -6,15 +6,19 @@ use App\Enums\PermissionFlag;
 use App\Events\ThreadMessageSent;
 use App\Events\ThreadUpdated;
 use App\Models\Channel;
+use App\Models\Mention;
 use App\Models\Message;
 use App\Models\Thread;
 use App\Models\User;
+use App\Notifications\ThreadReplyNotification;
 use App\Services\MentionService;
 use App\Services\PermissionService;
 use App\Support\CacheKeys;
 use App\Support\Media\AttachmentRebinder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 class CreateThreadReplyAction
 {
@@ -90,12 +94,14 @@ class CreateThreadReplyAction
 
         $result->load(['user:id,username,status,custom_status', 'attachments']);
 
-        $this->mentionService->processMentionsFromMetadata(
+        $mentions = $this->mentionService->processMentionsFromMetadata(
             $result,
             $data['mention_user_ids'],
             $data['mention_everyone'],
             $data['mention_here'],
         );
+
+        $this->notifyFollowers($thread, $user, $result, $mentions);
 
         broadcast(new ThreadMessageSent($result))->toOthers();
 
@@ -106,5 +112,36 @@ class CreateThreadReplyAction
         Cache::tags([CacheKeys::channelMessagesTag($channel->id)])->flush();
 
         return CreateThreadReplyResult::success($result);
+    }
+
+    /**
+     * Notify everyone following the thread that a new reply was posted.
+     *
+     * Excludes the poster and anyone already notified by a mention in the same
+     * reply (mention wins, so they aren't double-notified). When the reply mentions
+     * everyone/here, every follower already received a mention notification, so the
+     * thread-reply fan-out is skipped entirely.
+     *
+     * @param  Collection<int, Mention>  $mentions
+     */
+    private function notifyFollowers(Thread $thread, User $user, Message $reply, Collection $mentions): void
+    {
+        if ($mentions->contains(fn (Mention $mention) => in_array($mention->type, ['everyone', 'here'], true))) {
+            return;
+        }
+
+        $excludedIds = $mentions->pluck('user_id')
+            ->filter()
+            ->push($user->id)
+            ->unique()
+            ->all();
+
+        $recipients = $thread->followers()
+            ->whereNotIn('users.id', $excludedIds)
+            ->get();
+
+        if ($recipients->isNotEmpty()) {
+            Notification::send($recipients, new ThreadReplyNotification($reply));
+        }
     }
 }

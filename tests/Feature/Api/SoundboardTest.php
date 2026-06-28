@@ -95,10 +95,10 @@ class SoundboardTest extends TestCase
         $this->assertNotNull($sound->soundMedia());
     }
 
-    public function test_upload_is_rejected_when_longer_than_ten_seconds(): void
+    public function test_upload_is_rejected_when_longer_than_twenty_seconds(): void
     {
         $this->fakeS3();
-        $this->fakeDuration(12_000);
+        $this->fakeDuration(22_000);
 
         $user = User::factory()->create();
 

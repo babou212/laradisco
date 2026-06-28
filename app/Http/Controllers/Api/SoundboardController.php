@@ -23,19 +23,12 @@ class SoundboardController extends Controller
 {
     use ApiResponse;
 
-    /**
-     * Hard ceiling on clip length. A small tolerance is allowed above 10s so
-     * encoder/container rounding on a clip the client trimmed to exactly 10s
-     * does not bounce a legitimate upload.
-     */
-    private const MAX_DURATION_MS = 10_000;
+    private const MAX_DURATION_MS = 20_000;
 
     private const DURATION_TOLERANCE_MS = 500;
 
-    /** Clips are short; 5 MB is generous for 10s of compressed audio. */
     private const MAX_FILE_SIZE_KB = 5_120;
 
-    /** Minimum gap between sound triggers in a channel, in seconds. */
     private const PLAY_COOLDOWN_SECONDS = 1;
 
     public function __construct(
@@ -59,7 +52,7 @@ class SoundboardController extends Controller
 
     /**
      * Upload a new sound. Any member may contribute. The clip is validated to
-     * be audio and at most ~10s server-side, regardless of client trimming.
+     * be audio and at most ~20s server-side, regardless of client trimming.
      */
     public function store(Request $request): JsonResponse
     {
@@ -78,7 +71,7 @@ class SoundboardController extends Controller
         }
 
         if ($durationMs > self::MAX_DURATION_MS + self::DURATION_TOLERANCE_MS) {
-            return $this->errorResponse('Sounds must be 10 seconds or shorter.', Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->errorResponse('Sounds must be 20 seconds or shorter.', Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $sound = SoundboardSound::create([
@@ -141,8 +134,6 @@ class SoundboardController extends Controller
             return $this->forbiddenResponse('You must be in the voice channel to play a sound.');
         }
 
-        // Per-channel cooldown: holding a short-lived lock rate-limits triggers
-        // without a persistent store. The lock auto-expires after the cooldown.
         $lock = Cache::lock("soundboard:play:{$channel->id}", self::PLAY_COOLDOWN_SECONDS);
 
         if (! $lock->get()) {

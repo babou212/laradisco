@@ -59,6 +59,10 @@ class AuthController extends Controller
             $user->forceFill(['password' => Hash::make($request->password)])->save();
         }
 
+        if ($user->isBanned()) {
+            return $this->bannedResponse($user);
+        }
+
         if ($user->two_factor_secret && $user->two_factor_confirmed_at) {
             $challengeToken = Str::random(64);
 
@@ -92,6 +96,10 @@ class AuthController extends Controller
 
         /** @var User $user */
         $user = User::findOrFail($challenge['user_id']);
+
+        if ($user->isBanned()) {
+            return $this->bannedResponse($user);
+        }
 
         if ($request->filled('code')) {
             $valid = $this->twoFactorProvider->verify(
@@ -149,6 +157,26 @@ class AuthController extends Controller
             'token' => $token,
             'user' => new UserResource($user),
         ], 'Authenticated successfully');
+    }
+
+    /**
+     * Build the 403 response returned when a banned user tries to authenticate.
+     *
+     * Uses a plain JSON body (not the JSON:API envelope) with stable top-level
+     * fields — the same shape as the CheckBanned middleware — so the client can
+     * render the ban reason and remaining duration on its banned screen.
+     */
+    private function bannedResponse(User $user): JsonResponse
+    {
+        $ban = $user->activeBan();
+
+        return response()->json([
+            'code' => 'account_banned',
+            'message' => 'Your account has been banned.',
+            'reason' => $ban?->reason,
+            'expires_at' => $ban?->expires_at?->format(DATE_ATOM),
+            'permanent' => $ban?->expires_at === null,
+        ], 403);
     }
 
     /**

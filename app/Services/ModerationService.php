@@ -2,17 +2,30 @@
 
 namespace App\Services;
 
+use App\Enums\ChannelType;
+use App\Events\UserBanned;
 use App\Models\Ban;
+use App\Models\Channel;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\CacheKeys;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Spatie\Permission\PermissionRegistrar;
+use Throwable;
 
 class ModerationService
 {
+    public function __construct(
+        private readonly LiveKitService $liveKit,
+    ) {}
+
     /**
      * Ban a user from the server.
+     *
+     * Beyond recording the ban, this enforces it immediately: the banned user is
+     * told to log out (broadcast), forcibly disconnected from any voice channel,
+     * and has all of their API tokens revoked so every device drops.
      */
     public function ban(User $target, User $actor, ?string $reason = null, ?\DateTimeInterface $expiresAt = null): Ban
     {
@@ -25,7 +38,47 @@ class ModerationService
 
         $this->flushUserCaches($target);
 
+        event(new UserBanned($target, $reason, $expiresAt));
+
+        $this->removeFromVoiceChannels($target);
+
+        $target->tokens()->delete();
+
         return $ban;
+    }
+
+    /**
+     * Forcibly disconnect a banned user from every voice channel they are in.
+     *
+     * Removal triggers LiveKit's participant_left webhook, which already handles
+     * presence-cache cleanup, E2EE key rotation, and the VoiceChannelLeft
+     * broadcast — so we only issue the removal here. Each call is isolated so a
+     * LiveKit error on one room does not abort the ban or skip other rooms.
+     */
+    protected function removeFromVoiceChannels(User $target): void
+    {
+        $voiceChannels = Channel::where('type', ChannelType::Voice)->get();
+
+        foreach ($voiceChannels as $channel) {
+            $participants = Cache::get("voice_channel:{$channel->id}:participants", []);
+
+            if (! array_key_exists($target->id, $participants)) {
+                continue;
+            }
+
+            try {
+                $this->liveKit->removeParticipant(
+                    "voice-channel-{$channel->id}",
+                    (string) $target->id,
+                );
+            } catch (Throwable $e) {
+                Log::debug('LiveKit removeParticipant failed on ban', [
+                    'channel_id' => $channel->id,
+                    'user_id' => $target->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**

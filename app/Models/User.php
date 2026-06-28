@@ -248,6 +248,25 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
+     * The user's currently active ban (timed-but-unexpired or permanent), if any.
+     *
+     * Queried directly rather than through the ban-status cache, which only
+     * memoises the negative (not-banned) result. Used to surface the ban reason
+     * and expiry to the client at login, in the CheckBanned middleware, and in
+     * the UserBanned broadcast payload.
+     */
+    public function activeBan(): ?Ban
+    {
+        return $this->bans()
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->latest()
+            ->first();
+    }
+
+    /**
      * Get the user's display name (their username).
      */
     public function getDisplayNameAttribute(): string

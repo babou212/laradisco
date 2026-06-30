@@ -50,7 +50,7 @@ class PinController extends Controller
         $pinned = QueryBuilder::for(
             $channel->pinnedMessages()
         )
-            ->allowedIncludes('user', 'reactions')
+            ->allowedIncludes('user', 'reactions', 'attachments')
             ->allowedSorts('created_at')
             ->defaultSort('-created_at')
             ->get();
@@ -141,7 +141,7 @@ class PinController extends Controller
         $pinned = QueryBuilder::for(
             $dmGroup->messages()->where('is_pinned', true)
         )
-            ->allowedIncludes('user', 'reactions')
+            ->allowedIncludes('user', 'reactions', 'attachments')
             ->allowedSorts('created_at')
             ->defaultSort('-created_at')
             ->get();

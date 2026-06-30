@@ -6,7 +6,6 @@ use Knuckles\Scribe\Config\Defaults;
 use Knuckles\Scribe\Extracting\Strategies;
 
 use function Knuckles\Scribe\Config\configureStrategy;
-use function Knuckles\Scribe\Config\removeStrategies;
 
 if (! class_exists(AuthIn::class)) {
     return [];

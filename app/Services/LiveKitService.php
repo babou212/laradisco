@@ -180,9 +180,6 @@ class LiveKitService
 
     private function getRoomServiceClient(): RoomServiceClient
     {
-        // Prefer the explicit server-side API host when configured (the backend
-        // may reach LiveKit at a different address than clients do); otherwise
-        // derive it from the client URL by swapping the ws(s) scheme for http(s).
         $httpUrl = $this->apiUrl !== null && $this->apiUrl !== ''
             ? $this->apiUrl
             : str_replace(['ws://', 'wss://'], ['http://', 'https://'], $this->url);

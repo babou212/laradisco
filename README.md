@@ -22,7 +22,7 @@ A privacy-focused communication platform built with Laravel.
 | Framework | Laravel 13 |
 | Auth | Fortify (login/register/2FA) + Sanctum (API tokens) |
 | Database | PostgreSQL 18 |
-| Real-Time | Laravel Reverb (WebSocket) with Redis scaling |
+| Real-Time | Laravel Reverb (WebSocket) |
 | Voice/Video | LiveKit |
 | HTTP Server | FrankenPHP + Laravel Octane |
 | Queue | Redis + Laravel Horizon |
@@ -62,7 +62,6 @@ After that you can use `sail up -d`, `sail down`, `sail artisan …`, `sail comp
 
 ```bash
 sail up -d                  # start the stack
-sail npm run dev            # Vite dev server with hot reload (for frontend work)
 sail artisan migrate        # run migrations
 sail artisan tinker         # REPL
 sail composer test          # lint + test suite

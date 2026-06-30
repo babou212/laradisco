@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
+/**
+ * @group Voice
+ */
 class VoiceChannelController extends Controller
 {
     use ApiResponse;
@@ -25,7 +28,12 @@ class VoiceChannelController extends Controller
     ) {}
 
     /**
-     * Get all voice channel participants for channels the user can access.
+     * List voice participants
+     *
+     * Get the current participants of every voice channel the user can access,
+     * keyed by channel id.
+     *
+     * @response 200 {"data": {"12": [{"user_id": 7, "username": "alice", "muted": false}]}}
      */
     public function participants(Request $request): JsonResponse
     {
@@ -50,7 +58,12 @@ class VoiceChannelController extends Controller
     }
 
     /**
-     * Join a voice channel — returns a LiveKit token and server URL.
+     * Join a voice channel
+     *
+     * Returns a LiveKit access token, server URL, room name and the channel's
+     * current shared E2EE key + index.
+     *
+     * @response 200 {"data": {"token": "eyJhbGci...", "url": "wss://voice.example.com", "room": "voice-channel-12", "channel_id": 12, "channel_name": "General Voice", "e2ee_key": "base64key==", "e2ee_key_index": 0}}
      */
     public function join(JoinVoiceChannelRequest $request, Channel $channel): JsonResponse
     {
@@ -74,7 +87,11 @@ class VoiceChannelController extends Controller
     }
 
     /**
+     * Get the voice E2EE key
+     *
      * Return the current E2EE key + index for a channel.
+     *
+     * @response 200 {"data": {"e2ee_key": "base64key==", "e2ee_key_index": 0}}
      *
      * Used by clients to resync after a reconnect, in case a rotation broadcast
      * was missed while their websocket was down. Authorization mirrors join
@@ -92,7 +109,12 @@ class VoiceChannelController extends Controller
     }
 
     /**
-     * Leave a voice channel.
+     * Leave a voice channel
+     *
+     * Forcibly removes the authenticated user from the voice room so the leave is
+     * reflected immediately.
+     *
+     * @response 200 {"message": "Left voice channel", "data": {"channel_id": 12}}
      *
      * Presence removal flows through LiveKit's `participant_left` webhook.
      * We forcibly remove the participant from the room so an intentional leave

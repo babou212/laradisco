@@ -23,6 +23,9 @@ use Illuminate\Support\Facades\Cache;
 use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @group Settings: Channels
+ */
 class ChannelController extends Controller
 {
     use ApiResponse;
@@ -33,6 +36,11 @@ class ChannelController extends Controller
 
     /**
      * List all channels grouped by category.
+     *
+     * @queryParam include string Comma-separated relations to embed. Allowed: channels. Example: channels
+     * @queryParam sort string Sort field; prefix - for descending. Allowed: position. Example: position
+     *
+     * @response 200 {"data":[{"type":"categories","id":"1","attributes":{"name":"General","position":0,"created_at":"2026-06-30T12:00:00.000000Z"}}],"meta":{"roles":[{"type":"roles","id":"1","attributes":{"name":"Admin","color":"#ff5555"}}],"permissions":[{"value":"manage_server","label":"Manage Server"}]}}
      */
     public function index(Request $request): JsonResponse
     {
@@ -65,6 +73,8 @@ class ChannelController extends Controller
 
     /**
      * Create a new channel.
+     *
+     * @response 201 {"data":{"type":"channels","id":"12","attributes":{"name":"general","topic":null,"channel_type":"text","is_private":false,"category_id":1,"position":0,"slowmode_seconds":0,"has_unread":false,"created_at":"2026-06-30T12:00:00.000000Z"}}}
      */
     public function store(StoreChannelRequest $request): JsonResponse
     {
@@ -90,6 +100,8 @@ class ChannelController extends Controller
 
     /**
      * Update a channel's settings.
+     *
+     * @response 200 {"data":{"type":"channels","id":"12","attributes":{"name":"general-chat","topic":"Welcome!","channel_type":"text","is_private":false,"category_id":1,"position":0,"slowmode_seconds":5,"has_unread":false,"created_at":"2026-06-30T12:00:00.000000Z"}}}
      */
     public function update(StoreChannelRequest $request, Channel $channel): JsonResponse
     {
@@ -114,6 +126,8 @@ class ChannelController extends Controller
 
     /**
      * Delete a channel.
+     *
+     * @response 204
      */
     public function destroy(Request $request, Channel $channel): JsonResponse|Response
     {
@@ -139,6 +153,8 @@ class ChannelController extends Controller
 
     /**
      * List permission overrides for a channel.
+     *
+     * @response 200 {"data":[{"id":1,"channel_id":42,"role_id":3,"user_id":null,"allow":["send_messages"],"deny":[],"role":{"id":3,"name":"Member","color":"#cccccc"},"user":null}]}
      */
     public function overrides(Request $request, Channel $channel): JsonResponse
     {
@@ -153,6 +169,8 @@ class ChannelController extends Controller
 
     /**
      * Create or update a permission override for a channel.
+     *
+     * @response 201 {"message":"Created successfully","data":{"id":1,"channel_id":42,"role_id":3,"user_id":null,"allow":["send_messages"],"deny":[],"role":{"id":3,"name":"Member","color":"#cccccc"},"user":null}}
      */
     public function storeOverride(StoreChannelOverrideRequest $request, Channel $channel): JsonResponse
     {
@@ -194,6 +212,8 @@ class ChannelController extends Controller
 
     /**
      * Delete a permission override.
+     *
+     * @response 204
      */
     public function destroyOverride(Request $request, Channel $channel, ChannelPermissionOverride $override): JsonResponse|Response
     {

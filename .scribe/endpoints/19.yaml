@@ -1,0 +1,210 @@
+name: 'Settings: Members'
+description: ''
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/settings/members
+    metadata:
+      custom: []
+      groupName: 'Settings: Members'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List all members with their roles.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters:
+      include:
+        custom: []
+        name: include
+        description: 'Comma-separated relations to embed. Allowed: roles.'
+        required: false
+        example: roles
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      sort:
+        custom: []
+        name: sort
+        description: 'Sort field; prefix - for descending. Allowed: username, created_at.'
+        required: false
+        example: username
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      'filter[username]':
+        custom: []
+        name: 'filter[username]'
+        description: 'Partial username match.'
+        required: false
+        example: ali
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      include: roles
+      sort: username
+      'filter[username]': ali
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data":[{"type":"users","id":"7","attributes":{"username":"alice","display_name":"Alice","avatar_urls":null,"status":"online","custom_status":null,"created_at":"2026-06-30T12:00:00.000000Z"}}],"meta":{"roles":[{"type":"roles","id":"1","attributes":{"name":"Admin","color":"#ff5555","position":5,"is_default":false}}]}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/settings/members/{user_id}/roles'
+    metadata:
+      custom: []
+      groupName: 'Settings: Members'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Assign a role to a member.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      user_id:
+        custom: []
+        name: user_id
+        description: 'The ID of the user.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      user_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      role_id:
+        custom: []
+        name: role_id
+        description: 'Must match an existing stored value.'
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      role_id: architecto
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"message":"Role assigned successfully"}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - DELETE
+    uri: 'api/v1/settings/members/{user_id}/roles/{role_id}'
+    metadata:
+      custom: []
+      groupName: 'Settings: Members'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Remove a role from a member.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      user_id:
+        custom: []
+        name: user_id
+        description: 'The ID of the user.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      role_id:
+        custom: []
+        name: role_id
+        description: 'The ID of the role.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      user_id: 16
+      role_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 204
+        content: '{}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null

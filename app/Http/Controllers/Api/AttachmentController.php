@@ -18,6 +18,9 @@ use Spatie\MediaLibrary\MediaCollections\Filesystem;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 
+/**
+ * @group Attachments
+ */
 class AttachmentController extends Controller
 {
     use ApiResponse;
@@ -34,9 +37,20 @@ class AttachmentController extends Controller
     ) {}
 
     /**
+     * Upload a channel attachment
+     *
      * Upload an attachment for a channel message. The media is staged on the
      * uploading user's `pending_attachments` collection and rebound to a
      * Message when the client posts the message referencing this attachment.
+     * The returned `attachment_id` is what you pass in `attachment_ids` when
+     * sending the message.
+     *
+     * @bodyParam file file required The file to upload (max 100 MB).
+     * @bodyParam thumbnail file A client-generated thumbnail image (optional).
+     * @bodyParam width integer Intrinsic media width in pixels. Example: 1920
+     * @bodyParam height integer Intrinsic media height in pixels. Example: 1080
+     *
+     * @response 200 {"data": {"attachment_id": "9b1f2c34-...", "file_name": "clip.mp4", "mime_type": "video/mp4", "size": 5242880, "thumbnail_size": 20480}}
      */
     public function uploadForChannel(Request $request, Channel $channel): JsonResponse
     {
@@ -50,7 +64,16 @@ class AttachmentController extends Controller
     }
 
     /**
+     * Upload a DM attachment
+     *
      * Upload an attachment for a DM. See uploadForChannel for the staging flow.
+     *
+     * @bodyParam file file required The file to upload (max 100 MB).
+     * @bodyParam thumbnail file A client-generated thumbnail image (optional).
+     * @bodyParam width integer Intrinsic media width in pixels. Example: 1920
+     * @bodyParam height integer Intrinsic media height in pixels. Example: 1080
+     *
+     * @response 200 {"data": {"attachment_id": "9b1f2c34-...", "file_name": "clip.mp4", "mime_type": "video/mp4", "size": 5242880, "thumbnail_size": 20480}}
      */
     public function uploadForDm(Request $request, DirectMessageGroup $dmGroup): JsonResponse
     {
@@ -63,6 +86,15 @@ class AttachmentController extends Controller
         return $this->handleUpload($user, $request);
     }
 
+    /**
+     * Get an attachment download URL
+     *
+     * Returns short-lived presigned URLs for the attachment (and its thumbnail,
+     * if one exists). The caller must have access to the channel or DM the
+     * attachment belongs to.
+     *
+     * @response 200 {"data": {"download_url": "https://.../clip.mp4?signature=...", "thumbnail_url": "https://.../thumb.webp?signature=..."}}
+     */
     public function download(Request $request, string $uuid): JsonResponse
     {
         $user = $request->user();

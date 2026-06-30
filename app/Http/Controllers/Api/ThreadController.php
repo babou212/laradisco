@@ -32,6 +32,9 @@ use Illuminate\Support\Facades\Cache;
 use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @group Threads
+ */
 class ThreadController extends Controller
 {
     use ApiResponse;
@@ -44,7 +47,12 @@ class ThreadController extends Controller
     ) {}
 
     /**
-     * Get thread details with parent message.
+     * Show a thread
+     *
+     * Get thread details. `meta.parent_message` carries the message the thread
+     * was started from.
+     *
+     * @response 200 {"data": {"type": "threads", "id": "5", "attributes": {"channel_id": 42, "message_id": 1858, "name": "Thread", "message_count": 3, "last_message_at": "2026-06-30T12:20:00.000000Z", "is_archived": false, "is_locked": false, "created_at": "2026-06-30T12:00:00.000000Z"}, "relationships": {"user": {"data": {"type": "users", "id": "7"}}, "latestReply": {"data": {"type": "messages", "id": "1861"}}}}, "meta": {"parent_message": {"data": {"type": "messages", "id": "1858"}}}}
      */
     public function show(Request $request, Channel $channel, Thread $thread): JsonResponse
     {
@@ -88,8 +96,18 @@ class ThreadController extends Controller
     }
 
     /**
-     * List thread messages: latest 50 by default, or anchored on
-     * before/after/around message ids. Response is always ASC.
+     * List thread messages
+     *
+     * Returns replies oldest→newest: latest 50 by default, or anchored on
+     * `before`/`after`/`around` message ids.
+     *
+     * @queryParam include string Comma-separated relations to embed. Allowed: user, reactions, attachments. Example: user,reactions
+     * @queryParam limit integer Page size, defaults to 50. Example: 50
+     * @queryParam before integer Return replies older than this message id. Example: 1861
+     * @queryParam after integer Return replies newer than this message id. Example: 1859
+     * @queryParam around integer Return a window centred on this message id. Example: 1860
+     *
+     * @response 200 {"data": [{"type": "messages", "id": "1860", "attributes": {"channel_id": 42, "user_id": 7, "content": "a reply", "is_pinned": false, "is_edited": false, "reply_to_id": null, "thread_id": 5, "created_at": "2026-06-30T12:10:00.000000Z"}}], "meta": {"has_more_before": false, "has_more_after": false, "oldest_id": "1860", "newest_id": "1860"}}
      */
     public function messages(MessagePaginateRequest $request, Channel $channel, Thread $thread): JsonResponse
     {
@@ -216,7 +234,13 @@ class ThreadController extends Controller
     }
 
     /**
-     * Post a reply to a message thread (creates thread if first reply).
+     * Post a thread reply
+     *
+     * Post a reply to a message thread, creating the thread if this is the first
+     * reply. Returns 201 for a new reply, or 200 when an idempotent retry matches
+     * an existing one.
+     *
+     * @response 201 {"data": {"type": "messages", "id": "1861", "attributes": {"channel_id": 42, "user_id": 7, "content": "first reply", "is_pinned": false, "is_edited": false, "reply_to_id": null, "thread_id": 5, "created_at": "2026-06-30T12:15:00.000000Z"}}}
      */
     public function storeReply(StoreThreadReplyRequest $request, Channel $channel, Message $message): JsonResponse
     {
@@ -254,7 +278,11 @@ class ThreadController extends Controller
     }
 
     /**
-     * Update a thread reply (owner only).
+     * Update a thread reply
+     *
+     * Edit a thread reply. Owner only. Marks the message as edited.
+     *
+     * @response 200 {"data": {"type": "messages", "id": "1861", "attributes": {"channel_id": 42, "user_id": 7, "content": "edited reply", "is_edited": true, "edited_at": "2026-06-30T12:18:00.000000Z", "thread_id": 5, "created_at": "2026-06-30T12:15:00.000000Z"}}}
      */
     public function updateReply(UpdateChannelMessageRequest $request, Channel $channel, Thread $thread, Message $message): JsonResponse
     {
@@ -290,7 +318,12 @@ class ThreadController extends Controller
     }
 
     /**
-     * Delete a thread reply (owner or permission-holder).
+     * Delete a thread reply
+     *
+     * Delete a thread reply. Allowed for the owner or a permission-holder
+     * (moderator). Deleting the last reply removes the now-empty thread.
+     *
+     * @response 204
      */
     public function destroyReply(Request $request, Channel $channel, Thread $thread, Message $message): JsonResponse|Response
     {
@@ -369,7 +402,11 @@ class ThreadController extends Controller
     }
 
     /**
-     * Follow a thread.
+     * Follow a thread
+     *
+     * Subscribe the authenticated user to the thread's updates.
+     *
+     * @response 200 {"message": "Thread followed."}
      */
     public function follow(Request $request, Channel $channel, Thread $thread): JsonResponse
     {
@@ -383,7 +420,11 @@ class ThreadController extends Controller
     }
 
     /**
-     * Unfollow a thread.
+     * Unfollow a thread
+     *
+     * Unsubscribe the authenticated user from the thread's updates.
+     *
+     * @response 200 {"message": "Thread unfollowed."}
      */
     public function unfollow(Request $request, Channel $channel, Thread $thread): JsonResponse
     {

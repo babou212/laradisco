@@ -28,6 +28,9 @@ use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 
+/**
+ * @group Authentication
+ */
 class AuthController extends Controller
 {
     use ApiResponse;
@@ -38,10 +41,16 @@ class AuthController extends Controller
     ) {}
 
     /**
-     * Issue a new API token for the native client.
+     * Log in
      *
-     * If the user has two-factor authentication enabled, a challenge token
-     * is returned instead of an API token, requiring a second step.
+     * Issues a new API token. If the user has two-factor authentication enabled,
+     * a challenge token is returned instead, requiring a second step
+     * (`/auth/two-factor-challenge`).
+     *
+     * @unauthenticated
+     *
+     * @response 200 scenario="success" {"message": "Authenticated successfully", "data": {"token": "1|abcdef0123456789", "user": {"type": "users", "id": "7", "attributes": {"username": "ada", "display_name": "Ada Lovelace", "status": "online"}}}}
+     * @response 200 scenario="two-factor required" {"message": "Two-factor authentication required", "data": {"two_factor": true, "challenge_token": "a64characterrandomstring"}}
      */
     public function login(LoginRequest $request): JsonResponse
     {
@@ -82,6 +91,12 @@ class AuthController extends Controller
     }
 
     /**
+     * Complete two-factor challenge
+     *
+     * @unauthenticated
+     *
+     * @response 200 {"message": "Authenticated successfully", "data": {"token": "1|abcdef0123456789", "user": {"type": "users", "id": "7", "attributes": {"username": "ada", "display_name": "Ada Lovelace", "status": "online"}}}}
+     *
      * Verify a two-factor authentication code and issue an API token.
      */
     public function twoFactorChallenge(TwoFactorChallengeRequest $request): JsonResponse
@@ -180,7 +195,11 @@ class AuthController extends Controller
     }
 
     /**
+     * Log out
+     *
      * Revoke the current API token.
+     *
+     * @response 200 {"message": "Logged out successfully"}
      */
     public function logout(Request $request): JsonResponse
     {
@@ -195,7 +214,11 @@ class AuthController extends Controller
     }
 
     /**
-     * Return the authenticated user.
+     * Get the current user
+     *
+     * Return the authenticated user, including their roles.
+     *
+     * @response 200 {"data": {"type": "users", "id": "7", "attributes": {"username": "ada", "display_name": "Ada Lovelace", "email": "ada@example.com", "status": "online", "custom_status": null, "created_at": "2026-01-01T00:00:00.000000Z"}}}
      */
     public function user(Request $request): JsonResponse
     {
@@ -206,6 +229,13 @@ class AuthController extends Controller
     }
 
     /**
+     * Validate an invite token
+     *
+     * @unauthenticated
+     *
+     * @response 200 {"data": {"valid": true, "expires_at": "2026-07-31T00:00:00.000000Z"}}
+     * @response 404 {"errors": [{"status": "404", "title": "This invite link is invalid or has expired."}]}
+     *
      * Validate an invite token without consuming it.
      */
     public function validateInvite(string $token): JsonResponse
@@ -223,6 +253,12 @@ class AuthController extends Controller
     }
 
     /**
+     * Register
+     *
+     * @unauthenticated
+     *
+     * @response 200 {"message": "Authenticated successfully", "data": {"token": "1|abcdef0123456789", "user": {"type": "users", "id": "42", "attributes": {"username": "newbie", "display_name": "Newbie", "status": "online"}}}}
+     *
      * Register a new user using a valid invite token.
      */
     public function register(RegisterRequest $request): JsonResponse
@@ -271,8 +307,13 @@ class AuthController extends Controller
     }
 
     /**
-     * Send a password reset code to the user's email.
+     * Request a password reset code
      *
+     * @unauthenticated
+     *
+     * @response 200 {"message": "If an account with that email exists, a reset code has been sent."}
+     *
+     * Send a password reset code to the user's email.
      * Generates a 6-digit code stored in cache for 15 minutes.
      * Does NOT modify the user's password.
      */
@@ -298,6 +339,12 @@ class AuthController extends Controller
     }
 
     /**
+     * Reset password
+     *
+     * @unauthenticated
+     *
+     * @response 200 {"message": "Your password has been reset successfully. You can now sign in."}
+     *
      * Reset the user's password using a valid reset code.
      */
     public function resetPassword(ResetPasswordRequest $request): JsonResponse

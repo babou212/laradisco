@@ -1,0 +1,1330 @@
+name: 'Direct Messages'
+description: 'Adds the reaction if absent (201) or removes it if present (200). `meta.added` indicates which happened.'
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/direct-messages
+    metadata:
+      custom: []
+      groupName: 'Direct Messages'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List DM groups'
+      description: 'List all DM groups for the authenticated user.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters:
+      include:
+        custom: []
+        name: include
+        description: 'Comma-separated relations to embed. Allowed: participants, lastMessage, lastMessage.user.'
+        required: false
+        example: 'participants,lastMessage'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      sort:
+        custom: []
+        name: sort
+        description: 'Sort field; prefix - for descending. Defaults to -last_message_at. Allowed: last_message_at.'
+        required: false
+        example: '-last_message_at'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      include: 'participants,lastMessage'
+      sort: '-last_message_at'
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data": [{"type": "direct_message_groups", "id": "12", "attributes": {"name": "alice", "other_user": {"id": "8", "username": "alice", "display_name": "Alice", "avatar_urls": null, "status": "online", "custom_status": null}, "last_message": {"id": 540, "created_at": "2026-06-30T12:00:00.000000Z", "user_id": 8, "content": "see you then"}, "last_message_at": "2026-06-30T12:00:00.000000Z", "created_at": "2026-06-01T09:00:00.000000Z"}}]}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/direct-messages/find
+    metadata:
+      custom: []
+      groupName: 'Direct Messages'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Find a DM group with a user'
+      description: 'Find an existing one-on-one DM group with a specific user.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters:
+      user_id:
+        custom: []
+        name: user_id
+        description: "The other user's id."
+        required: false
+        example: 8
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      user_id: 8
+    bodyParameters:
+      user_id:
+        custom: []
+        name: user_id
+        description: 'Must match an existing stored value.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      user_id: 16
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data": {"dm_group_id": 12}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/direct-messages
+    metadata:
+      custom: []
+      groupName: 'Direct Messages'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Create a DM group'
+      description: |-
+        Create a new one-on-one DM group with a user. If a group with that user
+        already exists, returns it (200) as `{"data": {"dm_group_id": <id>}}`
+        instead of creating a duplicate.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      user_id:
+        custom: []
+        name: user_id
+        description: 'Must match an existing stored value.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      user_id: 16
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 201
+        content: '{"data": {"type": "direct_message_groups", "id": "12", "attributes": {"name": "alice", "other_user": {"id": "8", "username": "alice", "display_name": "Alice", "avatar_urls": null, "status": "online", "custom_status": null}, "last_message": null, "last_message_at": null, "created_at": "2026-06-30T12:00:00.000000Z"}}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/direct-messages/{dmGroup_id}'
+    metadata:
+      custom: []
+      groupName: 'Direct Messages'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Show a DM group with messages'
+      description: |-
+        Returns the DM group plus its messages oldest→newest. With no anchor, the
+        latest `limit` (default 50) messages are returned; otherwise anchor the
+        window on `before`/`after`/`around` a message id. The group itself is in
+        `meta.dm_group`.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      dmGroup_id:
+        custom: []
+        name: dmGroup_id
+        description: 'The ID of the dmGroup.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      dmGroup_id: 16
+    queryParameters:
+      include:
+        custom: []
+        name: include
+        description: 'Comma-separated relations to embed. Allowed: user, reactions, replyTo, replyTo.user, attachments.'
+        required: false
+        example: 'user,reactions'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      limit:
+        custom: []
+        name: limit
+        description: 'Page size, 1–100. Defaults to 50.'
+        required: false
+        example: 50
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      before:
+        custom: []
+        name: before
+        description: 'Return messages older than this message id.'
+        required: false
+        example: 540
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      after:
+        custom: []
+        name: after
+        description: 'Return messages newer than this message id.'
+        required: false
+        example: 559
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      around:
+        custom: []
+        name: around
+        description: 'Return a window centred on this message id.'
+        required: false
+        example: 550
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      include: 'user,reactions'
+      limit: 50
+      before: 540
+      after: 559
+      around: 550
+    bodyParameters:
+      before:
+        custom: []
+        name: before
+        description: 'Must be at least 1.'
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      after:
+        custom: []
+        name: after
+        description: 'Must be at least 0.'
+        required: false
+        example: 39
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      around:
+        custom: []
+        name: around
+        description: 'Must be at least 1.'
+        required: false
+        example: 67
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      limit:
+        custom: []
+        name: limit
+        description: 'Must be at least 1. Must not be greater than 100.'
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      before: 16
+      after: 39
+      around: 67
+      limit: 16
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data": [{"type": "direct_messages", "id": "558", "attributes": {"dm_group_id": 12, "user_id": 8, "content": "hey there", "reply_to_id": null, "is_pinned": false, "is_edited": false, "created_at": "2026-06-30T12:00:00.000000Z"}, "relationships": {"user": {"data": {"type": "users", "id": "8"}}}}], "meta": {"has_more_before": true, "has_more_after": false, "oldest_id": "558", "newest_id": "558"}}'
+        headers: []
+        description: ''
+    responseFields:
+      data:
+        custom: []
+        name: data
+        description: 'The messages, ordered oldest→newest.'
+        required: false
+        example: null
+        type: 'object[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      meta.dm_group:
+        custom: []
+        name: meta.dm_group
+        description: 'The DM group resource.'
+        required: false
+        example: null
+        type: object
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      meta.has_more_before:
+        custom: []
+        name: meta.has_more_before
+        description: 'Whether older messages exist before this window.'
+        required: false
+        example: null
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      meta.has_more_after:
+        custom: []
+        name: meta.has_more_after
+        description: 'Whether newer messages exist after this window.'
+        required: false
+        example: null
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      meta.oldest_id:
+        custom: []
+        name: meta.oldest_id
+        description: 'Id of the oldest message in `data` (cursor for paging back with `before`).'
+        required: false
+        example: null
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      meta.newest_id:
+        custom: []
+        name: meta.newest_id
+        description: 'Id of the newest message in `data` (cursor for paging forward with `after`).'
+        required: false
+        example: null
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/direct-messages/{dmGroup_id}/messages/head'
+    metadata:
+      custom: []
+      groupName: 'Direct Messages'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Head check for DM sync'
+      description: |-
+        Lightweight head check: returns latest message id and (if since_id given)
+        count of newer messages for local-first sync.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      dmGroup_id:
+        custom: []
+        name: dmGroup_id
+        description: 'The ID of the dmGroup.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      dmGroup_id: 16
+    queryParameters:
+      since_id:
+        custom: []
+        name: since_id
+        description: 'If set, also returns how many messages exist newer than this id.'
+        required: false
+        example: 540
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      since_id: 540
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data": {"latest_id": 559, "count_since_id": 12}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/direct-messages/{dmGroup_id}/messages/search'
+    metadata:
+      custom: []
+      groupName: 'Direct Messages'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Search messages in a DM group'
+      description: |-
+        Full-text search messages within a DM group. Page-based pagination;
+        `meta.query` echoes the search term.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      dmGroup_id:
+        custom: []
+        name: dmGroup_id
+        description: 'The ID of the dmGroup.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      dmGroup_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      q:
+        custom: []
+        name: q
+        description: 'Must be at least 1 character. Must not be greater than 200 characters.'
+        required: true
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      per_page:
+        custom: []
+        name: per_page
+        description: 'Must be at least 1. Must not be greater than 50.'
+        required: false
+        example: 22
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      q: b
+      per_page: 22
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data": [{"type": "direct_messages", "id": "520", "attributes": {"dm_group_id": 12, "user_id": 8, "content": "the term you searched", "reply_to_id": null, "is_pinned": false, "is_edited": false, "created_at": "2026-06-30T11:00:00.000000Z"}}], "links": {"first": "...", "last": "...", "prev": null, "next": null}, "meta": {"current_page": 1, "per_page": 30, "total": 1, "query": "term"}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/direct-messages/{dmGroup_id}/messages'
+    metadata:
+      custom: []
+      groupName: 'Direct Messages'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Send a DM'
+      description: |-
+        Send a message in a DM group. Pass a unique `client_temp_id` to make
+        retries idempotent. Returns the created message.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      dmGroup_id:
+        custom: []
+        name: dmGroup_id
+        description: 'The ID of the dmGroup.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      dmGroup_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      reply_to_id:
+        custom: []
+        name: reply_to_id
+        description: 'Must match an existing stored value.'
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      content:
+        custom: []
+        name: content
+        description: 'Must not be greater than 65535 characters.'
+        required: false
+        example: 'n'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      attachment_ids:
+        custom: []
+        name: attachment_ids
+        description: 'Must be a valid UUID.'
+        required: false
+        example:
+          - 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
+        type: 'string[]'
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      client_temp_id:
+        custom: []
+        name: client_temp_id
+        description: 'Must be a valid UUID.'
+        required: false
+        example: 977e5426-8d13-3824-86aa-b092f8ae52c5
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      link_preview:
+        custom: []
+        name: link_preview
+        description: ''
+        required: false
+        example: null
+        type: object
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      link_preview.url:
+        custom: []
+        name: link_preview.url
+        description: 'This field is required when <code>link_preview</code> is present. Must not be greater than 2048 characters.'
+        required: false
+        example: 'http://www.okon.com/accusantium-harum-mollitia-modi-deserunt-aut-ab'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      link_preview.title:
+        custom: []
+        name: link_preview.title
+        description: 'Must not be greater than 1024 characters.'
+        required: false
+        example: 'y'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      link_preview.description:
+        custom: []
+        name: link_preview.description
+        description: 'Must not be greater than 4096 characters.'
+        required: false
+        example: 'Quo omnis nostrum aut adipisci.'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      link_preview.site_name:
+        custom: []
+        name: link_preview.site_name
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: p
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      link_preview.image_url:
+        custom: []
+        name: link_preview.image_url
+        description: 'Must not be greater than 2048 characters.'
+        required: false
+        example: 'http://www.dare.org/iure-odit-et-et-modi-ipsum-nostrum-omnis'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      link_preview.image_width:
+        custom: []
+        name: link_preview.image_width
+        description: ''
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      link_preview.image_height:
+        custom: []
+        name: link_preview.image_height
+        description: ''
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      link_preview.fetched_at:
+        custom: []
+        name: link_preview.fetched_at
+        description: ''
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      link_preview.image:
+        custom: []
+        name: link_preview.image
+        description: ''
+        required: false
+        example: null
+        type: object
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      link_preview.image.id:
+        custom: []
+        name: link_preview.image.id
+        description: 'Must be a valid UUID.'
+        required: false
+        example: a4855dc5-0acb-33c3-b921-f4291f719ca0
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      link_preview.image.mime_type:
+        custom: []
+        name: link_preview.image.mime_type
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: z
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      link_preview.image.size:
+        custom: []
+        name: link_preview.image.size
+        description: ''
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      link_preview.image.width:
+        custom: []
+        name: link_preview.image.width
+        description: ''
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      link_preview.image.height:
+        custom: []
+        name: link_preview.image.height
+        description: ''
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      reply_to_id: 16
+      content: 'n'
+      attachment_ids:
+        - 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
+      client_temp_id: 977e5426-8d13-3824-86aa-b092f8ae52c5
+      link_preview:
+        url: 'http://www.okon.com/accusantium-harum-mollitia-modi-deserunt-aut-ab'
+        title: 'y'
+        description: 'Quo omnis nostrum aut adipisci.'
+        site_name: p
+        image_url: 'http://www.dare.org/iure-odit-et-et-modi-ipsum-nostrum-omnis'
+        image_width: 16
+        image_height: 16
+        fetched_at: 16
+        image:
+          id: a4855dc5-0acb-33c3-b921-f4291f719ca0
+          mime_type: z
+          size: 16
+          width: 16
+          height: 16
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 201
+        content: '{"data": {"type": "direct_messages", "id": "560", "attributes": {"dm_group_id": 12, "user_id": 7, "content": "hello world", "reply_to_id": null, "is_pinned": false, "is_edited": false, "created_at": "2026-06-30T12:05:00.000000Z"}, "relationships": {"user": {"data": {"type": "users", "id": "7"}}}}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - PUT
+    uri: 'api/v1/direct-messages/{dmGroup_id}/messages/{id}'
+    metadata:
+      custom: []
+      groupName: 'Direct Messages'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Update a DM'
+      description: 'Edit a DM message. Owner only. Marks the message as edited.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      dmGroup_id:
+        custom: []
+        name: dmGroup_id
+        description: 'The ID of the dmGroup.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      id:
+        custom: []
+        name: id
+        description: 'The ID of the message.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      dmGroup_id: 16
+      id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      content:
+        custom: []
+        name: content
+        description: 'Must not be greater than 65535 characters.'
+        required: true
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      content: b
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data": {"type": "direct_messages", "id": "560", "attributes": {"dm_group_id": 12, "user_id": 7, "content": "edited content", "reply_to_id": null, "is_pinned": false, "is_edited": true, "edited_at": "2026-06-30T12:10:00.000000Z", "created_at": "2026-06-30T12:05:00.000000Z"}}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - DELETE
+    uri: 'api/v1/direct-messages/{dmGroup_id}/messages/{id}'
+    metadata:
+      custom: []
+      groupName: 'Direct Messages'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Delete a DM'
+      description: 'Delete a DM message. Owner only.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      dmGroup_id:
+        custom: []
+        name: dmGroup_id
+        description: 'The ID of the dmGroup.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      id:
+        custom: []
+        name: id
+        description: 'The ID of the message.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      dmGroup_id: 16
+      id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 204
+        content: '{}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/direct-messages/{dmGroup_id}/messages/{message_id}/reactions'
+    metadata:
+      custom: []
+      groupName: 'Direct Messages'
+      groupDescription: 'Adds the reaction if absent (201) or removes it if present (200). `meta.added` indicates which happened.'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Toggle a reaction on a direct message'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      dmGroup_id:
+        custom: []
+        name: dmGroup_id
+        description: 'The ID of the dmGroup.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      message_id:
+        custom: []
+        name: message_id
+        description: 'The ID of the message.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      dmGroup_id: 16
+      message_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      emoji:
+        custom: []
+        name: emoji
+        description: 'Must be at least 1 character. Must not be greater than 32 characters.'
+        required: true
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      emoji: b
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 201
+        content: '{"data": {"type": "reactions", "id": "55", "attributes": {"user_id": 7, "emoji": "👍", "message_id": 920, "created_at": "2026-06-30T12:00:00.000000Z"}}, "meta": {"added": true}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/direct-messages/{dmGroup_id}/pins'
+    metadata:
+      custom: []
+      groupName: 'Direct Messages'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List pinned messages in a DM group'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      dmGroup_id:
+        custom: []
+        name: dmGroup_id
+        description: 'The ID of the dmGroup.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      dmGroup_id: 16
+    queryParameters:
+      include:
+        custom: []
+        name: include
+        description: 'Comma-separated relations to embed. Allowed: user, reactions, attachments.'
+        required: false
+        example: 'user,reactions'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      sort:
+        custom: []
+        name: sort
+        description: 'Sort field; prefix - for descending. Allowed: created_at. Defaults to -created_at.'
+        required: false
+        example: '-created_at'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      include: 'user,reactions'
+      sort: '-created_at'
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data": [{"type": "direct_messages", "id": "920", "attributes": {"dm_group_id": 5, "user_id": 7, "content": "pinned dm", "is_pinned": true, "created_at": "2026-06-30T12:00:00.000000Z"}}]}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/direct-messages/{dmGroup_id}/messages/{message_id}/pin'
+    metadata:
+      custom: []
+      groupName: 'Direct Messages'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Pin a direct message'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      dmGroup_id:
+        custom: []
+        name: dmGroup_id
+        description: 'The ID of the dmGroup.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      message_id:
+        custom: []
+        name: message_id
+        description: 'The ID of the message.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      dmGroup_id: 16
+      message_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data": {"type": "direct_messages", "id": "920", "attributes": {"dm_group_id": 5, "user_id": 7, "content": "pinned dm", "is_pinned": true, "created_at": "2026-06-30T12:00:00.000000Z"}}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - DELETE
+    uri: 'api/v1/direct-messages/{dmGroup_id}/messages/{message_id}/pin'
+    metadata:
+      custom: []
+      groupName: 'Direct Messages'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Unpin a direct message'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      dmGroup_id:
+        custom: []
+        name: dmGroup_id
+        description: 'The ID of the dmGroup.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      message_id:
+        custom: []
+        name: message_id
+        description: 'The ID of the message.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      dmGroup_id: 16
+      message_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 204
+        content: '{}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/direct-messages/{dmGroup_id}/typing'
+    metadata:
+      custom: []
+      groupName: 'Direct Messages'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Broadcast a typing event for a DM'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      dmGroup_id:
+        custom: []
+        name: dmGroup_id
+        description: 'The ID of the dmGroup.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      dmGroup_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"message": "Typing event sent"}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null

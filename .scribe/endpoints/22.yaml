@@ -1,0 +1,336 @@
+name: 'Settings: Moderation'
+description: ''
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/settings/bans
+    metadata:
+      custom: []
+      groupName: 'Settings: Moderation'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List all active bans.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data":[{"id":1,"user_id":7,"banned_by":3,"reason":"spam","expires_at":null,"created_at":"2026-06-30T12:00:00.000000Z","user":{"id":7,"username":"bob"},"banned_by_user":{"id":3,"username":"alice"}}]}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/settings/members/{user_id}/ban'
+    metadata:
+      custom: []
+      groupName: 'Settings: Moderation'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Ban a user.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      user_id:
+        custom: []
+        name: user_id
+        description: 'The ID of the user.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      user_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      reason:
+        custom: []
+        name: reason
+        description: 'Must not be greater than 500 characters.'
+        required: false
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      expires_at:
+        custom: []
+        name: expires_at
+        description: 'Must be a valid date. Must be a date after <code>now</code>.'
+        required: false
+        example: '2052-07-24'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      reason: b
+      expires_at: '2052-07-24'
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 201
+        content: '{"message":"Created successfully","data":{"id":1,"user_id":7,"banned_by":3,"reason":"spam","expires_at":null,"created_at":"2026-06-30T12:00:00.000000Z","user":{"id":7,"username":"bob"},"banned_by_user":{"id":3,"username":"alice"}}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - DELETE
+    uri: 'api/v1/settings/members/{user_id}/ban'
+    metadata:
+      custom: []
+      groupName: 'Settings: Moderation'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Unban a user.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      user_id:
+        custom: []
+        name: user_id
+        description: 'The ID of the user.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      user_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"message":"User has been unbanned."}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/settings/members/{user_id}/jail'
+    metadata:
+      custom: []
+      groupName: 'Settings: Moderation'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Jail a user (restrict to jail channels only).'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      user_id:
+        custom: []
+        name: user_id
+        description: 'The ID of the user.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      user_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"message":"User has been jailed."}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - DELETE
+    uri: 'api/v1/settings/members/{user_id}/jail'
+    metadata:
+      custom: []
+      groupName: 'Settings: Moderation'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Unjail a user.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      user_id:
+        custom: []
+        name: user_id
+        description: 'The ID of the user.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      user_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"message":"User has been unjailed."}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - DELETE
+    uri: 'api/v1/settings/members/{user_id}'
+    metadata:
+      custom: []
+      groupName: 'Settings: Moderation'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Permanently delete a user from the server.'
+      description: |-
+        The account is removed entirely, but the user's messages are retained and
+        relabelled as authored by a deleted user. This is a stronger, admin-only
+        alternative to banning.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      user_id:
+        custom: []
+        name: user_id
+        description: 'The ID of the user.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      user_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"message":"User has been permanently deleted."}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null

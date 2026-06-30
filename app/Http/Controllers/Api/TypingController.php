@@ -10,12 +10,20 @@ use App\Models\DirectMessageGroup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * @group Typing
+ */
 class TypingController extends Controller
 {
     use ApiResponse;
 
     /**
-     * Broadcast a typing event for a channel.
+     * Send a typing event
+     *
+     * Broadcast a typing indicator for the authenticated user to other members
+     * of the channel.
+     *
+     * @response 200 {"message": "Typing event sent"}
      */
     public function __invoke(Request $request, Channel $channel): JsonResponse
     {
@@ -28,7 +36,11 @@ class TypingController extends Controller
     }
 
     /**
-     * Broadcast a typing event for a DM.
+     * Broadcast a typing event for a DM
+     *
+     * @group Direct Messages
+     *
+     * @response 200 {"message": "Typing event sent"}
      */
     public function dmTyping(Request $request, DirectMessageGroup $dmGroup): JsonResponse
     {

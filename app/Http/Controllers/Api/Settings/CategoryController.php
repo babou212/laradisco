@@ -13,12 +13,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @group Settings: Categories
+ */
 class CategoryController extends Controller
 {
     use ApiResponse;
 
     /**
      * Create a new category.
+     *
+     * @response 201 {"data":{"type":"categories","id":"4","attributes":{"name":"Voice Channels","position":3,"created_at":"2026-06-30T12:00:00.000000Z"}}}
      */
     public function store(StoreCategoryRequest $request): JsonResponse
     {
@@ -39,6 +44,8 @@ class CategoryController extends Controller
 
     /**
      * Update a category.
+     *
+     * @response 200 {"data":{"type":"categories","id":"4","attributes":{"name":"Voice","position":3,"created_at":"2026-06-30T12:00:00.000000Z"}}}
      */
     public function update(StoreCategoryRequest $request, Category $category): JsonResponse
     {
@@ -54,6 +61,8 @@ class CategoryController extends Controller
 
     /**
      * Delete a category and its channels.
+     *
+     * @response 204
      */
     public function destroy(Request $request, Category $category): JsonResponse|Response
     {

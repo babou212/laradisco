@@ -13,6 +13,9 @@ use App\Services\PresenceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * @group Presence
+ */
 class PresenceController extends Controller
 {
     use ApiResponse;
@@ -22,7 +25,11 @@ class PresenceController extends Controller
     ) {}
 
     /**
+     * List online users
+     *
      * Get all currently online users from the Redis-backed registry.
+     *
+     * @response 200 {"data": [{"id": 7, "username": "bob", "display_name": "Bob", "avatar_urls": null, "status": "online", "custom_status": null}]}
      */
     public function index(): JsonResponse
     {
@@ -32,7 +39,12 @@ class PresenceController extends Controller
     }
 
     /**
-     * Update the authenticated user's presence status.
+     * Update presence status
+     *
+     * Update the authenticated user's presence status. Sending `offline`
+     * unregisters the user from the live registry.
+     *
+     * @response 200 {"message": "Presence updated successfully"}
      */
     public function update(UpdatePresenceRequest $request): JsonResponse
     {
@@ -66,11 +78,15 @@ class PresenceController extends Controller
     }
 
     /**
+     * Update rich-presence activity
+     *
      * Update the authenticated user's live rich-presence activity.
      *
      * The `started_at` timestamp is stamped server-side, so only the descriptive
      * fields are accepted here. A null activity clears it. The privacy flag is
      * enforced inside the service, which discards activity when sharing is off.
+     *
+     * @response 200 {"message": "Activity updated successfully"}
      */
     public function updateActivity(UpdatePresenceActivityRequest $request): JsonResponse
     {
@@ -93,7 +109,12 @@ class PresenceController extends Controller
     }
 
     /**
-     * Refresh the authenticated user's heartbeat in the Redis registry.
+     * Record a presence heartbeat
+     *
+     * Refresh the authenticated user's heartbeat in the Redis registry. A
+     * heartbeat may revive a user that a prior lapse downgraded to idle/offline.
+     *
+     * @response 200 {"message": "Heartbeat recorded"}
      */
     public function heartbeat(Request $request): JsonResponse
     {

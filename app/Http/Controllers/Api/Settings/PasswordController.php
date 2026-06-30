@@ -7,12 +7,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\UpdatePasswordRequest;
 use Illuminate\Http\JsonResponse;
 
+/**
+ * @group Settings: Account
+ */
 class PasswordController extends Controller
 {
     use ApiResponse;
 
     /**
      * Update the authenticated user's password.
+     *
+     * @response 200 {"message":"Password updated successfully"}
      */
     public function update(UpdatePasswordRequest $request): JsonResponse
     {

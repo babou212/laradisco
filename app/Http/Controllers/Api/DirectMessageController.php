@@ -32,6 +32,9 @@ use Illuminate\Support\Facades\Notification;
 use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @group Direct Messages
+ */
 class DirectMessageController extends Controller
 {
     use ApiResponse;
@@ -43,7 +46,14 @@ class DirectMessageController extends Controller
     ) {}
 
     /**
+     * List DM groups
+     *
      * List all DM groups for the authenticated user.
+     *
+     * @queryParam include string Comma-separated relations to embed. Allowed: participants, lastMessage, lastMessage.user. Example: participants,lastMessage
+     * @queryParam sort string Sort field; prefix - for descending. Defaults to -last_message_at. Allowed: last_message_at. Example: -last_message_at
+     *
+     * @response 200 {"data": [{"type": "direct_message_groups", "id": "12", "attributes": {"name": "alice", "other_user": {"id": "8", "username": "alice", "display_name": "Alice", "avatar_urls": null, "status": "online", "custom_status": null}, "last_message": {"id": 540, "created_at": "2026-06-30T12:00:00.000000Z", "user_id": 8, "content": "see you then"}, "last_message_at": "2026-06-30T12:00:00.000000Z", "created_at": "2026-06-01T09:00:00.000000Z"}}]}
      */
     public function index(Request $request): JsonResponse
     {
@@ -78,8 +88,27 @@ class DirectMessageController extends Controller
     }
 
     /**
-     * Show a specific DM group with messages. Latest 50 by default, or
-     * anchored on before/after/around message ids. Response is always ASC.
+     * Show a DM group with messages
+     *
+     * Returns the DM group plus its messages oldest→newest. With no anchor, the
+     * latest `limit` (default 50) messages are returned; otherwise anchor the
+     * window on `before`/`after`/`around` a message id. The group itself is in
+     * `meta.dm_group`.
+     *
+     * @queryParam include string Comma-separated relations to embed. Allowed: user, reactions, replyTo, replyTo.user, attachments. Example: user,reactions
+     * @queryParam limit integer Page size, 1–100. Defaults to 50. Example: 50
+     * @queryParam before integer Return messages older than this message id. Example: 540
+     * @queryParam after integer Return messages newer than this message id. Example: 559
+     * @queryParam around integer Return a window centred on this message id. Example: 550
+     *
+     * @responseField data object[] The messages, ordered oldest→newest.
+     * @responseField meta.dm_group object The DM group resource.
+     * @responseField meta.has_more_before boolean Whether older messages exist before this window.
+     * @responseField meta.has_more_after boolean Whether newer messages exist after this window.
+     * @responseField meta.oldest_id string Id of the oldest message in `data` (cursor for paging back with `before`).
+     * @responseField meta.newest_id string Id of the newest message in `data` (cursor for paging forward with `after`).
+     *
+     * @response 200 {"data": [{"type": "direct_messages", "id": "558", "attributes": {"dm_group_id": 12, "user_id": 8, "content": "hey there", "reply_to_id": null, "is_pinned": false, "is_edited": false, "created_at": "2026-06-30T12:00:00.000000Z"}, "relationships": {"user": {"data": {"type": "users", "id": "8"}}}}], "meta": {"has_more_before": true, "has_more_after": false, "oldest_id": "558", "newest_id": "558"}}
      */
     public function show(MessagePaginateRequest $request, DirectMessageGroup $dmGroup): JsonResponse
     {
@@ -214,7 +243,12 @@ class DirectMessageController extends Controller
     }
 
     /**
-     * Send a message in a DM group.
+     * Send a DM
+     *
+     * Send a message in a DM group. Pass a unique `client_temp_id` to make
+     * retries idempotent. Returns the created message.
+     *
+     * @response 201 {"data": {"type": "direct_messages", "id": "560", "attributes": {"dm_group_id": 12, "user_id": 7, "content": "hello world", "reply_to_id": null, "is_pinned": false, "is_edited": false, "created_at": "2026-06-30T12:05:00.000000Z"}, "relationships": {"user": {"data": {"type": "users", "id": "7"}}}}}
      */
     public function store(StoreDirectMessageRequest $request, DirectMessageGroup $dmGroup): JsonResponse
     {
@@ -287,7 +321,12 @@ class DirectMessageController extends Controller
     }
 
     /**
-     * Full-text search messages within a DM group.
+     * Search messages in a DM group
+     *
+     * Full-text search messages within a DM group. Page-based pagination;
+     * `meta.query` echoes the search term.
+     *
+     * @response 200 {"data": [{"type": "direct_messages", "id": "520", "attributes": {"dm_group_id": 12, "user_id": 8, "content": "the term you searched", "reply_to_id": null, "is_pinned": false, "is_edited": false, "created_at": "2026-06-30T11:00:00.000000Z"}}], "links": {"first": "...", "last": "...", "prev": null, "next": null}, "meta": {"current_page": 1, "per_page": 30, "total": 1, "query": "term"}}
      */
     public function search(SearchMessagesRequest $request, DirectMessageGroup $dmGroup): JsonResponse
     {
@@ -312,8 +351,14 @@ class DirectMessageController extends Controller
     }
 
     /**
+     * Head check for DM sync
+     *
      * Lightweight head check: returns latest message id and (if since_id given)
      * count of newer messages for local-first sync.
+     *
+     * @queryParam since_id integer If set, also returns how many messages exist newer than this id. Example: 540
+     *
+     * @response 200 {"data": {"latest_id": 559, "count_since_id": 12}}
      */
     public function head(Request $request, DirectMessageGroup $dmGroup): JsonResponse
     {
@@ -337,7 +382,11 @@ class DirectMessageController extends Controller
     }
 
     /**
-     * Update a DM message.
+     * Update a DM
+     *
+     * Edit a DM message. Owner only. Marks the message as edited.
+     *
+     * @response 200 {"data": {"type": "direct_messages", "id": "560", "attributes": {"dm_group_id": 12, "user_id": 7, "content": "edited content", "reply_to_id": null, "is_pinned": false, "is_edited": true, "edited_at": "2026-06-30T12:10:00.000000Z", "created_at": "2026-06-30T12:05:00.000000Z"}}}
      */
     public function update(UpdateDirectMessageRequest $request, DirectMessageGroup $dmGroup, DirectMessage $message): JsonResponse
     {
@@ -370,7 +419,11 @@ class DirectMessageController extends Controller
     }
 
     /**
-     * Delete a DM message.
+     * Delete a DM
+     *
+     * Delete a DM message. Owner only.
+     *
+     * @response 204
      */
     public function destroy(Request $request, DirectMessageGroup $dmGroup, DirectMessage $message): JsonResponse|Response
     {
@@ -401,9 +454,13 @@ class DirectMessageController extends Controller
     }
 
     /**
-     * Find an existing DM group with a specific user.
+     * Find a DM group with a user
      *
-     * GET /direct-messages/find?user_id=X
+     * Find an existing one-on-one DM group with a specific user.
+     *
+     * @queryParam user_id integer The other user's id. Example: 8
+     *
+     * @response 200 {"data": {"dm_group_id": 12}}
      */
     public function findDm(FindDirectMessageGroupRequest $request): JsonResponse
     {
@@ -420,9 +477,13 @@ class DirectMessageController extends Controller
     }
 
     /**
-     * Create a new DM group with a user.
+     * Create a DM group
      *
-     * POST /direct-messages
+     * Create a new one-on-one DM group with a user. If a group with that user
+     * already exists, returns it (200) as `{"data": {"dm_group_id": <id>}}`
+     * instead of creating a duplicate.
+     *
+     * @response 201 {"data": {"type": "direct_message_groups", "id": "12", "attributes": {"name": "alice", "other_user": {"id": "8", "username": "alice", "display_name": "Alice", "avatar_urls": null, "status": "online", "custom_status": null}, "last_message": null, "last_message_at": null, "created_at": "2026-06-30T12:00:00.000000Z"}}}
      */
     public function createDm(CreateDirectMessageGroupRequest $request): JsonResponse
     {

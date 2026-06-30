@@ -13,6 +13,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * @group Channels & Messages
+ */
 class ChannelController extends Controller
 {
     use ApiResponse;
@@ -22,7 +25,12 @@ class ChannelController extends Controller
     ) {}
 
     /**
-     * Get a single channel's details including the user's permissions.
+     * Show a channel
+     *
+     * Get a single channel's details including the user's resolved permissions
+     * for it (`channelPermissions`).
+     *
+     * @response 200 {"data": {"type": "channels", "id": "42", "attributes": {"name": "general", "topic": "Company-wide chatter", "channel_type": "text", "is_private": false, "category_id": 3, "position": 0, "slowmode_seconds": 0, "channelPermissions": {"canSendMessages": true, "canManageMessages": false, "canPinMessages": false, "canAddReactions": true, "canAttachFiles": true, "canMentionEveryone": false}, "has_unread": false, "created_at": "2026-06-30T12:00:00.000000Z"}}}
      */
     public function show(Request $request, Channel $channel): JsonResponse
     {

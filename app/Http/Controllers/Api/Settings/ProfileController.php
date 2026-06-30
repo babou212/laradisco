@@ -19,12 +19,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @group Settings: Profile
+ */
 class ProfileController extends Controller
 {
     use ApiResponse;
 
     /**
      * Get the authenticated user's profile.
+     *
+     * @response 200 {"data":{"type":"users","id":"7","attributes":{"username":"alice","display_name":"Alice","avatar_urls":null,"status":"online","custom_status":null,"email":"alice@example.com","created_at":"2026-06-30T12:00:00.000000Z"}}}
      */
     public function show(Request $request): JsonResponse
     {
@@ -34,6 +39,8 @@ class ProfileController extends Controller
 
     /**
      * Update the authenticated user's profile.
+     *
+     * @response 200 {"data":{"type":"users","id":"7","attributes":{"username":"alice","display_name":"Alice Cooper","avatar_urls":null,"status":"online","custom_status":"coding","email":"alice@example.com","created_at":"2026-06-30T12:00:00.000000Z"}}}
      */
     public function update(UpdateProfileRequest $request, PresenceService $presenceService): JsonResponse
     {
@@ -65,6 +72,8 @@ class ProfileController extends Controller
 
     /**
      * Delete the authenticated user's account.
+     *
+     * @response 204
      */
     public function destroy(DeleteAccountRequest $request, UserDeletionService $userDeletionService): JsonResponse|Response
     {
@@ -82,6 +91,8 @@ class ProfileController extends Controller
 
     /**
      * Upload or replace the authenticated user's avatar.
+     *
+     * @response 200 {"data":{"type":"users","id":"7","attributes":{"username":"alice","display_name":"Alice","avatar_urls":{"original":"https://cdn.example.com/avatars/7.png"},"status":"online","custom_status":null,"created_at":"2026-06-30T12:00:00.000000Z"}}}
      */
     public function uploadAvatar(UploadAvatarRequest $request): JsonResponse
     {
@@ -102,6 +113,8 @@ class ProfileController extends Controller
 
     /**
      * Delete the authenticated user's avatar.
+     *
+     * @response 204
      */
     public function deleteAvatar(Request $request): JsonResponse|Response
     {

@@ -1,0 +1,187 @@
+name: Reactions
+description: ''
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/channels/{channel_id}/messages/{message_id}/reactions'
+    metadata:
+      custom: []
+      groupName: Reactions
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Toggle a channel reaction'
+      description: |-
+        Add or remove the authenticated user's reaction for an emoji on a channel
+        message. Returns 201 with the created reaction when added, or 200 with
+        `meta.added: false` when an existing reaction is removed.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      channel_id:
+        custom: []
+        name: channel_id
+        description: 'The ID of the channel.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      message_id:
+        custom: []
+        name: message_id
+        description: 'The ID of the message.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      channel_id: 16
+      message_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      emoji:
+        custom: []
+        name: emoji
+        description: 'Must be at least 1 character. Must not be greater than 32 characters.'
+        required: true
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      emoji: b
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"meta": {"added": false}}'
+        headers: []
+        description: ''
+      -
+        custom: []
+        status: 201
+        content: '{"data": {"type": "reactions", "id": "55", "attributes": {"user_id": 7, "emoji": "👍", "message_id": 1858, "created_at": "2026-06-30T12:00:00.000000Z"}}, "meta": {"added": true}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/channels/{channel_id}/threads/{thread_id}/messages/{message_id}/reactions'
+    metadata:
+      custom: []
+      groupName: Reactions
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Toggle a thread reaction'
+      description: |-
+        Add or remove the authenticated user's reaction for an emoji on a thread
+        reply. Returns 201 with the created reaction when added, or 200 with
+        `meta.added: false` when an existing reaction is removed.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      channel_id:
+        custom: []
+        name: channel_id
+        description: 'The ID of the channel.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      thread_id:
+        custom: []
+        name: thread_id
+        description: 'The ID of the thread.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      message_id:
+        custom: []
+        name: message_id
+        description: 'The ID of the message.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      channel_id: 16
+      thread_id: 16
+      message_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      emoji:
+        custom: []
+        name: emoji
+        description: 'Must be at least 1 character. Must not be greater than 32 characters.'
+        required: true
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      emoji: b
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"meta": {"added": false}}'
+        headers: []
+        description: ''
+      -
+        custom: []
+        status: 201
+        content: '{"data": {"type": "reactions", "id": "56", "attributes": {"user_id": 7, "emoji": "🎉", "message_id": 1861, "created_at": "2026-06-30T12:16:00.000000Z"}}, "meta": {"added": true}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null

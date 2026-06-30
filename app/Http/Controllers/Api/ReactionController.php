@@ -17,12 +17,22 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @group Reactions
+ */
 class ReactionController extends Controller
 {
     use ApiResponse;
 
     /**
-     * Toggle a reaction on a channel message.
+     * Toggle a channel reaction
+     *
+     * Add or remove the authenticated user's reaction for an emoji on a channel
+     * message. Returns 201 with the created reaction when added, or 200 with
+     * `meta.added: false` when an existing reaction is removed.
+     *
+     * @response 201 {"data": {"type": "reactions", "id": "55", "attributes": {"user_id": 7, "emoji": "👍", "message_id": 1858, "created_at": "2026-06-30T12:00:00.000000Z"}}, "meta": {"added": true}}
+     * @response 200 {"meta": {"added": false}}
      */
     public function toggle(ToggleReactionRequest $request, Channel $channel, Message $message): JsonResponse
     {
@@ -77,7 +87,14 @@ class ReactionController extends Controller
     }
 
     /**
-     * Toggle a reaction on a thread message.
+     * Toggle a thread reaction
+     *
+     * Add or remove the authenticated user's reaction for an emoji on a thread
+     * reply. Returns 201 with the created reaction when added, or 200 with
+     * `meta.added: false` when an existing reaction is removed.
+     *
+     * @response 201 {"data": {"type": "reactions", "id": "56", "attributes": {"user_id": 7, "emoji": "🎉", "message_id": 1861, "created_at": "2026-06-30T12:16:00.000000Z"}}, "meta": {"added": true}}
+     * @response 200 {"meta": {"added": false}}
      */
     public function threadToggle(ToggleReactionRequest $request, Channel $channel, Thread $thread, Message $message): JsonResponse
     {
@@ -136,7 +153,13 @@ class ReactionController extends Controller
     }
 
     /**
-     * Toggle a reaction on a direct message.
+     * Toggle a reaction on a direct message
+     *
+     * @group Direct Messages
+     *
+     * Adds the reaction if absent (201) or removes it if present (200). `meta.added` indicates which happened.
+     *
+     * @response 201 {"data": {"type": "reactions", "id": "55", "attributes": {"user_id": 7, "emoji": "👍", "message_id": 920, "created_at": "2026-06-30T12:00:00.000000Z"}}, "meta": {"added": true}}
      */
     public function dmToggle(ToggleReactionRequest $request, DirectMessageGroup $dmGroup, DirectMessage $message): JsonResponse
     {

@@ -74,7 +74,9 @@ class ThreadController extends Controller
             ->additional([
                 'meta' => [
                     'parent_message' => (new MessageResource($thread->parentMessage))
-                        ->includePreviouslyLoadedRelationships(),
+                        ->includePreviouslyLoadedRelationships()
+                        ->response($request)
+                        ->getData(true),
                 ],
             ])
             ->response();

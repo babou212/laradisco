@@ -11,12 +11,20 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
+/**
+ * @group Users
+ */
 class UserController extends Controller
 {
     use ApiResponse;
 
     /**
-     * Show a specific user's public profile.
+     * Show a user profile
+     *
+     * Show a specific user's public profile. The `email`, `permissions` and
+     * other private fields are only present when requesting your own profile.
+     *
+     * @response 200 {"data": {"type": "users", "id": "8", "attributes": {"username": "alice", "display_name": "Alice", "avatar_urls": null, "status": "online", "custom_status": null, "created_at": "2026-06-01T09:00:00.000000Z"}}}
      */
     public function show(User $user): JsonResponse
     {
@@ -39,7 +47,12 @@ class UserController extends Controller
     }
 
     /**
+     * Stream a user avatar
+     *
      * Stream a user's avatar (a given conversion) from the private media disk.
+     * Responds with the raw image bytes (not JSON); `{size}` is one of `thumb`,
+     * `small`, `medium`, or `original`, and `{version}` is an opaque
+     * cache-busting token.
      *
      * Avatars are not security-sensitive, so unlike other media they are served
      * through this stable, authenticated endpoint instead of a short-lived

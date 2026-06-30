@@ -18,6 +18,9 @@ use Spatie\Permission\PermissionRegistrar;
 use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @group Settings: Roles
+ */
 class RoleController extends Controller
 {
     use ApiResponse;
@@ -28,6 +31,10 @@ class RoleController extends Controller
 
     /**
      * List all roles with user counts.
+     *
+     * @queryParam sort string Sort field; prefix - for descending. Allowed: position, name. Example: -position
+     *
+     * @response 200 {"data":[{"type":"roles","id":"1","attributes":{"name":"Admin","color":"#ff5555","position":5,"is_hoisted":true,"is_default":false,"is_mentionable":true,"permissions":["manage_server"],"users_count":3,"created_at":"2026-06-30T12:00:00.000000Z"}}],"meta":{"permissions":[{"value":"manage_server","label":"Manage Server"}]}}
      */
     public function index(Request $request): JsonResponse
     {
@@ -67,6 +74,8 @@ class RoleController extends Controller
 
     /**
      * Create a new role.
+     *
+     * @response 201 {"data":{"type":"roles","id":"6","attributes":{"name":"Moderator","color":"#55ff55","position":2,"is_hoisted":false,"is_default":false,"is_mentionable":true,"permissions":["kick_members"],"created_at":"2026-06-30T12:00:00.000000Z"}}}
      */
     public function store(StoreRoleRequest $request): JsonResponse
     {
@@ -103,6 +112,8 @@ class RoleController extends Controller
 
     /**
      * Update an existing role.
+     *
+     * @response 200 {"data":{"type":"roles","id":"6","attributes":{"name":"Moderator","color":"#55ff55","position":2,"is_hoisted":false,"is_default":false,"is_mentionable":true,"permissions":["kick_members","ban_members"],"created_at":"2026-06-30T12:00:00.000000Z"}}}
      */
     public function update(StoreRoleRequest $request, Role $role): JsonResponse
     {
@@ -133,6 +144,8 @@ class RoleController extends Controller
 
     /**
      * Delete a role.
+     *
+     * @response 204
      */
     public function destroy(Request $request, Role $role): JsonResponse|Response
     {

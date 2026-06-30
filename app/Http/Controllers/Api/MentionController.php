@@ -10,12 +10,23 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Spatie\QueryBuilder\QueryBuilder;
 
+/**
+ * @group Mentions
+ */
 class MentionController extends Controller
 {
     use ApiResponse;
 
     /**
-     * Search users for @mention autocomplete.
+     * Search users for mentions
+     *
+     * Search users for @mention autocomplete. Matches usernames by prefix and
+     * returns up to 10 results, excluding the requesting user.
+     *
+     * @queryParam q string required Username prefix to match. Example: ali
+     * @queryParam sort string Sort field; prefix - for descending. Allowed: username. Example: username
+     *
+     * @response 200 {"data": [{"type": "users", "id": "8", "attributes": {"username": "alice", "display_name": "Alice", "avatar_urls": null, "status": "online", "custom_status": null, "created_at": "2026-06-01T09:00:00.000000Z"}}]}
      */
     public function search(SearchMentionRequest $request): JsonResponse
     {

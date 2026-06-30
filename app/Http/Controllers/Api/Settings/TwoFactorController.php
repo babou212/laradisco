@@ -13,6 +13,9 @@ use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\GenerateNewRecoveryCodes;
 use Laravel\Fortify\Features;
 
+/**
+ * @group Settings: Two-Factor
+ */
 class TwoFactorController extends Controller
 {
     use ApiResponse;
@@ -26,6 +29,8 @@ class TwoFactorController extends Controller
 
     /**
      * Get 2FA status for the authenticated user.
+     *
+     * @response 200 {"data":{"twoFactorEnabled":false,"requiresConfirmation":true}}
      */
     public function show(Request $request): JsonResponse
     {
@@ -39,6 +44,8 @@ class TwoFactorController extends Controller
 
     /**
      * Enable two-factor authentication.
+     *
+     * @response 200 {"message":"Two-factor authentication enabled successfully"}
      */
     public function enable(Request $request): JsonResponse
     {
@@ -55,6 +62,8 @@ class TwoFactorController extends Controller
 
     /**
      * Disable two-factor authentication.
+     *
+     * @response 200 {"message":"Two-factor authentication disabled successfully"}
      */
     public function disable(Request $request): JsonResponse
     {
@@ -71,6 +80,8 @@ class TwoFactorController extends Controller
 
     /**
      * Get the QR code SVG and URL.
+     *
+     * @response 200 {"data":{"svg":"<svg viewBox=\"0 0 100 100\">...</svg>","url":"otpauth://totp/Laradisco:alice@example.com?secret=ABCDEF&issuer=Laradisco"}}
      */
     public function qrCode(Request $request): JsonResponse
     {
@@ -84,6 +95,8 @@ class TwoFactorController extends Controller
 
     /**
      * Get the secret key.
+     *
+     * @response 200 {"data":{"secretKey":"ABCDEFGHIJKLMNOP"}}
      */
     public function secretKey(Request $request): JsonResponse
     {
@@ -94,6 +107,8 @@ class TwoFactorController extends Controller
 
     /**
      * Get recovery codes.
+     *
+     * @response 200 {"data":{"recovery_codes":["aaaa-bbbb","cccc-dddd"]}}
      */
     public function recoveryCodes(Request $request): JsonResponse
     {
@@ -104,6 +119,8 @@ class TwoFactorController extends Controller
 
     /**
      * Regenerate recovery codes.
+     *
+     * @response 200 {"data":{"recovery_codes":["eeee-ffff","gggg-hhhh"]}}
      */
     public function regenerateRecoveryCodes(Request $request): JsonResponse
     {
@@ -118,6 +135,8 @@ class TwoFactorController extends Controller
 
     /**
      * Confirm two-factor authentication setup.
+     *
+     * @response 200 {"message":"Two-factor authentication confirmed successfully"}
      */
     public function confirm(ConfirmTwoFactorRequest $request): JsonResponse
     {

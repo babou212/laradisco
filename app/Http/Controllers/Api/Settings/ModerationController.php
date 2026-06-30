@@ -16,6 +16,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @group Settings: Moderation
+ */
 class ModerationController extends Controller
 {
     use ApiResponse;
@@ -29,6 +32,8 @@ class ModerationController extends Controller
 
     /**
      * List all active bans.
+     *
+     * @response 200 {"data":[{"id":1,"user_id":7,"banned_by":3,"reason":"spam","expires_at":null,"created_at":"2026-06-30T12:00:00.000000Z","user":{"id":7,"username":"bob"},"banned_by_user":{"id":3,"username":"alice"}}]}
      */
     public function bans(Request $request): JsonResponse
     {
@@ -57,6 +62,8 @@ class ModerationController extends Controller
 
     /**
      * Ban a user.
+     *
+     * @response 201 {"message":"Created successfully","data":{"id":1,"user_id":7,"banned_by":3,"reason":"spam","expires_at":null,"created_at":"2026-06-30T12:00:00.000000Z","user":{"id":7,"username":"bob"},"banned_by_user":{"id":3,"username":"alice"}}}
      */
     public function ban(Request $request, User $user): JsonResponse
     {
@@ -108,6 +115,8 @@ class ModerationController extends Controller
 
     /**
      * Unban a user.
+     *
+     * @response 200 {"message":"User has been unbanned."}
      */
     public function unban(Request $request, User $user): JsonResponse|Response
     {
@@ -139,6 +148,8 @@ class ModerationController extends Controller
      * The account is removed entirely, but the user's messages are retained and
      * relabelled as authored by a deleted user. This is a stronger, admin-only
      * alternative to banning.
+     *
+     * @response 200 {"message":"User has been permanently deleted."}
      */
     public function deleteUser(Request $request, User $user): JsonResponse|Response
     {
@@ -177,6 +188,8 @@ class ModerationController extends Controller
 
     /**
      * Jail a user (restrict to jail channels only).
+     *
+     * @response 200 {"message":"User has been jailed."}
      */
     public function jail(Request $request, User $user): JsonResponse
     {
@@ -212,6 +225,8 @@ class ModerationController extends Controller
 
     /**
      * Unjail a user.
+     *
+     * @response 200 {"message":"User has been unjailed."}
      */
     public function unjail(Request $request, User $user): JsonResponse
     {

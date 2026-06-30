@@ -32,6 +32,9 @@ use Illuminate\Support\Facades\Cache;
 use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @group Channels & Messages
+ */
 class MessageController extends Controller
 {
     use ApiResponse;
@@ -45,8 +48,25 @@ class MessageController extends Controller
     ) {}
 
     /**
-     * List channel messages: latest 20 by default, or anchored on
-     * before/after/around message ids. Response is always ASC.
+     * List channel messages
+     *
+     * Returns messages oldest→newest. With no anchor, the latest `limit` messages
+     * are returned; otherwise anchor the window on `before`/`after`/`around` a
+     * message id. See the anchored-window scheme in docs/api/pagination.md.
+     *
+     * @queryParam include string Comma-separated relations to embed. Allowed: user, attachments, reactions, replyTo, replyTo.user, threadStarted, threadStarted.latestReply, threadStarted.latestReply.user, threadStarted.followers. Example: user,reactions
+     * @queryParam limit integer Page size, 1–100. Defaults to 20. Example: 20
+     * @queryParam before integer Return messages older than this message id. Example: 1840
+     * @queryParam after integer Return messages newer than this message id. Example: 1859
+     * @queryParam around integer Return a window centred on this message id. Example: 1850
+     *
+     * @responseField data object[] The messages, ordered oldest→newest.
+     * @responseField meta.has_more_before boolean Whether older messages exist before this window.
+     * @responseField meta.has_more_after boolean Whether newer messages exist after this window.
+     * @responseField meta.oldest_id string Id of the oldest message in `data` (cursor for paging back with `before`).
+     * @responseField meta.newest_id string Id of the newest message in `data` (cursor for paging forward with `after`).
+     *
+     * @response 200 scenario="a window of messages" {"data": [{"type": "messages", "id": "1858", "attributes": {"channel_id": 42, "user_id": 7, "content": "hey there", "is_pinned": false, "is_edited": false, "reply_to_id": null, "thread_id": null, "created_at": "2026-06-30T12:00:00.000000Z"}, "relationships": {"user": {"data": {"type": "users", "id": "7"}}}}], "meta": {"has_more_before": true, "has_more_after": false, "oldest_id": "1858", "newest_id": "1858"}}
      */
     public function index(MessagePaginateRequest $request, Channel $channel): JsonResponse
     {
@@ -180,7 +200,13 @@ class MessageController extends Controller
     }
 
     /**
-     * Store a new channel message.
+     * Send a channel message
+     *
+     * Creates a message in the channel. Send a unique `Idempotency-Key` header
+     * (or a `client_temp_id` body field) to make retries safe. Returns the
+     * created message; the `Location` header points to it.
+     *
+     * @response 201 {"data": {"type": "messages", "id": "1860", "attributes": {"channel_id": 42, "user_id": 7, "content": "hello world", "is_pinned": false, "is_edited": false, "reply_to_id": null, "thread_id": null, "created_at": "2026-06-30T12:05:00.000000Z"}, "relationships": {"user": {"data": {"type": "users", "id": "7"}}}}}
      */
     public function store(StoreChannelMessageRequest $request, Channel $channel): JsonResponse
     {
@@ -253,6 +279,10 @@ class MessageController extends Controller
      * largest message id and (optionally) how many newer messages exist
      * past `since_id`. Single indexed MAX/COUNT — cheap enough to call on
      * every channel open.
+     *
+     * @queryParam since_id integer If set, also returns how many messages exist newer than this id. Example: 1840
+     *
+     * @response 200 {"data": {"latest_id": 1859, "count_since_id": 12}}
      */
     public function head(Request $request, Channel $channel): JsonResponse
     {
@@ -273,7 +303,12 @@ class MessageController extends Controller
     }
 
     /**
-     * Full-text search messages within a channel.
+     * Search messages in a channel
+     *
+     * Full-text search within the channel. Page-based pagination; `meta.query`
+     * echoes the search term.
+     *
+     * @response 200 {"data": [{"type": "messages", "id": "1820", "attributes": {"channel_id": 42, "user_id": 7, "content": "the term you searched", "created_at": "2026-06-30T11:00:00.000000Z"}}], "links": {"first": "...", "last": "...", "prev": null, "next": null}, "meta": {"current_page": 1, "per_page": 20, "total": 1, "query": "term"}}
      */
     public function search(SearchMessagesRequest $request, Channel $channel): JsonResponse
     {
@@ -295,7 +330,11 @@ class MessageController extends Controller
     }
 
     /**
-     * Mark a channel as read for the authenticated user.
+     * Mark a channel as read
+     *
+     * Marks the channel read for the authenticated user up to now.
+     *
+     * @response 204
      */
     public function markRead(Request $request, Channel $channel): JsonResponse|Response
     {
@@ -313,7 +352,11 @@ class MessageController extends Controller
     }
 
     /**
-     * Update a channel message (owner only).
+     * Update a channel message
+     *
+     * Edits a message. Owner only. Marks the message as edited.
+     *
+     * @response 200 {"data": {"type": "messages", "id": "1860", "attributes": {"channel_id": 42, "user_id": 7, "content": "edited content", "is_edited": true, "edited_at": "2026-06-30T12:10:00.000000Z", "created_at": "2026-06-30T12:05:00.000000Z"}}}
      */
     public function update(UpdateChannelMessageRequest $request, Channel $channel, Message $message): JsonResponse
     {
@@ -338,7 +381,11 @@ class MessageController extends Controller
     }
 
     /**
-     * Delete a channel message (owner or permission-holder).
+     * Delete a channel message
+     *
+     * Deletes a message. Allowed for the owner or a permission-holder (moderator).
+     *
+     * @response 204
      */
     public function destroy(Request $request, Channel $channel, Message $message): JsonResponse|Response
     {

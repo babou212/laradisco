@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
+/**
+ * @group Soundboard
+ */
 class SoundboardController extends Controller
 {
     use ApiResponse;
@@ -38,7 +41,11 @@ class SoundboardController extends Controller
     ) {}
 
     /**
-     * List every sound in the shared library.
+     * List sounds
+     *
+     * List every sound in the shared soundboard library, newest first.
+     *
+     * @response 200 {"data": [{"type": "sounds", "id": "1", "attributes": {"name": "airhorn", "duration_ms": 1200, "url": "https://cdn.example.com/sounds/airhorn.ogg", "mime_type": "audio/ogg", "uploaded_by_id": 7, "created_at": "2026-06-30T12:00:00.000000Z"}}]}
      */
     public function index(): JsonResponse
     {
@@ -51,8 +58,12 @@ class SoundboardController extends Controller
     }
 
     /**
+     * Upload a sound
+     *
      * Upload a new sound. Any member may contribute. The clip is validated to
      * be audio and at most ~20s server-side, regardless of client trimming.
+     *
+     * @response 201 {"message": "Sound uploaded", "data": {"type": "sounds", "id": "9", "attributes": {"name": "tada", "duration_ms": 1800, "url": "https://cdn.example.com/sounds/tada.ogg", "mime_type": "audio/ogg", "uploaded_by_id": 7, "created_at": "2026-06-30T12:05:00.000000Z"}}}
      */
     public function store(Request $request): JsonResponse
     {
@@ -88,7 +99,11 @@ class SoundboardController extends Controller
     }
 
     /**
+     * Delete a sound
+     *
      * Delete a sound. Allowed for the uploader or anyone who can manage the server.
+     *
+     * @response 204
      */
     public function destroy(Request $request, SoundboardSound $sound): Response
     {
@@ -106,11 +121,15 @@ class SoundboardController extends Controller
     }
 
     /**
+     * Play a sound
+     *
      * Trigger a sound for everyone currently in the voice channel.
      *
      * Delivery is a LiveKit data packet to the room, so only participants of
      * this voice channel receive it. The caller must be able to speak in the
      * channel and actually be connected to it.
+     *
+     * @response 204
      */
     public function play(Request $request, Channel $channel): Response
     {

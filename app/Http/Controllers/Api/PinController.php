@@ -21,6 +21,9 @@ use Illuminate\Support\Facades\Cache;
 use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @group Pins
+ */
 class PinController extends Controller
 {
     use ApiResponse;
@@ -30,7 +33,14 @@ class PinController extends Controller
     ) {}
 
     /**
-     * List pinned messages in a channel.
+     * List pinned messages
+     *
+     * List pinned messages in a channel, newest pin first.
+     *
+     * @queryParam include string Comma-separated relations to embed. Allowed: user, reactions, attachments. Example: user,reactions
+     * @queryParam sort string Sort field; prefix - for descending. Allowed: created_at. Example: -created_at
+     *
+     * @response 200 {"data": [{"type": "messages", "id": "1858", "attributes": {"channel_id": 42, "user_id": 7, "content": "pinned message", "is_pinned": true, "is_edited": false, "reply_to_id": null, "thread_id": null, "created_at": "2026-06-30T12:00:00.000000Z"}}]}
      */
     public function index(Request $request, Channel $channel): JsonResponse
     {
@@ -66,7 +76,11 @@ class PinController extends Controller
     }
 
     /**
-     * Pin a channel message.
+     * Pin a message
+     *
+     * Pin a channel message. Requires the Pin Messages permission.
+     *
+     * @response 200 {"data": {"type": "messages", "id": "1858", "attributes": {"channel_id": 42, "user_id": 7, "content": "pinned message", "is_pinned": true, "is_edited": false, "reply_to_id": null, "thread_id": null, "created_at": "2026-06-30T12:00:00.000000Z"}}}
      */
     public function pin(Request $request, Channel $channel, Message $message): JsonResponse
     {
@@ -95,7 +109,11 @@ class PinController extends Controller
     }
 
     /**
-     * Unpin a channel message.
+     * Unpin a message
+     *
+     * Unpin a channel message. Requires the Pin Messages permission.
+     *
+     * @response 204
      */
     public function unpin(Request $request, Channel $channel, Message $message): JsonResponse|Response
     {
@@ -121,7 +139,14 @@ class PinController extends Controller
     }
 
     /**
-     * List pinned messages in a DM group.
+     * List pinned messages in a DM group
+     *
+     * @group Direct Messages
+     *
+     * @queryParam include string Comma-separated relations to embed. Allowed: user, reactions, attachments. Example: user,reactions
+     * @queryParam sort string Sort field; prefix - for descending. Allowed: created_at. Defaults to -created_at. Example: -created_at
+     *
+     * @response 200 {"data": [{"type": "direct_messages", "id": "920", "attributes": {"dm_group_id": 5, "user_id": 7, "content": "pinned dm", "is_pinned": true, "created_at": "2026-06-30T12:00:00.000000Z"}}]}
      */
     public function dmIndex(Request $request, DirectMessageGroup $dmGroup): JsonResponse
     {
@@ -157,7 +182,11 @@ class PinController extends Controller
     }
 
     /**
-     * Pin a direct message.
+     * Pin a direct message
+     *
+     * @group Direct Messages
+     *
+     * @response 200 {"data": {"type": "direct_messages", "id": "920", "attributes": {"dm_group_id": 5, "user_id": 7, "content": "pinned dm", "is_pinned": true, "created_at": "2026-06-30T12:00:00.000000Z"}}}
      */
     public function dmPin(Request $request, DirectMessageGroup $dmGroup, DirectMessage $message): JsonResponse
     {
@@ -186,7 +215,11 @@ class PinController extends Controller
     }
 
     /**
-     * Unpin a direct message.
+     * Unpin a direct message
+     *
+     * @group Direct Messages
+     *
+     * @response 204
      */
     public function dmUnpin(Request $request, DirectMessageGroup $dmGroup, DirectMessage $message): JsonResponse|Response
     {

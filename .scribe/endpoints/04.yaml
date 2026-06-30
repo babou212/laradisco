@@ -1,0 +1,266 @@
+name: Attachments
+description: ''
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/channels/{channel_id}/attachments/upload'
+    metadata:
+      custom: []
+      groupName: Attachments
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Upload a channel attachment'
+      description: |-
+        Upload an attachment for a channel message. The media is staged on the
+        uploading user's `pending_attachments` collection and rebound to a
+        Message when the client posts the message referencing this attachment.
+        The returned `attachment_id` is what you pass in `attachment_ids` when
+        sending the message.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: multipart/form-data
+      Accept: application/json
+    urlParameters:
+      channel_id:
+        custom: []
+        name: channel_id
+        description: 'The ID of the channel.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      channel_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      file:
+        custom: []
+        name: file
+        description: 'The file to upload (max 100 MB).'
+        required: true
+        example: null
+        type: file
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      thumbnail:
+        custom: []
+        name: thumbnail
+        description: 'A client-generated thumbnail image (optional).'
+        required: false
+        example: null
+        type: file
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      width:
+        custom: []
+        name: width
+        description: 'Intrinsic media width in pixels.'
+        required: false
+        example: 1920
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      height:
+        custom: []
+        name: height
+        description: 'Intrinsic media height in pixels.'
+        required: false
+        example: 1080
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      width: 1920
+      height: 1080
+    fileParameters:
+      file: null
+      thumbnail: null
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data": {"attachment_id": "9b1f2c34-...", "file_name": "clip.mp4", "mime_type": "video/mp4", "size": 5242880, "thumbnail_size": 20480}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/direct-messages/{dmGroup_id}/attachments/upload'
+    metadata:
+      custom: []
+      groupName: Attachments
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Upload a DM attachment'
+      description: 'Upload an attachment for a DM. See uploadForChannel for the staging flow.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: multipart/form-data
+      Accept: application/json
+    urlParameters:
+      dmGroup_id:
+        custom: []
+        name: dmGroup_id
+        description: 'The ID of the dmGroup.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      dmGroup_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      file:
+        custom: []
+        name: file
+        description: 'The file to upload (max 100 MB).'
+        required: true
+        example: null
+        type: file
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      thumbnail:
+        custom: []
+        name: thumbnail
+        description: 'A client-generated thumbnail image (optional).'
+        required: false
+        example: null
+        type: file
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      width:
+        custom: []
+        name: width
+        description: 'Intrinsic media width in pixels.'
+        required: false
+        example: 1920
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      height:
+        custom: []
+        name: height
+        description: 'Intrinsic media height in pixels.'
+        required: false
+        example: 1080
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      width: 1920
+      height: 1080
+    fileParameters:
+      file: null
+      thumbnail: null
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data": {"attachment_id": "9b1f2c34-...", "file_name": "clip.mp4", "mime_type": "video/mp4", "size": 5242880, "thumbnail_size": 20480}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/attachments/{uuid}/download'
+    metadata:
+      custom: []
+      groupName: Attachments
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Get an attachment download URL'
+      description: |-
+        Returns short-lived presigned URLs for the attachment (and its thumbnail,
+        if one exists). The caller must have access to the channel or DM the
+        attachment belongs to.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      uuid:
+        custom: []
+        name: uuid
+        description: ''
+        required: true
+        example: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      uuid: 6ff8f7f6-1eb3-3525-be4a-3932c805afed
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data": {"download_url": "https://.../clip.mp4?signature=...", "thumbnail_url": "https://.../thumb.webp?signature=..."}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null

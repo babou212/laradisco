@@ -10,12 +10,22 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
+/**
+ * @group Settings: Audit Log
+ */
 class AuditLogController extends Controller
 {
     use ApiResponse;
 
     /**
      * List moderation audit log entries with optional filters.
+     *
+     * @queryParam action string Filter by moderation action type. Example: ban
+     * @queryParam actor_id integer Filter by the acting user's id. Example: 3
+     * @queryParam target_user_id integer Filter by the targeted user's id. Example: 7
+     * @queryParam per_page integer Page size, 1–100. Defaults to 25. Example: 25
+     *
+     * @response 200 {"current_page":1,"data":[{"id":1,"actor_id":3,"action":"ban","target_user_id":7,"metadata":{"target_username":"bob"},"created_at":"2026-06-30T12:00:00.000000Z","actor":{"id":3,"username":"alice"},"target_user":{"id":7,"username":"bob"}}],"per_page":25}
      */
     public function index(Request $request): JsonResponse
     {

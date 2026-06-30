@@ -31,51 +31,83 @@ A privacy-focused communication platform built with Laravel.
 
 ## Requirements
 
-- PHP 8.5+
-- Composer
-- Redis
-- Docker & Docker Compose (local development)
+Local development runs entirely in Docker via **Laravel Sail** — you only need:
 
-## Getting Started
+- Docker & Docker Compose
+- (Optional) PHP 8.5 + Composer on the host, only if you prefer to bootstrap without the helper below
 
-### With Docker (recommended)
+## Local Development (Sail)
+
+### First-time setup
 
 ```bash
 cp .env.example .env
-docker compose up -d
-docker compose exec laravel.test composer setup
+docker compose up -d                              # build & start all services
+docker compose exec laravel.test composer setup   # install deps, key:generate, migrate, build assets
 ```
 
-This spins up all services: the app (FrankenPHP/Octane), Reverb (WebSocket), Horizon (queues), PostgreSQL, Redis, LiveKit, and Mailpit.
+`composer setup` installs PHP and JS dependencies, generates the app key, runs migrations, and builds the frontend.
+
+### The `sail` alias
+
+The repo ships the Sail wrapper at `vendor/bin/sail`. Add an alias so day-to-day commands are short:
+
+```bash
+alias sail='vendor/bin/sail'
+```
+
+After that you can use `sail up -d`, `sail down`, `sail artisan …`, `sail composer …`, and `sail npm …` instead of the longer `docker compose …` forms.
+
+### Day-to-day
+
+```bash
+sail up -d                  # start the stack
+sail npm run dev            # Vite dev server with hot reload (for frontend work)
+sail artisan migrate        # run migrations
+sail artisan tinker         # REPL
+sail composer test          # lint + test suite
+sail down                   # stop the stack
+```
+
+Once running, the app is at **http://localhost**, with hot-reloaded assets when `sail npm run dev` is active.
 
 ## Services (Docker Compose)
 
-| Service | Port | Description |
+| Service | Port(s) | Description |
 |---|---|---|
 | `laravel.test` | 80 | FrankenPHP + Octane app server |
 | `reverb` | 8080 | WebSocket server |
+| `queue` | — | Horizon queue worker |
 | `redis` | 6379 | Cache, sessions, queues |
 | `pgsql` | 5432 | PostgreSQL database |
-| `livekit` | 7880 | Voice/Video media server |
+| `meilisearch` | 7700 | Full-text search (Scout) |
+| `livekit` | 7880–7882 | Voice/Video media server |
+| `garage` | 3900 / 3903 | S3-compatible object storage (attachments) |
 | `mailpit` | 1025 / 8025 | SMTP catcher + web UI |
 
-## API Overview
+Web UIs: app → http://localhost · Mailpit → http://localhost:8025 · API docs → http://127.0.0.1:8088/docs/index.html
 
-All API routes are prefixed with `/v1` and require `auth:sanctum` unless noted otherwise.
+## API Documentation
 
-**Auth** — `POST /v1/auth/login`, `/register`, `/two-factor-challenge`, `GET /v1/auth/me`
+The API follows the [JSON:API](https://jsonapi.org) standard and is documented with [Scribe](https://scribe.knuckles.wtf/laravel).
 
-**Channels** — CRUD channels, list messages (`GET /v1/channels/{channel}/messages`), send messages, edit, delete
+**View the reference** (interactive, with a "Try It Out" console):
 
-**Direct Messages** — List DM groups, find/create 1-on-1, send messages
+- Browse: **http://localhost/docs**
+- OpenAPI spec: http://localhost/docs.openapi
+- Postman collection: http://localhost/docs.postman
 
-**Threads** — View and reply to threads within channel messages
+Access is internal-only (`App\Http\Middleware\DocsAccess`): always available in local/dev, and in production only when `DOCS_ENABLED=true`.
 
-**Reactions & Pins** — Toggle emoji reactions, pin/unpin messages
+**Conventions guide** (the source of truth for cross-cutting rules — auth, the response envelope, query params, pagination, idempotency, errors) lives in [`docs/api/`](docs/api/README.md). Read it before the endpoint reference.
 
-**Voice** — Join/leave voice channels with LiveKit token generation
+**Regenerate** after changing any route, form request, or resource:
 
-**Presence & Notifications** — Online status, typing indicators, mention alerts
+```bash
+sail artisan scribe:generate
+```
+
+The per-endpoint reference is produced from controller docblocks (`@group`, `@queryParam`, `@response`, …); generation is database-free, so it runs anywhere including CI.
 
 ## Testing
 

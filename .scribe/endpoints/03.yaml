@@ -1,0 +1,221 @@
+name: Voice
+description: ''
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/voice/participants
+    metadata:
+      custom: []
+      groupName: Voice
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List voice participants'
+      description: |-
+        Get the current participants of every voice channel the user can access,
+        keyed by channel id.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data": {"12": [{"user_id": 7, "username": "alice", "muted": false}]}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/channels/{channel_id}/voice/join'
+    metadata:
+      custom: []
+      groupName: Voice
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Join a voice channel'
+      description: |-
+        Returns a LiveKit access token, server URL, room name and the channel's
+        current shared E2EE key + index.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      channel_id:
+        custom: []
+        name: channel_id
+        description: 'The ID of the channel.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      channel_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data": {"token": "eyJhbGci...", "url": "wss://voice.example.com", "room": "voice-channel-12", "channel_id": 12, "channel_name": "General Voice", "e2ee_key": "base64key==", "e2ee_key_index": 0}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/channels/{channel_id}/voice/key'
+    metadata:
+      custom: []
+      groupName: Voice
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Get the voice E2EE key'
+      description: 'Return the current E2EE key + index for a channel.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      channel_id:
+        custom: []
+        name: channel_id
+        description: 'The ID of the channel.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      channel_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {"data": {"e2ee_key": "base64key==", "e2ee_key_index": 0}}
+
+          Used by clients to resync after a reconnect, in case a rotation broadcast
+          was missed while their websocket was down. Authorization mirrors join
+          (Connect permission on the voice channel), so a user who has left — and
+          lost Connect — cannot fetch the rotated key.
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - DELETE
+    uri: 'api/v1/channels/{channel_id}/voice/membership'
+    metadata:
+      custom: []
+      groupName: Voice
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Leave a voice channel'
+      description: |-
+        Forcibly removes the authenticated user from the voice room so the leave is
+        reflected immediately.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      channel_id:
+        custom: []
+        name: channel_id
+        description: 'The ID of the channel.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      channel_id: 16
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {"message": "Left voice channel", "data": {"channel_id": 12}}
+
+          Presence removal flows through LiveKit's `participant_left` webhook.
+          We forcibly remove the participant from the room so an intentional leave
+          is reflected immediately, rather than waiting on LiveKit's
+          disconnect-detection timeout.
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null

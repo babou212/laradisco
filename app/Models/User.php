@@ -320,13 +320,17 @@ class User extends Authenticatable implements HasMedia
             return null;
         }
 
-        $expiration = now()->addMinutes(15);
+        $url = fn (string $size): string => route('api.users.avatar', [
+            'user' => $this->id,
+            'version' => $media->id,
+            'size' => $size,
+        ]);
 
         return [
-            'thumb' => $media->hasGeneratedConversion('thumb') ? $media->getTemporaryUrl($expiration, 'thumb') : null,
-            'small' => $media->hasGeneratedConversion('small') ? $media->getTemporaryUrl($expiration, 'small') : null,
-            'medium' => $media->hasGeneratedConversion('medium') ? $media->getTemporaryUrl($expiration, 'medium') : null,
-            'original' => $media->getTemporaryUrl($expiration),
+            'thumb' => $media->hasGeneratedConversion('thumb') ? $url('thumb') : null,
+            'small' => $media->hasGeneratedConversion('small') ? $url('small') : null,
+            'medium' => $media->hasGeneratedConversion('medium') ? $url('medium') : null,
+            'original' => $url('original'),
         ];
     }
 }

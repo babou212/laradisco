@@ -31,7 +31,7 @@ class AvatarUploadTest extends TestCase
         Storage::disk('s3')->assertExists($media->getPathRelativeToRoot());
     }
 
-    public function test_avatar_urls_are_presigned_and_skip_missing_conversions(): void
+    public function test_avatar_urls_point_at_the_stable_avatar_endpoint(): void
     {
         $this->fakeS3();
 
@@ -39,10 +39,13 @@ class AvatarUploadTest extends TestCase
         $user->addMedia(UploadedFile::fake()->image('seed.png', 64, 64))
             ->toMediaCollection('avatar');
 
-        $urls = $user->refresh()->avatar_urls;
+        $user->refresh();
+        $media = $user->getFirstMedia('avatar');
+        $urls = $user->avatar_urls;
 
         $this->assertNotNull($urls);
         $this->assertIsString($urls['original']);
+        $this->assertStringContainsString("/users/{$user->id}/avatar/{$media->id}/original", $urls['original']);
     }
 
     public function test_guest_cannot_upload_avatar(): void

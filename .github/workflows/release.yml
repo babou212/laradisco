@@ -7,7 +7,6 @@ on:
 permissions:
   contents: read
   packages: write
-  id-token: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -59,23 +58,6 @@ jobs:
           cache-from: type=gha,scope=laradisco-app
           cache-to: type=gha,mode=max,scope=laradisco-app
 
-      - name: Install cosign
-        uses: sigstore/cosign-installer@v3
-        with:
-          cosign-release: v2.4.1
-
-      - name: Sign app image (keyless)
-        env:
-          COSIGN_EXPERIMENTAL: "true"
-          DIGEST: ${{ steps.build.outputs.digest }}
-        run: |
-          cosign sign --yes \
-            -a "repo=${{ github.repository }}" \
-            -a "ref=${{ github.ref }}" \
-            -a "sha=${{ github.sha }}" \
-            -a "run_id=${{ github.run_id }}" \
-            "ghcr.io/babou212/laradisco@${DIGEST}"
-
   build-derivatives:
     name: Build ${{ matrix.image }}
     needs: build-app
@@ -117,20 +99,3 @@ jobs:
             ghcr.io/babou212/${{ matrix.image }}:${{ needs.build-app.outputs.build_tag }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
-
-      - name: Install cosign
-        uses: sigstore/cosign-installer@v3
-        with:
-          cosign-release: v2.4.1
-
-      - name: Sign ${{ matrix.image }} (keyless)
-        env:
-          COSIGN_EXPERIMENTAL: "true"
-          DIGEST: ${{ steps.build.outputs.digest }}
-        run: |
-          cosign sign --yes \
-            -a "repo=${{ github.repository }}" \
-            -a "ref=${{ github.ref }}" \
-            -a "sha=${{ github.sha }}" \
-            -a "run_id=${{ github.run_id }}" \
-            "ghcr.io/babou212/${{ matrix.image }}@${DIGEST}"

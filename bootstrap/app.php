@@ -36,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
+            'auth' => \App\Http\Middleware\Authenticate::class,
             'permission' => CheckPermission::class,
             'role' => RoleMiddleware::class,
             'cache.headers' => SetCacheHeaders::class,

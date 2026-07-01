@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\LiveKitWebhookController;
 use App\Http\Controllers\Api\MentionController;
+use App\Http\Controllers\Api\ServerSettingController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
@@ -67,6 +68,10 @@ Route::prefix('v1')->group(function () {
         Route::get('/users/{user}/avatar/{version}/{size}', [UserController::class, 'avatar'])
             ->whereIn('size', ['thumb', 'small', 'medium', 'original'])
             ->name('api.users.avatar');
+
+        Route::get('/server/logo/{version}/{size}', [ServerSettingController::class, 'streamLogo'])
+            ->whereIn('size', ['thumb', 'medium', 'original'])
+            ->name('api.server.logo');
 
         Route::get('/mentions/search', [MentionController::class, 'search'])->name('api.mentions.search');
 

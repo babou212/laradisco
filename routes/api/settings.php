@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ServerSettingController;
 use App\Http\Controllers\Api\Settings\AuditLogController;
 use App\Http\Controllers\Api\Settings\CategoryController;
 use App\Http\Controllers\Api\Settings\ChannelController;
@@ -72,3 +73,9 @@ Route::delete('/members/{user}', [ModerationController::class, 'deleteUser'])->n
 
 // Moderation: audit log
 Route::get('/audit-log', [AuditLogController::class, 'index'])->name('moderation.audit-log');
+
+// Server settings
+Route::get('/server', [ServerSettingController::class, 'show'])->name('server.show');
+Route::put('/server', [ServerSettingController::class, 'update'])->name('server.update');
+Route::post('/server/logo', [ServerSettingController::class, 'uploadLogo'])->name('server.logo.upload');
+Route::delete('/server/logo', [ServerSettingController::class, 'deleteLogo'])->name('server.logo.delete');

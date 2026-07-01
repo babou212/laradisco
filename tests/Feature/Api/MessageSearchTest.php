@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\Channel;
 use App\Models\Message;
+use App\Models\MessageReaction;
 use App\Models\User;
 use App\Services\PermissionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -144,7 +145,7 @@ class MessageSearchTest extends TestCase
             'user_id' => $user->id,
             'content' => 'sidenote about otters',
         ]);
-        \App\Models\MessageReaction::factory()->create([
+        MessageReaction::factory()->create([
             'message_id' => $message->id,
             'user_id' => $user->id,
             'emoji' => '🦦',

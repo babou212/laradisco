@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\Authenticate;
 use App\Http\Middleware\CheckBanned;
 use App\Http\Middleware\CheckPermission;
 use App\Http\Middleware\EnsureJsonAccept;
@@ -36,7 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'auth' => \App\Http\Middleware\Authenticate::class,
+            'auth' => Authenticate::class,
             'permission' => CheckPermission::class,
             'role' => RoleMiddleware::class,
             'cache.headers' => SetCacheHeaders::class,

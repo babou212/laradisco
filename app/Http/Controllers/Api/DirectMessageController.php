@@ -343,7 +343,7 @@ class DirectMessageController extends Controller
             ->paginate($perPage);
 
         DirectMessage::query()->getModel()->newCollection($paginator->items())
-            ->loadMissing(['user:id,username,status,custom_status', 'attachments']);
+            ->loadMissing(['user', 'user.media', 'attachments', 'reactions', 'replyTo.user', 'replyTo.user.media']);
 
         return DirectMessageResource::collection($paginator)
             ->additional(['meta' => ['query' => $query]])

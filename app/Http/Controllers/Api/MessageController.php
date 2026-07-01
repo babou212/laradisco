@@ -322,7 +322,7 @@ class MessageController extends Controller
             ->paginate($perPage);
 
         Message::query()->getModel()->newCollection($paginator->items())
-            ->loadMissing(['user:id,username,status,custom_status', 'attachments']);
+            ->loadMissing(['user', 'user.media', 'attachments', 'reactions', 'replyTo.user', 'replyTo.user.media']);
 
         return MessageResource::collection($paginator)
             ->additional(['meta' => ['query' => $query]])

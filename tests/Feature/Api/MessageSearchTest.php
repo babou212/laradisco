@@ -128,4 +128,40 @@ class MessageSearchTest extends TestCase
 
         $response->assertUnauthorized();
     }
+
+    public function test_search_includes_full_author_and_reactions_when_requested(): void
+    {
+        $this->mock(PermissionService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('userCanViewChannel')->andReturn(true);
+            $mock->shouldReceive('userCanInChannel')->andReturn(true);
+        });
+
+        $user = User::factory()->create();
+        $channel = Channel::factory()->create();
+
+        $message = Message::factory()->create([
+            'channel_id' => $channel->id,
+            'user_id' => $user->id,
+            'content' => 'sidenote about otters',
+        ]);
+        \App\Models\MessageReaction::factory()->create([
+            'message_id' => $message->id,
+            'user_id' => $user->id,
+            'emoji' => '🦦',
+        ]);
+
+        $response = $this->actingAs($user)->getJson(
+            route('api.channels.messages.search', $channel).'?q=otters&include=user,reactions'
+        );
+
+        $response->assertOk();
+
+        $included = collect($response->json('included'));
+        $author = $included->firstWhere('type', 'users');
+        $this->assertNotNull($author, 'author should be sideloaded');
+        $this->assertSame($user->username, $author['attributes']['display_name']);
+        $this->assertNotNull($author['attributes']['created_at'], 'full user load should include created_at');
+
+        $this->assertNotNull($included->firstWhere('type', 'reactions'), 'reaction should be sideloaded');
+    }
 }

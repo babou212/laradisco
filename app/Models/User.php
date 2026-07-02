@@ -232,6 +232,7 @@ class User extends Authenticatable implements HasMedia
             'canManageMessages' => $this->isAdministrator() || $this->hasPermissionTo('manage_messages'),
             'canBanMembers' => $this->isAdministrator() || $this->hasPermissionTo('ban_members'),
             'canKickMembers' => $this->isAdministrator() || $this->hasPermissionTo('kick_members'),
+            'canMoveMembers' => $this->isAdministrator() || $this->hasPermissionTo('move_members'),
             'canViewAuditLog' => $this->isAdministrator() || $this->hasPermissionTo('view_audit_log'),
             'isAdministrator' => $this->isAdministrator(),
             'isBanned' => $this->isBanned(),

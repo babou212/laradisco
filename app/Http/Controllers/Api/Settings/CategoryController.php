@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Settings;
 
 use App\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\ReorderCategoriesRequest;
 use App\Http\Requests\Api\StoreCategoryRequest;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
@@ -11,6 +12,7 @@ use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -40,6 +42,32 @@ class CategoryController extends Controller
         return (new CategoryResource($category))
             ->response()
             ->setStatusCode(Response::HTTP_CREATED);
+    }
+
+    /**
+     * Reorder categories.
+     *
+     * Accepts the full ordered list of category ids; each category's position
+     * is set to its index in the array. Applied atomically.
+     *
+     * @response 204
+     */
+    public function reorder(ReorderCategoriesRequest $request): Response
+    {
+        $this->authorize('create', Category::class);
+
+        /** @var array<int, int> $ids */
+        $ids = $request->validated('ids');
+
+        DB::transaction(function () use ($ids): void {
+            foreach ($ids as $position => $id) {
+                Category::whereKey($id)->update(['position' => $position]);
+            }
+        });
+
+        Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
+
+        return $this->noContentResponse();
     }
 
     /**

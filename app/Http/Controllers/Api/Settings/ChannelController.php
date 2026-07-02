@@ -6,6 +6,7 @@ use App\Concerns\ApiResponse;
 use App\Enums\ModerationAction;
 use App\Enums\PermissionFlag;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\ReorderChannelsRequest;
 use App\Http\Requests\Api\StoreChannelOverrideRequest;
 use App\Http\Requests\Api\StoreChannelRequest;
 use App\Http\Resources\CategoryResource;
@@ -18,9 +19,11 @@ use App\Models\Role;
 use App\Models\ServerSetting;
 use App\Services\ModerationAuditService;
 use App\Support\CacheKeys;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -97,6 +100,51 @@ class ChannelController extends Controller
             ->response()
             ->setStatusCode(Response::HTTP_CREATED)
             ->header('Location', route('api.channels.show', $channel));
+    }
+
+    /**
+     * Reorder channels across categories.
+     *
+     * Accepts the full channel layout grouped by category; each channel's
+     * position is set to its index within the category, and its category_id is
+     * updated to reflect the group it was dropped into. Applied atomically.
+     *
+     * @response 204
+     * @response 422 {"errors":[{"status":"422","title":"Could not reorder channels.","detail":"A channel with the same name already exists in the target category.","source":{"pointer":"/data/attributes/channel_ids"}}]}
+     */
+    public function reorder(ReorderChannelsRequest $request): JsonResponse|Response
+    {
+        $this->authorize('create', Channel::class);
+
+        /** @var array<int, array{id: int, channel_ids: array<int, int>}> $categories */
+        $categories = $request->validated('categories');
+        $affectedIds = [];
+
+        try {
+            DB::transaction(function () use ($categories, &$affectedIds): void {
+                foreach ($categories as $category) {
+                    foreach ($category['channel_ids'] as $position => $channelId) {
+                        Channel::whereKey($channelId)->update([
+                            'category_id' => $category['id'],
+                            'position' => $position,
+                        ]);
+                        $affectedIds[] = $channelId;
+                    }
+                }
+            });
+        } catch (QueryException) {
+            return $this->validationErrorResponse(
+                'Could not reorder channels.',
+                ['channel_ids' => 'A channel with the same name already exists in the target category.'],
+            );
+        }
+
+        Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
+        foreach ($affectedIds as $channelId) {
+            Cache::tags([CacheKeys::channelTag($channelId)])->flush();
+        }
+
+        return $this->noContentResponse();
     }
 
     /**

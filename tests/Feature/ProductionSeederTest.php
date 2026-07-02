@@ -43,8 +43,10 @@ class ProductionSeederTest extends TestCase
         $this->seed(ProductionSeeder::class);
         $this->seed(ProductionSeeder::class);
 
+        // 2 categories (the AFK channel is deliberately category-less); 4 channels:
+        // 2 text + General voice + the provisioned 'afk' voice channel.
         $this->assertSame(2, Category::count());
-        $this->assertSame(3, Channel::count());
+        $this->assertSame(4, Channel::count());
     }
 
     public function test_seeder_creates_all_default_categories(): void
@@ -60,8 +62,15 @@ class ProductionSeederTest extends TestCase
     {
         $this->seed(ProductionSeeder::class);
 
-        $this->assertSame(3, Channel::count());
+        // 2 text + 2 voice (General voice + the auto-provisioned 'afk' channel).
+        $this->assertSame(4, Channel::count());
         $this->assertSame(2, Channel::where('type', ChannelType::Text)->count());
-        $this->assertSame(1, Channel::where('type', ChannelType::Voice)->count());
+        $this->assertSame(2, Channel::where('type', ChannelType::Voice)->count());
+
+        $this->assertDatabaseHas('channels', [
+            'slug' => 'afk',
+            'category_id' => null,
+            'type' => ChannelType::Voice->value,
+        ]);
     }
 }

@@ -48,7 +48,6 @@ class VoiceChannelController extends Controller
         $accessibleChannels = $this->permissionService->getAccessibleChannels($user);
 
         $voiceParticipants = [];
-        $startedAt = [];
 
         foreach ($accessibleChannels as $channel) {
             if ($channel->type === ChannelType::Voice) {
@@ -59,15 +58,10 @@ class VoiceChannelController extends Controller
 
                     return $participant;
                 }, $cached));
-
-                $startedAt[$channel->id] = Cache::get("voice_channel:{$channel->id}:started_at");
             }
         }
 
-        return $this->successResponse([
-            'participants' => $voiceParticipants,
-            'started_at' => $startedAt,
-        ]);
+        return $this->successResponse($voiceParticipants);
     }
 
     /**
@@ -96,7 +90,6 @@ class VoiceChannelController extends Controller
             'channel_name' => $channel->name,
             'e2ee_key' => $e2ee['key'],
             'e2ee_key_index' => $e2ee['index'],
-            'started_at' => Cache::get("voice_channel:{$channel->id}:started_at"),
         ]);
     }
 

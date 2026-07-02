@@ -19,8 +19,7 @@ class VoiceChannelJoined implements ShouldBroadcastNow
      */
     public function __construct(
         public Channel $channel,
-        public User $user,
-        public ?int $startedAt = null,
+        public User $user
     ) {}
 
     /**
@@ -58,7 +57,6 @@ class VoiceChannelJoined implements ShouldBroadcastNow
                 'avatar_urls' => $this->user->avatar_urls,
             ],
             'channel_id' => $this->channel->id,
-            'started_at' => $this->startedAt,
         ];
     }
 }

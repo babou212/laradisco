@@ -36,6 +36,16 @@ class LiveKitWebhookController extends Controller
      */
     private const PRESENCE_TTL_HOURS = 6;
 
+    /**
+     * How long a channel's call-start timestamp survives. Unlike the presence
+     * TTL above, this isn't a "ghost data" backstop — the key is always
+     * cleared explicitly once the channel empties (see onParticipantLeft/
+     * onRoomFinished), so this only needs to outlive the longest realistic
+     * call, and is refreshed on every join/leave so it doesn't expire out
+     * from under a long-running one.
+     */
+    private const STARTED_AT_TTL_DAYS = 30;
+
     public function __construct(
         private readonly LiveKitService $liveKitService,
     ) {}
@@ -95,7 +105,13 @@ class LiveKitWebhookController extends Controller
         ];
         Cache::put($cacheKey, $participants, now()->addHours(self::PRESENCE_TTL_HOURS));
 
-        VoiceChannelJoined::dispatch($channel, $user);
+        $startedAtKey = "voice_channel:{$channelId}:started_at";
+        $startedAtTtl = now()->addDays(self::STARTED_AT_TTL_DAYS);
+        Cache::add($startedAtKey, now()->timestamp, $startedAtTtl);
+        $startedAt = Cache::get($startedAtKey);
+        Cache::put($startedAtKey, $startedAt, $startedAtTtl); // refresh TTL without changing the value
+
+        VoiceChannelJoined::dispatch($channel, $user, $startedAt);
     }
 
     /**
@@ -127,8 +143,11 @@ class LiveKitWebhookController extends Controller
 
         unset($participants[$user->id]);
 
+        $startedAtKey = "voice_channel:{$channelId}:started_at";
+
         if (empty($participants)) {
             Cache::forget($cacheKey);
+            Cache::forget($startedAtKey);
             $this->liveKitService->forgetE2eeKey($channelId);
             VoiceChannelLeft::dispatch($channel, $user);
 
@@ -137,7 +156,12 @@ class LiveKitWebhookController extends Controller
 
         Cache::put($cacheKey, $participants, now()->addHours(self::PRESENCE_TTL_HOURS));
 
-        VoiceChannelLeft::dispatch($channel, $user);
+        $startedAt = Cache::get($startedAtKey);
+        if ($startedAt !== null) {
+            Cache::put($startedAtKey, $startedAt, now()->addDays(self::STARTED_AT_TTL_DAYS));
+        }
+
+        VoiceChannelLeft::dispatch($channel, $user, $startedAt);
 
         // Rotate the shared E2EE key so the member who just left can no longer
         // decrypt subsequent audio, and broadcast the new key to those remaining.
@@ -160,6 +184,7 @@ class LiveKitWebhookController extends Controller
         $participants = Cache::get($cacheKey, []);
 
         Cache::forget($cacheKey);
+        Cache::forget("voice_channel:{$channelId}:started_at");
         $this->liveKitService->forgetE2eeKey($channelId);
 
         $channel = Channel::find($channelId);

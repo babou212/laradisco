@@ -15,6 +15,7 @@ use App\Models\Category;
 use App\Models\Channel;
 use App\Models\ChannelPermissionOverride;
 use App\Models\Role;
+use App\Models\ServerSetting;
 use App\Services\ModerationAuditService;
 use App\Support\CacheKeys;
 use Illuminate\Http\JsonResponse;
@@ -132,6 +133,10 @@ class ChannelController extends Controller
     public function destroy(Request $request, Channel $channel): JsonResponse|Response
     {
         $this->authorize('delete', $channel);
+
+        if ($channel->id === ServerSetting::instance()->afk_channel_id) {
+            return $this->forbiddenResponse('The AFK channel cannot be deleted.');
+        }
 
         $channelId = $channel->id;
         $channelName = $channel->name;

@@ -4,15 +4,19 @@ namespace App\Http\Controllers\Api;
 
 use App\Concerns\ApiResponse;
 use App\Enums\ChannelType;
+use App\Events\VoiceChannelJoined;
+use App\Events\VoiceChannelLeft;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\JoinVoiceChannelRequest;
 use App\Models\Channel;
+use App\Models\ServerSetting;
 use App\Services\LiveKitService;
 use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 /**
@@ -21,6 +25,9 @@ use Throwable;
 class VoiceChannelController extends Controller
 {
     use ApiResponse;
+
+    /** Presence cache TTL (hours), mirroring the LiveKit webhook controller. */
+    private const PRESENCE_TTL_HOURS = 6;
 
     public function __construct(
         private readonly LiveKitService $liveKitService,
@@ -141,5 +148,89 @@ class VoiceChannelController extends Controller
         return $this->successResponse([
             'channel_id' => $channel->id,
         ], 'Left voice channel');
+    }
+
+    /**
+     * Park in the AFK channel
+     *
+     * Cosmetically place the authenticated user in the server's configured AFK
+     * channel. The AFK channel has no LiveKit room; this only writes the shared
+     * presence cache and broadcasts a `voice.joined` so every client shows the
+     * user parked there. No-op if no AFK channel is configured.
+     *
+     * @response 200 {"message": "Parked in AFK channel", "data": {"channel_id": 12}}
+     */
+    public function parkAfk(Request $request): JsonResponse|Response
+    {
+        $user = $request->user();
+
+        $channel = $this->afkChannel();
+        if ($channel === null) {
+            return $this->noContentResponse();
+        }
+
+        $cacheKey = "voice_channel:{$channel->id}:participants";
+        $participants = Cache::get($cacheKey, []);
+        $participants[$user->id] = [
+            'id' => $user->id,
+            'username' => $user->username,
+            'display_name' => $user->display_name,
+            'avatar_urls' => $user->avatar_urls,
+        ];
+        Cache::put($cacheKey, $participants, now()->addHours(self::PRESENCE_TTL_HOURS));
+
+        VoiceChannelJoined::dispatch($channel, $user);
+
+        return $this->successResponse(['channel_id' => $channel->id], 'Parked in AFK channel');
+    }
+
+    /**
+     * Leave the AFK channel
+     *
+     * Remove the authenticated user from the AFK channel's presence cache and
+     * broadcast a `voice.left`. No-op if no AFK channel is configured or the
+     * user is not currently parked.
+     *
+     * @response 200 {"message": "Left AFK channel", "data": {"channel_id": 12}}
+     */
+    public function unparkAfk(Request $request): JsonResponse|Response
+    {
+        $user = $request->user();
+
+        $channel = $this->afkChannel();
+        if ($channel === null) {
+            return $this->noContentResponse();
+        }
+
+        $cacheKey = "voice_channel:{$channel->id}:participants";
+        $participants = Cache::get($cacheKey, []);
+
+        if (! array_key_exists($user->id, $participants)) {
+            return $this->noContentResponse();
+        }
+
+        unset($participants[$user->id]);
+
+        if (empty($participants)) {
+            Cache::forget($cacheKey);
+        } else {
+            Cache::put($cacheKey, $participants, now()->addHours(self::PRESENCE_TTL_HOURS));
+        }
+
+        VoiceChannelLeft::dispatch($channel, $user);
+
+        return $this->successResponse(['channel_id' => $channel->id], 'Left AFK channel');
+    }
+
+    /** Resolve the configured AFK channel, or null when unset/missing. */
+    private function afkChannel(): ?Channel
+    {
+        $afkChannelId = ServerSetting::instance()->afk_channel_id;
+
+        if ($afkChannelId === null) {
+            return null;
+        }
+
+        return Channel::find($afkChannelId);
     }
 }

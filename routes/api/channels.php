@@ -18,6 +18,8 @@ Route::get('/categories', [ChatController::class, 'categories'])
 Route::get('/members', [ChatController::class, 'members'])->name('members.index');
 
 Route::get('/voice/participants', [VoiceChannelController::class, 'participants'])->name('voice.participants');
+Route::post('/voice/afk', [VoiceChannelController::class, 'parkAfk'])->name('voice.afk.park');
+Route::delete('/voice/afk', [VoiceChannelController::class, 'unparkAfk'])->name('voice.afk.unpark');
 
 Route::prefix('channels/{channel}')->as('channels.')->scopeBindings()->group(function () {
     Route::get('/', [ChannelController::class, 'show'])

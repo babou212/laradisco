@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Channel;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\AfkChannelService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -33,6 +34,8 @@ class ProductionSeeder extends Seeder
 
         $voiceCategory = Category::firstOrCreate(['name' => 'Voice Channels'], ['position' => 2]);
         $this->createVoiceChannel($voiceCategory, 'General', 'Hang out and chat', 0);
+
+        AfkChannelService::ensure();
     }
 
     private function createAdminUser(): void

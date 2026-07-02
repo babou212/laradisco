@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Concerns\ApiResponse;
+use App\Enums\ChannelType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\UploadServerLogoRequest;
 use App\Models\ServerSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -41,7 +43,11 @@ class ServerSettingController extends Controller
         }
 
         $validated = $request->validate([
-            'afk_channel_id' => ['nullable', 'integer', 'exists:channels,id'],
+            'afk_channel_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('channels', 'id')->where('type', ChannelType::Voice->value),
+            ],
             'afk_timeout' => ['nullable', 'integer', 'min:1', 'max:60'],
         ]);
 

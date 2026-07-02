@@ -6,10 +6,13 @@ use App\Concerns\ApiResponse;
 use App\Enums\ChannelType;
 use App\Events\VoiceChannelJoined;
 use App\Events\VoiceChannelLeft;
+use App\Events\VoiceChannelMoved;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\JoinVoiceChannelRequest;
+use App\Http\Requests\MoveVoiceMemberRequest;
 use App\Models\Channel;
 use App\Models\ServerSetting;
+use App\Models\User;
 use App\Services\LiveKitService;
 use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
@@ -155,6 +158,59 @@ class VoiceChannelController extends Controller
         return $this->successResponse([
             'channel_id' => $channel->id,
         ], 'Left voice channel');
+    }
+
+    /**
+     * Move a member to another voice channel
+     *
+     * Forcibly moves another user from this voice channel into a different
+     * one. Requires the `move_members` permission (or Administrator).
+     *
+     * @response 200 {"message": "Moved member", "data": {"from_channel_id": 12, "to_channel_id": 14, "user_id": 7}}
+     *
+     * The target is removed from this channel's LiveKit room, which flows
+     * through the existing `participant_left` webhook to clear presence and
+     * broadcast `voice.left`. The moved user's own client is expected to
+     * reconnect to the destination channel in response to the `voice.moved`
+     * broadcast below, at which point the normal join flow broadcasts
+     * `voice.joined` for the destination channel.
+     */
+    public function move(MoveVoiceMemberRequest $request, Channel $channel): JsonResponse
+    {
+        $targetUserId = (int) $request->input('user_id');
+
+        /** @var Channel $toChannel */
+        $toChannel = Channel::findOrFail($request->input('to_channel_id'));
+
+        $participants = Cache::get("voice_channel:{$channel->id}:participants", []);
+        if (! array_key_exists($targetUserId, $participants)) {
+            return $this->notFoundResponse('That member is not currently in this voice channel.');
+        }
+
+        /** @var User $targetUser */
+        $targetUser = User::findOrFail($targetUserId);
+
+        try {
+            $this->liveKitService->removeParticipant(
+                "voice-channel-{$channel->id}",
+                (string) $targetUserId,
+            );
+        } catch (Throwable $e) {
+            Log::debug('LiveKit removeParticipant failed on move', [
+                'from_channel_id' => $channel->id,
+                'to_channel_id' => $toChannel->id,
+                'user_id' => $targetUserId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        VoiceChannelMoved::dispatch($channel, $toChannel, $targetUser);
+
+        return $this->successResponse([
+            'from_channel_id' => $channel->id,
+            'to_channel_id' => $toChannel->id,
+            'user_id' => $targetUserId,
+        ], 'Moved member');
     }
 
     /**

@@ -49,6 +49,8 @@ Route::delete('/members/{user}/roles/{role}', [MemberController::class, 'removeR
 
 Route::get('/channels', [ChannelController::class, 'index'])->name('channels.index');
 Route::post('/channels', [ChannelController::class, 'store'])->name('channels.store');
+
+Route::put('/channels/reorder', [ChannelController::class, 'reorder'])->name('channels.reorder');
 Route::put('/channels/{channel}', [ChannelController::class, 'update'])->name('channels.update');
 Route::delete('/channels/{channel}', [ChannelController::class, 'destroy'])->name('channels.destroy');
 Route::get('/channels/{channel}/overrides', [ChannelController::class, 'overrides'])->name('channels.overrides.index');
@@ -56,25 +58,22 @@ Route::post('/channels/{channel}/overrides', [ChannelController::class, 'storeOv
 Route::delete('/channels/{channel}/overrides/{override}', [ChannelController::class, 'destroyOverride'])->name('channels.overrides.destroy')->scopeBindings();
 
 Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+
+Route::put('/categories/reorder', [CategoryController::class, 'reorder'])->name('categories.reorder');
 Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
 Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
-// Moderation: bans
 Route::get('/bans', [ModerationController::class, 'bans'])->name('moderation.bans');
 Route::post('/members/{user}/ban', [ModerationController::class, 'ban'])->name('moderation.ban');
 Route::delete('/members/{user}/ban', [ModerationController::class, 'unban'])->name('moderation.unban');
 
-// Moderation: jail
 Route::post('/members/{user}/jail', [ModerationController::class, 'jail'])->name('moderation.jail');
 Route::delete('/members/{user}/jail', [ModerationController::class, 'unjail'])->name('moderation.unjail');
 
-// Moderation: permanently delete a user
 Route::delete('/members/{user}', [ModerationController::class, 'deleteUser'])->name('moderation.delete-user');
 
-// Moderation: audit log
 Route::get('/audit-log', [AuditLogController::class, 'index'])->name('moderation.audit-log');
 
-// Server settings
 Route::get('/server', [ServerSettingController::class, 'show'])->name('server.show');
 Route::put('/server', [ServerSettingController::class, 'update'])->name('server.update');
 Route::post('/server/logo', [ServerSettingController::class, 'uploadLogo'])->name('server.logo.upload');

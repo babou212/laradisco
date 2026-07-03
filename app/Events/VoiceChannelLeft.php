@@ -19,7 +19,8 @@ class VoiceChannelLeft implements ShouldBroadcastNow
      */
     public function __construct(
         public Channel $channel,
-        public User $user
+        public User $user,
+        public ?int $startedAt = null,
     ) {}
 
     /**
@@ -52,6 +53,7 @@ class VoiceChannelLeft implements ShouldBroadcastNow
         return [
             'user_id' => $this->user->id,
             'channel_id' => $this->channel->id,
+            'started_at' => $this->startedAt,
         ];
     }
 }

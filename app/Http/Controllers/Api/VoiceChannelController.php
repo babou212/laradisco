@@ -232,6 +232,11 @@ class VoiceChannelController extends Controller
             return $this->noContentResponse();
         }
 
+        $fromChannelId = $request->integer('from_channel_id') ?: null;
+        if ($fromChannelId !== null && $fromChannelId !== $channel->id) {
+            $this->evictFromChannel($fromChannelId, $user);
+        }
+
         $cacheKey = "voice_channel:{$channel->id}:participants";
         $participants = Cache::get($cacheKey, []);
         $participants[$user->id] = [
@@ -295,5 +300,41 @@ class VoiceChannelController extends Controller
         }
 
         return Channel::find($afkChannelId);
+    }
+
+    /**
+     * Synchronously remove a user from a channel's presence cache and
+     * broadcast the leave, ahead of the AFK join broadcast.
+     *
+     * Parking in AFK writes the presence cache directly and broadcasts
+     * immediately, whereas leaving a real voice channel only updates the
+     * cache once LiveKit's `participant_left` webhook fires — an
+     * asynchronous round trip. Without this, a user going AFK could appear
+     * in both their old channel and the AFK channel for however long that
+     * webhook takes to arrive.
+     */
+    private function evictFromChannel(int $channelId, User $user): void
+    {
+        $fromChannel = Channel::find($channelId);
+        if ($fromChannel === null) {
+            return;
+        }
+
+        $cacheKey = "voice_channel:{$channelId}:participants";
+        $participants = Cache::get($cacheKey, []);
+
+        if (! array_key_exists($user->id, $participants)) {
+            return;
+        }
+
+        unset($participants[$user->id]);
+
+        if (empty($participants)) {
+            Cache::forget($cacheKey);
+        } else {
+            Cache::put($cacheKey, $participants, now()->addHours(self::PRESENCE_TTL_HOURS));
+        }
+
+        VoiceChannelLeft::dispatch($fromChannel, $user);
     }
 }

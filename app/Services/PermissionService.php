@@ -25,6 +25,10 @@ class PermissionService
             return array_map(fn (PermissionFlag $p) => $p->value, PermissionFlag::cases());
         }
 
+        if ($channel->is_private && ! $this->hasPrivateChannelViewOverride($user, $channel)) {
+            return [];
+        }
+
         $basePermissions = $user->getAllPermissions()
             ->pluck('name')
             ->unique()
@@ -85,6 +89,19 @@ class PermissionService
             return true;
         }
 
+        return $this->hasPrivateChannelViewOverride($user, $channel, $preloadedOverrides);
+    }
+
+    /**
+     * Check if a user has an explicit role or user override granting view_channels
+     * on a private channel. Private channels ignore base/role-wide permissions for
+     * visibility (and, by extension, every other channel permission) — access must
+     * come from an override.
+     *
+     * @param  Collection<int, ChannelPermissionOverride>|null  $preloadedOverrides
+     */
+    private function hasPrivateChannelViewOverride(User $user, Channel $channel, ?Collection $preloadedOverrides = null): bool
+    {
         $roleIds = $user->roles->pluck('id')->all();
 
         if ($channelOverrides === null) {
@@ -119,7 +136,7 @@ class PermissionService
     public function getAccessibleChannels(User $user): Collection
     {
         $cacheKey = CacheKeys::userAccessibleChannels($user->id);
-        $tags = [CacheKeys::userTag($user->id)];
+        $tags = [CacheKeys::userTag($user->id), CacheKeys::TAG_SIDEBAR];
 
         $channelIds = Cache::tags($tags)->remember($cacheKey, CacheKeys::TTL_WARM, function () use ($user) {
             $channels = Channel::with('category')->get();

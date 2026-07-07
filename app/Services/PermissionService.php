@@ -25,7 +25,7 @@ class PermissionService
             return array_map(fn (PermissionFlag $p) => $p->value, PermissionFlag::cases());
         }
 
-        if ($channel->is_private && ! $this->hasPrivateChannelViewOverride($user, $channel)) {
+        if ($channel->is_private && ! $this->hasPrivateChannelViewOverride($user, $channel, $preloadedOverrides)) {
             return [];
         }
 
@@ -89,7 +89,7 @@ class PermissionService
             return true;
         }
 
-        return $this->hasPrivateChannelViewOverride($user, $channel, $preloadedOverrides);
+        return $this->hasPrivateChannelViewOverride($user, $channel, $channelOverrides);
     }
 
     /**
@@ -104,16 +104,14 @@ class PermissionService
     {
         $roleIds = $user->roles->pluck('id')->all();
 
-        if ($channelOverrides === null) {
-            $channelOverrides = ChannelPermissionOverride::where('channel_id', $channel->id)
-                ->where(function ($q) use ($roleIds, $user) {
-                    $q->whereIn('role_id', $roleIds)->whereNull('user_id')
-                        ->orWhere(function ($q2) use ($user) {
-                            $q2->where('user_id', $user->id)->whereNull('role_id');
-                        });
-                })
-                ->get();
-        }
+        $channelOverrides = $preloadedOverrides ?? ChannelPermissionOverride::where('channel_id', $channel->id)
+            ->where(function ($q) use ($roleIds, $user) {
+                $q->whereIn('role_id', $roleIds)->whereNull('user_id')
+                    ->orWhere(function ($q2) use ($user) {
+                        $q2->where('user_id', $user->id)->whereNull('role_id');
+                    });
+            })
+            ->get();
 
         $hasRoleAccess = $channelOverrides
             ->whereNull('user_id')

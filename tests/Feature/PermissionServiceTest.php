@@ -176,6 +176,34 @@ class PermissionServiceTest extends TestCase
         $this->assertContains(PermissionFlag::ManageMessages->value, $permissions);
     }
 
+    public function test_private_channel_without_view_override_resolves_no_permissions(): void
+    {
+        [$user] = $this->createUserWithRole([PermissionFlag::SendMessages, PermissionFlag::ViewChannels]);
+        $channel = $this->createChannel(isPrivate: true);
+
+        $permissions = $this->service->resolveChannelPermissions($user, $channel);
+
+        $this->assertSame([], $permissions);
+    }
+
+    public function test_private_channel_with_view_override_resolves_base_permissions(): void
+    {
+        [$user, $role] = $this->createUserWithRole([PermissionFlag::SendMessages, PermissionFlag::ViewChannels]);
+        $channel = $this->createChannel(isPrivate: true);
+
+        ChannelPermissionOverride::factory()->create([
+            'channel_id' => $channel->id,
+            'role_id' => $role->id,
+            'user_id' => null,
+            'allow' => [PermissionFlag::ViewChannels->value],
+            'deny' => [],
+        ]);
+
+        $permissions = $this->service->resolveChannelPermissions($user, $channel);
+
+        $this->assertContains(PermissionFlag::SendMessages->value, $permissions);
+    }
+
     // --- userCanInChannel ---
 
     public function test_user_can_in_channel_returns_true_when_permitted(): void

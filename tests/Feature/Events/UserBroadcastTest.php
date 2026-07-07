@@ -9,6 +9,8 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
@@ -122,6 +124,29 @@ class UserBroadcastTest extends TestCase
                 && $payload['about_me'] === 'updated bio'
                 && array_key_exists('avatar_urls', $payload)
                 && array_key_exists('display_name', $payload);
+        });
+    }
+
+    public function test_queued_avatar_conversions_broadcast_profile_update_once_all_are_generated(): void
+    {
+        $this->fakeS3();
+        Config::set('media-library.queue_conversions_by_default', true);
+        Event::fake([UserProfileUpdated::class]);
+
+        $user = User::factory()->create();
+
+        $user->addMedia(UploadedFile::fake()->image('avatar.png', 256, 256))
+            ->toMediaCollection('avatar');
+
+        $media = $user->fresh()->getFirstMedia('avatar');
+
+        $this->assertTrue($media->hasGeneratedConversion('thumb'));
+        $this->assertTrue($media->hasGeneratedConversion('small'));
+        $this->assertTrue($media->hasGeneratedConversion('medium'));
+
+        Event::assertDispatched(UserProfileUpdated::class, function (UserProfileUpdated $event) use ($user) {
+            return $event->user->id === $user->id
+                && $event->broadcastWith()['avatar_urls'] !== null;
         });
     }
 }

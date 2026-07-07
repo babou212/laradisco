@@ -55,7 +55,7 @@ Route::put('/channels/{channel}', [ChannelController::class, 'update'])->name('c
 Route::delete('/channels/{channel}', [ChannelController::class, 'destroy'])->name('channels.destroy');
 Route::get('/channels/{channel}/overrides', [ChannelController::class, 'overrides'])->name('channels.overrides.index');
 Route::post('/channels/{channel}/overrides', [ChannelController::class, 'storeOverride'])->name('channels.overrides.store');
-Route::delete('/channels/{channel}/overrides/{override}', [ChannelController::class, 'destroyOverride'])->name('channels.overrides.destroy')->scopeBindings();
+Route::delete('/channels/{channel}/overrides/{permissionOverride}', [ChannelController::class, 'destroyOverride'])->name('channels.overrides.destroy')->scopeBindings();
 
 Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
 

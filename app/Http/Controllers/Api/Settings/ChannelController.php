@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Settings;
 use App\Concerns\ApiResponse;
 use App\Enums\ModerationAction;
 use App\Enums\PermissionFlag;
+use App\Events\ChannelUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\ReorderChannelsRequest;
 use App\Http\Requests\Api\StoreChannelOverrideRequest;
@@ -95,6 +96,7 @@ class ChannelController extends Controller
         );
 
         Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
+        ChannelUpdated::dispatch();
 
         return (new ChannelResource($channel))
             ->response()
@@ -143,6 +145,7 @@ class ChannelController extends Controller
         foreach ($affectedIds as $channelId) {
             Cache::tags([CacheKeys::channelTag($channelId)])->flush();
         }
+        ChannelUpdated::dispatch();
 
         return $this->noContentResponse();
     }
@@ -168,6 +171,7 @@ class ChannelController extends Controller
 
         Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
         Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
+        ChannelUpdated::dispatch();
 
         return (new ChannelResource($channel->fresh()))
             ->response();
@@ -200,6 +204,7 @@ class ChannelController extends Controller
 
         Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
         Cache::tags([CacheKeys::channelTag($channelId)])->flush();
+        ChannelUpdated::dispatch();
 
         return $this->noContentResponse();
     }
@@ -259,6 +264,7 @@ class ChannelController extends Controller
 
         Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
         Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
+        ChannelUpdated::dispatch();
 
         return $this->createdResponse($override);
     }
@@ -268,7 +274,7 @@ class ChannelController extends Controller
      *
      * @response 204
      */
-    public function destroyOverride(Request $request, Channel $channel, ChannelPermissionOverride $override): JsonResponse|Response
+    public function destroyOverride(Request $request, Channel $channel, ChannelPermissionOverride $permissionOverride): JsonResponse|Response
     {
         $this->authorize('manageOverrides', $channel);
 
@@ -280,10 +286,11 @@ class ChannelController extends Controller
             metadata: ['channel_name' => $channel->name],
         );
 
-        $override->delete();
+        $permissionOverride->delete();
 
         Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
         Cache::tags([CacheKeys::channelTag($channel->id)])->flush();
+        ChannelUpdated::dispatch();
 
         return $this->noContentResponse();
     }

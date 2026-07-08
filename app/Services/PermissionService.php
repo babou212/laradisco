@@ -16,15 +16,16 @@ class PermissionService
     /**
      * Resolve the effective permissions for a user on a specific channel.
      *
+     * @param  Collection<int, ChannelPermissionOverride>|null  $preloadedOverrides
      * @return list<string>
      */
-    public function resolveChannelPermissions(User $user, Channel $channel): array
+    public function resolveChannelPermissions(User $user, Channel $channel, ?Collection $preloadedOverrides = null): array
     {
         if ($this->isAdministrator($user)) {
             return array_map(fn (PermissionFlag $p) => $p->value, PermissionFlag::cases());
         }
 
-        if ($channel->is_private && ! $this->hasPrivateChannelViewOverride($user, $channel)) {
+        if ($channel->is_private && ! $this->hasPrivateChannelViewOverride($user, $channel, $preloadedOverrides)) {
             return [];
         }
 
@@ -40,16 +41,21 @@ class PermissionService
         // base permissions -> @everyone override -> other roles combined -> per-user override.
         $everyoneRoleIds = $user->roles->where('is_default', true)->pluck('id');
         $otherRoleIds = $user->roles->where('is_default', false)->pluck('id');
+        $overrides = $preloadedOverrides ?? $channel->permissionOverrides()->get();
+
+        $roleIds = $user->roles->pluck('id')->all();
+        $roleOverrides = $overrides
+            ->whereIn('role_id', $roleIds)
+            ->whereNull('user_id');
 
         $roleOverrides = $channel->permissionOverrides()->whereNull('user_id')->get();
 
         $permissions = $this->applyOverrides($basePermissions, $roleOverrides->whereIn('role_id', $everyoneRoleIds));
         $permissions = $this->applyOverrides($permissions, $roleOverrides->whereIn('role_id', $otherRoleIds));
 
-        $userOverrides = $channel->permissionOverrides()
+        $userOverrides = $overrides
             ->where('user_id', $user->id)
-            ->whereNull('role_id')
-            ->get();
+            ->whereNull('role_id');
 
         $permissions = $this->applyOverrides($permissions, $userOverrides);
 
@@ -58,14 +64,16 @@ class PermissionService
 
     /**
      * Check if a user has a specific permission on a channel.
+     *
+     * @param  Collection<int, ChannelPermissionOverride>|null  $preloadedOverrides
      */
-    public function userCanInChannel(User $user, Channel $channel, PermissionFlag $permission): bool
+    public function userCanInChannel(User $user, Channel $channel, PermissionFlag $permission, ?Collection $preloadedOverrides = null): bool
     {
         $cacheKey = CacheKeys::userChannelPermissions($user->id, $channel->id);
         $tags = [CacheKeys::channelTag($channel->id), CacheKeys::userTag($user->id)];
 
-        $permissions = Cache::tags($tags)->remember($cacheKey, CacheKeys::TTL_LONG, function () use ($user, $channel) {
-            return $this->resolveChannelPermissions($user, $channel);
+        $permissions = Cache::tags($tags)->remember($cacheKey, CacheKeys::TTL_LONG, function () use ($user, $channel, $preloadedOverrides) {
+            return $this->resolveChannelPermissions($user, $channel, $preloadedOverrides);
         });
 
         return in_array($permission->value, $permissions, true);
@@ -78,15 +86,19 @@ class PermissionService
      */
     public function userCanViewChannel(User $user, Channel $channel, ?Collection $preloadedOverrides = null): bool
     {
+        // Preloaded overrides may span multiple channels (e.g. getAccessibleChannels), so scope
+        // them down to this channel before reusing them in either branch below.
+        $channelOverrides = $preloadedOverrides?->where('channel_id', $channel->id)->values();
+
         if (! $channel->is_private) {
-            return $this->userCanInChannel($user, $channel, PermissionFlag::ViewChannels);
+            return $this->userCanInChannel($user, $channel, PermissionFlag::ViewChannels, $channelOverrides);
         }
 
         if ($this->isAdministrator($user)) {
             return true;
         }
 
-        return $this->hasPrivateChannelViewOverride($user, $channel, $preloadedOverrides);
+        return $this->hasPrivateChannelViewOverride($user, $channel, $channelOverrides);
     }
 
     /**
@@ -101,18 +113,14 @@ class PermissionService
     {
         $roleIds = $user->roles->pluck('id')->all();
 
-        if ($preloadedOverrides !== null) {
-            $channelOverrides = $preloadedOverrides->where('channel_id', $channel->id);
-        } else {
-            $channelOverrides = ChannelPermissionOverride::where('channel_id', $channel->id)
-                ->where(function ($q) use ($roleIds, $user) {
-                    $q->whereIn('role_id', $roleIds)->whereNull('user_id')
-                        ->orWhere(function ($q2) use ($user) {
-                            $q2->where('user_id', $user->id)->whereNull('role_id');
-                        });
-                })
-                ->get();
-        }
+        $channelOverrides = $preloadedOverrides ?? ChannelPermissionOverride::where('channel_id', $channel->id)
+            ->where(function ($q) use ($roleIds, $user) {
+                $q->whereIn('role_id', $roleIds)->whereNull('user_id')
+                    ->orWhere(function ($q2) use ($user) {
+                        $q2->where('user_id', $user->id)->whereNull('role_id');
+                    });
+            })
+            ->get();
 
         $hasRoleAccess = $channelOverrides
             ->whereNull('user_id')
@@ -175,7 +183,7 @@ class PermissionService
             return User::query()
                 ->without('media')
                 ->select('id')
-                ->with('roles')
+                ->with(['roles.permissions', 'permissions'])
                 ->get()
                 ->filter(fn (User $user) => $this->userCanViewChannel($user, $channel, $channelOverrides))
                 ->pluck('id')

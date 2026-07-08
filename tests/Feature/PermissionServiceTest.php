@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\PermissionService;
 use Database\Seeders\PermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class PermissionServiceTest extends TestCase
@@ -175,6 +176,34 @@ class PermissionServiceTest extends TestCase
         $this->assertContains(PermissionFlag::ManageMessages->value, $permissions);
     }
 
+    public function test_private_channel_without_view_override_resolves_no_permissions(): void
+    {
+        [$user] = $this->createUserWithRole([PermissionFlag::SendMessages, PermissionFlag::ViewChannels]);
+        $channel = $this->createChannel(isPrivate: true);
+
+        $permissions = $this->service->resolveChannelPermissions($user, $channel);
+
+        $this->assertSame([], $permissions);
+    }
+
+    public function test_private_channel_with_view_override_resolves_base_permissions(): void
+    {
+        [$user, $role] = $this->createUserWithRole([PermissionFlag::SendMessages, PermissionFlag::ViewChannels]);
+        $channel = $this->createChannel(isPrivate: true);
+
+        ChannelPermissionOverride::factory()->create([
+            'channel_id' => $channel->id,
+            'role_id' => $role->id,
+            'user_id' => null,
+            'allow' => [PermissionFlag::ViewChannels->value],
+            'deny' => [],
+        ]);
+
+        $permissions = $this->service->resolveChannelPermissions($user, $channel);
+
+        $this->assertContains(PermissionFlag::SendMessages->value, $permissions);
+    }
+
     // --- userCanInChannel ---
 
     public function test_user_can_in_channel_returns_true_when_permitted(): void
@@ -278,6 +307,57 @@ class PermissionServiceTest extends TestCase
         $accessible = $this->service->getAccessibleChannels($user);
 
         $this->assertTrue($accessible->contains('id', $privateChannel->id));
+    }
+
+    // --- getUsersWithChannelAccess ---
+
+    public function test_get_users_with_channel_access_returns_users_permitted_to_view(): void
+    {
+        [$permittedUser] = $this->createUserWithRole([PermissionFlag::ViewChannels]);
+        $unpermittedUser = User::factory()->create();
+        $channel = $this->createChannel();
+
+        $accessibleIds = $this->service->getUsersWithChannelAccess($channel);
+
+        $this->assertContains($permittedUser->id, $accessibleIds);
+        $this->assertNotContains($unpermittedUser->id, $accessibleIds);
+    }
+
+    public function test_get_users_with_channel_access_query_count_does_not_scale_with_user_count(): void
+    {
+        $role = Role::factory()->create([
+            'permissions' => [PermissionFlag::ViewChannels->value],
+        ]);
+
+        // Warm Spatie's permission registrar cache first so its one-time bootstrap
+        // queries don't skew the comparison between the two measurements below.
+        $warmupUser = User::factory()->create();
+        $warmupUser->roles()->attach($role);
+        $this->service->getUsersWithChannelAccess($this->createChannel());
+
+        $countQueriesForUsers = function (int $userCount) use ($role): int {
+            User::factory()->count($userCount)->create()
+                ->each(fn (User $user) => $user->roles()->attach($role));
+
+            $channel = $this->createChannel();
+
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            $this->service->getUsersWithChannelAccess($channel);
+            $queryCount = count(DB::getQueryLog());
+            DB::disableQueryLog();
+
+            return $queryCount;
+        };
+
+        $queriesWithFewUsers = $countQueriesForUsers(2);
+        $queriesWithManyUsers = $countQueriesForUsers(10);
+
+        $this->assertSame(
+            $queriesWithFewUsers,
+            $queriesWithManyUsers,
+            'Query count should not scale with user count (N+1 regression check).'
+        );
     }
 
     // --- isAdministrator ---

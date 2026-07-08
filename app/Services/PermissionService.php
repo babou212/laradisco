@@ -34,13 +34,17 @@ class PermissionService
             ->values()
             ->all();
 
-        $roleIds = $user->roles->pluck('id')->all();
-        $roleOverrides = $channel->permissionOverrides()
-            ->whereIn('role_id', $roleIds)
-            ->whereNull('user_id')
-            ->get();
+        // Resolve in a fixed precedence order — matching Discord's overwrite model —
+        // so a specific role's allow reliably beats the @everyone role's deny,
+        // regardless of the order overrides happen to have been created in:
+        // base permissions -> @everyone override -> other roles combined -> per-user override.
+        $everyoneRoleIds = $user->roles->where('is_default', true)->pluck('id');
+        $otherRoleIds = $user->roles->where('is_default', false)->pluck('id');
 
-        $permissions = $this->applyOverrides($basePermissions, $roleOverrides);
+        $roleOverrides = $channel->permissionOverrides()->whereNull('user_id')->get();
+
+        $permissions = $this->applyOverrides($basePermissions, $roleOverrides->whereIn('role_id', $everyoneRoleIds));
+        $permissions = $this->applyOverrides($permissions, $roleOverrides->whereIn('role_id', $otherRoleIds));
 
         $userOverrides = $channel->permissionOverrides()
             ->where('user_id', $user->id)
@@ -230,7 +234,11 @@ class PermissionService
     }
 
     /**
-     * Apply overrides (deny then allow) to a base permission set.
+     * Apply a set of overrides to a base permission set: every deny across the
+     * whole set is applied first, then every allow. Batching it this way (rather
+     * than looping deny-then-allow per override) makes the result independent of
+     * the overrides' iteration order — when a set spans multiple roles, any one
+     * role's allow always wins over another role's deny for the same permission.
      *
      * @param  array<int, string>  $permissions
      * @param  Collection<int, ChannelPermissionOverride>  $overrides
@@ -238,15 +246,14 @@ class PermissionService
      */
     private function applyOverrides(array $permissions, Collection $overrides): array
     {
-        foreach ($overrides as $override) {
-            foreach ($override->deny ?? [] as $denied) {
-                $permissions = array_values(array_filter($permissions, fn (string $p) => $p !== $denied));
-            }
+        $denies = $overrides->flatMap(fn (ChannelPermissionOverride $o) => $o->deny ?? [])->unique()->all();
+        $allows = $overrides->flatMap(fn (ChannelPermissionOverride $o) => $o->allow ?? [])->unique()->all();
 
-            foreach ($override->allow ?? [] as $allowed) {
-                if (! in_array($allowed, $permissions, true)) {
-                    $permissions[] = $allowed;
-                }
+        $permissions = array_values(array_diff($permissions, $denies));
+
+        foreach ($allows as $allowed) {
+            if (! in_array($allowed, $permissions, true)) {
+                $permissions[] = $allowed;
             }
         }
 

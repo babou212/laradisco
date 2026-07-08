@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ChannelType;
 use App\Events\UserBanned;
+use App\Events\UserKicked;
 use App\Models\Ban;
 use App\Models\Channel;
 use App\Models\Role;
@@ -109,6 +110,28 @@ class ModerationService
     }
 
     /**
+     * Kick a user off the server: strip every role (so they're functionally not
+     * a member — resolveChannelPermissions returns nothing for a roleless user)
+     * and force them out immediately, same enforcement as a ban (broadcast,
+     * voice disconnect, token revocation). Unlike a ban or a permanent delete,
+     * nothing prevents them coming back — an admin just needs to assign them a
+     * role again.
+     */
+    public function kick(User $target): void
+    {
+        $target->syncRoles([]);
+
+        $this->flushUserCaches($target);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        event(new UserKicked($target));
+
+        $this->removeFromVoiceChannels($target);
+
+        $target->tokens()->delete();
+    }
+
+    /**
      * Jail a user — assign the Jailed role and remove all other roles.
      */
     public function jail(User $target): void
@@ -122,6 +145,7 @@ class ModerationService
         $target->syncRoles([$jailedRole]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->flushUserCaches($target);
     }
 
     /**
@@ -141,5 +165,6 @@ class ModerationService
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->flushUserCaches($target);
     }
 }

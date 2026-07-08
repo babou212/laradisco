@@ -35,20 +35,16 @@ class PermissionService
             ->values()
             ->all();
 
+        $overrides = $preloadedOverrides ?? $channel->permissionOverrides()->get();
+
         // Resolve in a fixed precedence order — matching Discord's overwrite model —
         // so a specific role's allow reliably beats the @everyone role's deny,
         // regardless of the order overrides happen to have been created in:
         // base permissions -> @everyone override -> other roles combined -> per-user override.
         $everyoneRoleIds = $user->roles->where('is_default', true)->pluck('id');
         $otherRoleIds = $user->roles->where('is_default', false)->pluck('id');
-        $overrides = $preloadedOverrides ?? $channel->permissionOverrides()->get();
 
-        $roleIds = $user->roles->pluck('id')->all();
-        $roleOverrides = $overrides
-            ->whereIn('role_id', $roleIds)
-            ->whereNull('user_id');
-
-        $roleOverrides = $channel->permissionOverrides()->whereNull('user_id')->get();
+        $roleOverrides = $overrides->whereNull('user_id');
 
         $permissions = $this->applyOverrides($basePermissions, $roleOverrides->whereIn('role_id', $everyoneRoleIds));
         $permissions = $this->applyOverrides($permissions, $roleOverrides->whereIn('role_id', $otherRoleIds));

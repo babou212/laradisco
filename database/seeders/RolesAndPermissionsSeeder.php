@@ -10,7 +10,7 @@ class RolesAndPermissionsSeeder extends Seeder
 {
     /**
      * Seed all permissions from PermissionFlag enum, then create
-     * Discord-style default roles: Owner, Admin, Moderator, Member (everyone), Jailed.
+     * Default roles: Owner, Admin, Moderator, Member (everyone), Jailed.
      *
      * Idempotent — safe to run multiple times.
      */

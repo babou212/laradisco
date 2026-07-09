@@ -37,7 +37,7 @@ class PermissionService
 
         $overrides = $preloadedOverrides ?? $channel->permissionOverrides()->get();
 
-        // Resolve in a fixed precedence order — matching Discord's overwrite model —
+        // Resolve in a fixed precedence order
         // so a specific role's allow reliably beats the @everyone role's deny,
         // regardless of the order overrides happen to have been created in:
         // base permissions -> @everyone override -> other roles combined -> per-user override.

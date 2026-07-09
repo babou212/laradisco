@@ -9,7 +9,6 @@ return new class extends Migration
     /**
      * Run the migrations.
      * Drops old custom roles/role_user tables and creates Spatie permission tables
-     * with Discord-specific columns on the roles table.
      */
     public function up(): void
     {
@@ -33,12 +32,12 @@ return new class extends Migration
             $table->unique(['name', 'guard_name']);
         });
 
-        // Create Spatie roles table with Discord-specific columns
+        // Create Spatie roles table with specific columns
         Schema::create($tableNames['roles'], static function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('guard_name');
-            // Discord-specific columns
+            // Specific columns
             $table->string('color', 7)->default('#99AAB5');
             $table->boolean('is_hoisted')->default(false);
             $table->integer('position')->default(0);

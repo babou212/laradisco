@@ -187,6 +187,40 @@ class ModerationController extends Controller
     }
 
     /**
+     * Kick a user off the server. Unlike deleteUser, the account survives —
+     * they just lose every role until an admin assigns one again.
+     *
+     * @response 200 {"message":"User has been kicked."}
+     */
+    public function kick(Request $request, User $user): JsonResponse
+    {
+        $actor = $request->user();
+
+        if (! $actor->hasPermissionTo('kick_members') && ! $actor->isAdministrator()) {
+            return $this->forbiddenResponse('You do not have permission to kick members.');
+        }
+
+        if ($user->id === $actor->id) {
+            return $this->forbiddenResponse('You cannot kick yourself.');
+        }
+
+        if (! $this->permissionService->outranks($actor, $user)) {
+            return $this->forbiddenResponse('You cannot kick a user with a higher or equal role.');
+        }
+
+        $this->moderationService->kick($user);
+
+        $this->auditService->log(
+            actorId: $actor->id,
+            action: ModerationAction::Kick,
+            targetUserId: $user->id,
+            metadata: ['target_username' => $user->username],
+        );
+
+        return $this->successResponse(message: 'User has been kicked.');
+    }
+
+    /**
      * Jail a user (restrict to jail channels only).
      *
      * @response 200 {"message":"User has been jailed."}

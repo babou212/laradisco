@@ -44,7 +44,7 @@ class MemberController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        Gate::authorize('manage-members');
+        Gate::authorize('view-members');
 
         $members = QueryBuilder::for(
             User::select(['id', 'username', 'status', 'custom_status', 'created_at'])
@@ -97,7 +97,11 @@ class MemberController extends Controller
         );
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
-        Cache::tags([CacheKeys::userTag($user->id)])->forget(CacheKeys::userProfile($user->id));
+        // A full tag flush, not just forgetting the userProfile key — role changes
+        // also affect this user's cached channel-access list (getAccessibleChannels)
+        // and per-channel permission resolution (userCanInChannel), both tagged
+        // under the same userTag.
+        Cache::tags([CacheKeys::userTag($user->id)])->flush();
         Cache::tags([CacheKeys::TAG_ROLES])->flush();
 
         UserRolesUpdated::dispatch($user->fresh()->load('roles'));
@@ -132,7 +136,11 @@ class MemberController extends Controller
         );
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
-        Cache::tags([CacheKeys::userTag($user->id)])->forget(CacheKeys::userProfile($user->id));
+        // A full tag flush, not just forgetting the userProfile key — role changes
+        // also affect this user's cached channel-access list (getAccessibleChannels)
+        // and per-channel permission resolution (userCanInChannel), both tagged
+        // under the same userTag.
+        Cache::tags([CacheKeys::userTag($user->id)])->flush();
         Cache::tags([CacheKeys::TAG_ROLES])->flush();
 
         UserRolesUpdated::dispatch($user->fresh()->load('roles'));

@@ -6,6 +6,7 @@ enum ModerationAction: string
 {
     case Ban = 'ban';
     case Unban = 'unban';
+    case Kick = 'kick';
     case Jail = 'jail';
     case Unjail = 'unjail';
     case DeleteUser = 'delete_user';
@@ -27,6 +28,7 @@ enum ModerationAction: string
         return match ($this) {
             self::Ban => 'Banned',
             self::Unban => 'Unbanned',
+            self::Kick => 'Kicked',
             self::Jail => 'Jailed',
             self::Unjail => 'Unjailed',
             self::DeleteUser => 'Deleted User',

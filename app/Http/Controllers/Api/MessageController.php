@@ -166,7 +166,7 @@ class MessageController extends Controller
         );
 
         if ($isLatestNoArg) {
-            Cache::tags([CacheKeys::channelTag($channel->id), CacheKeys::channelMessagesTag($channel->id)])
+            Cache::tags([CacheKeys::channelMessagesTag($channel->id)])
                 ->put($cacheKey, $response->getData(true), CacheKeys::TTL_HOT);
         }
 

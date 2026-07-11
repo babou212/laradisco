@@ -52,7 +52,7 @@ class PinController extends Controller
 
         $includes = $request->query('include', '');
         $cacheKey = CacheKeys::channelPinnedMessages($channel->id).'.'.md5($includes);
-        $cached = Cache::tags([CacheKeys::channelTag($channel->id)])->get($cacheKey);
+        $cached = Cache::tags([CacheKeys::channelMessagesTag($channel->id)])->get($cacheKey);
         if ($cached) {
             return response()->json($cached);
         }
@@ -69,7 +69,7 @@ class PinController extends Controller
             ->includePreviouslyLoadedRelationships()
             ->response();
 
-        Cache::tags([CacheKeys::channelTag($channel->id)])
+        Cache::tags([CacheKeys::channelMessagesTag($channel->id)])
             ->put($cacheKey, $response->getData(true), CacheKeys::TTL_COLD);
 
         return $response;

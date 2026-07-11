@@ -40,7 +40,7 @@ return [
             **Idempotency.** For write endpoints that create resources (sending messages, creating DMs/threads, invite
             links), send a unique `Idempotency-Key` header to make retries safe.
 
-            **Rate limiting.** Authenticated traffic is limited to 100 requests/minute per user; auth and other sensitive
+            **Rate limiting.** Authenticated traffic is limited to 200 requests/minute per user; auth and other sensitive
             actions are throttled more tightly. Exceeding a limit returns `429 Too Many Requests`.
 
             **Errors.** Validation failures (`422`) return a JSON:API `errors` array, each with `status`, `title`,

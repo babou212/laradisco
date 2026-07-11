@@ -170,25 +170,27 @@ class Message extends Model implements HasMedia
     }
 
     /**
-     * Clear caches related to this message.
-     */
-    public function clearCaches(): void
-    {
-        if ($this->channel_id) {
-            cache()->forget("channel.{$this->channel_id}.metadata");
-        }
-    }
-
-    /**
+     * Return cache tags flushed whenever a message is written.
+     *
+     * Deliberately uses channelMessagesTag (not channelTag) for the channel: the
+     * channel permission and viewer caches share channelTag, and the hottest write
+     * path in the app must not evict those. Pin/unpin route through here too, so the
+     * pinned-messages cache is tagged with channelMessagesTag.
+     *
+     * threadTag IS kept for thread messages: it caches only thread details
+     * (message_count, last_message_at, latestReply), which every reply changes, and
+     * it does not cache permissions — so flushing it per reply is correct and cheap.
+     *
      * @return list<string>
      */
     public function cacheTags(): array
     {
         $tags = [];
         if ($this->channel_id) {
-            $tags[] = CacheKeys::channelTag($this->channel_id);
+            $tags[] = CacheKeys::channelMessagesTag($this->channel_id);
         }
         if ($this->thread_id) {
+            $tags[] = CacheKeys::threadMessagesTag($this->thread_id);
             $tags[] = CacheKeys::threadTag($this->thread_id);
         }
 

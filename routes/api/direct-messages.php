@@ -16,7 +16,7 @@ Route::post('/', [DirectMessageController::class, 'createDm'])
 Route::prefix('{dmGroup}')->scopeBindings()->group(function () {
     Route::get('/', [DirectMessageController::class, 'show'])->name('show');
     Route::get('/messages/head', [DirectMessageController::class, 'head'])->name('messages.head');
-    Route::get('/messages/search', [DirectMessageController::class, 'search'])->name('messages.search');
+    Route::get('/messages/search', [DirectMessageController::class, 'search'])->middleware('throttle:api-search')->name('messages.search');
 
     Route::post('/messages', [DirectMessageController::class, 'store'])
         ->middleware(['throttle:api-messages', 'idempotency'])

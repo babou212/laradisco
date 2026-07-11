@@ -32,7 +32,9 @@ class IdempotencyKey
         }
 
         $userId = $request->user()->id ?? 'anonymous';
-        $cacheKey = "idempotency:{$userId}:{$idempotencyKey}";
+        // Scope the key to the endpoint so one Idempotency-Key reused across
+        // different POST routes can't replay the wrong endpoint's response.
+        $cacheKey = "idempotency:{$userId}:".sha1($request->path().'|'.$idempotencyKey);
 
         $cached = Cache::get($cacheKey);
 

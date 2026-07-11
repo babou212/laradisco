@@ -28,7 +28,7 @@ Route::prefix('channels/{channel}')->as('channels.')->scopeBindings()->group(fun
 
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
     Route::get('/messages/head', [MessageController::class, 'head'])->name('messages.head');
-    Route::get('/messages/search', [MessageController::class, 'search'])->name('messages.search');
+    Route::get('/messages/search', [MessageController::class, 'search'])->middleware('throttle:api-search')->name('messages.search');
     Route::post('/messages', [MessageController::class, 'store'])
         ->middleware(['throttle:api-messages', 'idempotency'])
         ->name('messages.store');

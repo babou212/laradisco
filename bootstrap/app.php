@@ -31,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(SecurityHeaders::class);
 
         $middleware->api(append: [
+            'throttle:api',
             EnsureJsonAccept::class,
             UpdateUserLastSeen::class,
             CheckBanned::class,

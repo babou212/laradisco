@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Settings;
 
 use App\Concerns\ApiResponse;
+use App\Events\ChannelUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\ReorderCategoriesRequest;
 use App\Http\Requests\Api\StoreCategoryRequest;
@@ -66,6 +67,7 @@ class CategoryController extends Controller
         });
 
         Cache::tags([CacheKeys::TAG_SIDEBAR])->flush();
+        ChannelUpdated::dispatch();
 
         return $this->noContentResponse();
     }

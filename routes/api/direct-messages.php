@@ -8,7 +8,6 @@ use App\Http\Controllers\Api\TypingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [DirectMessageController::class, 'index'])->name('index');
-Route::get('/find', [DirectMessageController::class, 'findDm'])->name('find');
 Route::post('/', [DirectMessageController::class, 'createDm'])
     ->middleware('idempotency')
     ->name('create');

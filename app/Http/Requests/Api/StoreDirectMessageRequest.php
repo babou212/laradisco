@@ -21,7 +21,10 @@ class StoreDirectMessageRequest extends FormRequest
     {
         return [
             'reply_to_id' => ['nullable', 'integer', 'exists:direct_messages,id'],
-            'content' => ['nullable', 'string', 'max:65535'],
+            'content' => ['prohibited'],
+            'message_bytes' => ['nullable', 'string', 'max:262144'],
+            'sender_device_id' => ['nullable', 'string', 'size:36', 'required_with:message_bytes'],
+            'epoch' => ['nullable', 'integer', 'min:0'],
             'attachment_ids' => ['sometimes', 'array', 'max:10'],
             'attachment_ids.*' => ['uuid'],
             'client_temp_id' => ['sometimes', 'nullable', 'uuid'],
@@ -46,10 +49,10 @@ class StoreDirectMessageRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $v) {
-            $content = trim((string) $this->input('content', ''));
+            $ciphertext = trim((string) $this->input('message_bytes', ''));
             $attachments = (array) $this->input('attachment_ids', []);
-            if ($content === '' && count($attachments) === 0) {
-                $v->errors()->add('content', 'Either content or attachment_ids is required.');
+            if ($ciphertext === '' && count($attachments) === 0) {
+                $v->errors()->add('message_bytes', 'Either message_bytes or attachment_ids is required.');
             }
         });
     }

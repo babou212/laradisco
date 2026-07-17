@@ -77,7 +77,7 @@ class PinnedMessageAttachmentTest extends TestCase
 
         $send = $this->actingAs($alice)->postJson(
             route('api.direct-messages.messages.store', $group),
-            ['content' => 'with file', 'attachment_ids' => [$uuid]],
+            ['attachment_ids' => [$uuid]],
         )->assertCreated();
 
         $messageId = (int) $send->json('data.id');

@@ -59,7 +59,11 @@ class DirectMessageSent implements ShouldBroadcast
                 'id' => $this->message->id,
                 'dm_group_id' => $this->message->direct_message_group_id,
                 'user_id' => $this->message->user_id,
+                // E2EE: ciphertext travels in message_bytes; content is null.
                 'content' => $this->message->content,
+                'message_bytes' => $this->message->message_bytes,
+                'epoch' => $this->message->epoch,
+                'sender_device_id' => $this->message->sender_device_id,
                 'link_preview' => $this->message->link_preview,
                 'reply_to_id' => $this->message->reply_to_id,
                 'is_edited' => $this->message->is_edited ?? false,

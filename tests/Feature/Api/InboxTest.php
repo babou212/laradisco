@@ -10,6 +10,7 @@ use App\Services\InboxService;
 use App\Services\PermissionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
@@ -49,7 +50,8 @@ class InboxTest extends TestCase
 
         $this->actingAs($alice)
             ->postJson(route('api.direct-messages.messages.store', $group), [
-                'content' => 'hello bob',
+                'message_bytes' => base64_encode('mls-ciphertext'),
+                'sender_device_id' => (string) Str::uuid(),
             ])
             ->assertCreated();
 

@@ -15,7 +15,10 @@ class UpdateDirectMessageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'content' => ['required', 'string', 'max:65535'],
+            'content' => ['prohibited'],
+            'message_bytes' => ['required', 'string', 'max:262144'],
+            'sender_device_id' => ['required', 'string', 'size:36'],
+            'epoch' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }

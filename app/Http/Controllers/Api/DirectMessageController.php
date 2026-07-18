@@ -8,7 +8,6 @@ use App\Events\DirectMessageEdited;
 use App\Events\DirectMessageSent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\CreateDirectMessageGroupRequest;
-use App\Http\Requests\Api\FindDirectMessageGroupRequest;
 use App\Http\Requests\Api\MessagePaginateRequest;
 use App\Http\Requests\Api\SearchMessagesRequest;
 use App\Http\Requests\Api\StoreDirectMessageRequest;
@@ -275,7 +274,9 @@ class DirectMessageController extends Controller
             'user_id' => $user->id,
             'reply_to_id' => $request->validated('reply_to_id'),
             'client_temp_id' => $clientTempId,
-            'content' => $request->validated('content'),
+            'message_bytes' => $request->validated('message_bytes'),
+            'sender_device_id' => $request->validated('sender_device_id'),
+            'epoch' => $request->validated('epoch', 0),
             'link_preview' => $request->validated('link_preview'),
         ]);
 
@@ -285,7 +286,6 @@ class DirectMessageController extends Controller
 
         $message->load(['user:id,username,status,custom_status', 'replyTo.user:id,username']);
 
-        // Flush DM message cache and DM group list cache for all participants
         Cache::tags([CacheKeys::dmGroupMessagesTag($dmGroup->id)])->flush();
         $dmGroup->loadMissing('participants');
         foreach ($dmGroup->participants as $participant) {
@@ -303,8 +303,6 @@ class DirectMessageController extends Controller
                 new DirectMessageNotification($message)
             );
 
-            // Persist an inbox row per recipient; deleted when the client acks
-            // (live for online clients, on reconnect-drain for offline ones).
             $this->inboxService->enqueueForRecipients(
                 $recipients->pluck('id'),
                 'direct_message',
@@ -405,7 +403,10 @@ class DirectMessageController extends Controller
         }
 
         $message->update([
-            'content' => $request->validated('content', $message->content),
+            'content' => null,
+            'message_bytes' => $request->validated('message_bytes'),
+            'sender_device_id' => $request->validated('sender_device_id'),
+            'epoch' => $request->validated('epoch', $message->epoch),
             'is_edited' => true,
             'edited_at' => now(),
         ]);
@@ -451,29 +452,6 @@ class DirectMessageController extends Controller
         broadcast(new DirectMessageDeleted($messageId, $dmGroup->id))->toOthers();
 
         return $this->noContentResponse();
-    }
-
-    /**
-     * Find a DM group with a user
-     *
-     * Find an existing one-on-one DM group with a specific user.
-     *
-     * @queryParam user_id integer The other user's id. Example: 8
-     *
-     * @response 200 {"data": {"dm_group_id": 12}}
-     */
-    public function findDm(FindDirectMessageGroupRequest $request): JsonResponse
-    {
-        $currentUser = $request->user();
-        $otherUserId = $request->validated('user_id');
-
-        $existingDm = $this->findOneOnOneDmGroup((int) $currentUser->id, (int) $otherUserId);
-
-        if (! $existingDm) {
-            return $this->notFoundResponse('No existing DM group found.');
-        }
-
-        return response()->json(['data' => ['dm_group_id' => $existingDm->id]]);
     }
 
     /**

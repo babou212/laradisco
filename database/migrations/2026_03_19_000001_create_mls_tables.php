@@ -25,7 +25,7 @@ return new class extends Migration
             $table->string('group_id', 255)->index();
             $table->foreignId('sender_user_id')->constrained('users')->cascadeOnDelete();
             $table->char('sender_device_id', 36);
-            $table->enum('message_type', ['commit', 'proposal']);
+            $table->enum('message_type', ['commit', 'proposal', 'application']);
             $table->text('message_bytes');
             $table->unsignedBigInteger('epoch');
             $table->timestamps();

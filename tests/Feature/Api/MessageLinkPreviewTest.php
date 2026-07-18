@@ -8,6 +8,7 @@ use App\Models\Message;
 use App\Models\User;
 use App\Services\PermissionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
@@ -80,7 +81,11 @@ class MessageLinkPreviewTest extends TestCase
 
         $this->actingAs($alice)->postJson(
             route('api.direct-messages.messages.store', $group),
-            ['content' => 'look '.$preview['url'], 'link_preview' => $preview],
+            [
+                'message_bytes' => base64_encode('mls-ciphertext'),
+                'sender_device_id' => (string) Str::uuid(),
+                'link_preview' => $preview,
+            ],
         )->assertCreated();
 
         $refetch = $this->actingAs($alice)->getJson(

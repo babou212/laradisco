@@ -79,7 +79,7 @@ class MessageWithAttachmentTest extends TestCase
 
         $this->actingAs($alice)->postJson(
             route('api.direct-messages.messages.store', $group),
-            ['content' => 'with file', 'attachment_ids' => [$uuid]],
+            ['attachment_ids' => [$uuid]],
         )->assertCreated();
 
         $media = Media::query()->where('uuid', $uuid)->first();

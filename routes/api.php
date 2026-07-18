@@ -63,6 +63,10 @@ Route::prefix('v1')->group(function () {
             base_path('routes/api/soundboard.php'),
         );
 
+        Route::prefix('e2ee')->as('api.e2ee.')->group(
+            base_path('routes/api/e2ee.php'),
+        );
+
         Route::get('/users/{user}', [UserController::class, 'show'])->name('api.users.show');
 
         Route::get('/users/{user}/avatar/{version}/{size}', [UserController::class, 'avatar'])

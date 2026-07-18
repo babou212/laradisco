@@ -10,8 +10,8 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Broadcast to all devices of the group creator (and other existing members)
- * when a user/device requests to join an MLS group. The receiving device
+ * Broadcast to every group participant when a user/device requests to join
+ * (or rejoin, after losing sync) an MLS group. Any receiving member device
  * should add the requester and send them a Welcome message.
  */
 class MlsJoinRequested implements ShouldBroadcast
@@ -20,8 +20,11 @@ class MlsJoinRequested implements ShouldBroadcast
 
     public string $queue = 'broadcasting';
 
+    /**
+     * @param  list<int>  $recipientUserIds
+     */
     public function __construct(
-        public int $creatorUserId,
+        public array $recipientUserIds,
         public string $groupId,
         public int $requesterUserId,
         public string $requesterDeviceId,
@@ -32,9 +35,15 @@ class MlsJoinRequested implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
-        return [
-            new PrivateChannel('App.Models.User.'.$this->creatorUserId),
-        ];
+        return array_map(
+            fn (int $userId) => new PrivateChannel('App.Models.User.'.$userId),
+            $this->recipientUserIds,
+        );
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'mls.join.requested';
     }
 
     /** @return array<string, mixed> */

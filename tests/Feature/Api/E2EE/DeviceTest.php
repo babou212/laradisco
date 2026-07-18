@@ -2,8 +2,12 @@
 
 namespace Tests\Feature\Api\E2EE;
 
+use App\Events\DeviceRevoked;
+use App\Models\MlsJoinRequest;
+use App\Models\MlsWelcomeMessage;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
 class DeviceTest extends TestCase
@@ -100,11 +104,146 @@ class DeviceTest extends TestCase
         $this->addKeyPackage($user, $device->device_id);
 
         $this->actingAs($user)
-            ->deleteJson(route('api.e2ee.devices.destroy', ['deviceId' => $device->device_id]))
+            ->deleteJson(route('api.e2ee.devices.destroy', ['deviceId' => $device->device_id]), ['password' => 'password'])
             ->assertOk();
 
         $this->assertDatabaseHas('user_devices', ['device_id' => $device->device_id, 'is_active' => false]);
         $this->assertDatabaseMissing('mls_key_packages', ['device_id' => $device->device_id]);
+    }
+
+    public function test_revoking_another_device_requires_the_password(): void
+    {
+        $user = User::factory()->create();
+        $device = $this->registerDevice($user);
+
+        $this->actingAs($user)
+            ->deleteJson(route('api.e2ee.devices.destroy', ['deviceId' => $device->device_id]))
+            ->assertStatus(422);
+
+        $this->actingAs($user)
+            ->deleteJson(route('api.e2ee.devices.destroy', ['deviceId' => $device->device_id]), ['password' => 'wrong'])
+            ->assertStatus(422);
+
+        $this->assertDatabaseHas('user_devices', ['device_id' => $device->device_id, 'is_active' => true]);
+    }
+
+    public function test_self_revoke_needs_no_password_when_token_is_bound(): void
+    {
+        $user = User::factory()->create();
+        $device = $this->registerDevice($user);
+        $token = $user->createToken('desktop');
+        $token->accessToken->forceFill(['device_id' => $device->device_id])->save();
+
+        $this->withToken($token->plainTextToken)
+            ->deleteJson(route('api.e2ee.devices.destroy', ['deviceId' => $device->device_id]))
+            ->assertOk();
+
+        $this->assertDatabaseHas('user_devices', ['device_id' => $device->device_id, 'is_active' => false]);
+    }
+
+    public function test_revoke_deletes_bound_tokens_purges_mls_rows_and_broadcasts(): void
+    {
+        Event::fake([DeviceRevoked::class]);
+
+        $user = User::factory()->create();
+        $device = $this->registerDevice($user);
+        $otherDevice = $this->registerDevice($user);
+
+        $revokedToken = $user->createToken('revoked-session');
+        $revokedToken->accessToken->forceFill(['device_id' => $device->device_id])->save();
+        $survivingToken = $user->createToken('other-session');
+        $survivingToken->accessToken->forceFill(['device_id' => $otherDevice->device_id])->save();
+
+        MlsWelcomeMessage::create([
+            'group_id' => $this->uuid(),
+            'recipient_user_id' => $user->id,
+            'recipient_device_id' => $device->device_id,
+            'welcome_bytes' => base64_encode('welcome'),
+            'ratchet_tree_bytes' => base64_encode('tree'),
+        ]);
+        MlsJoinRequest::create([
+            'group_id' => $this->uuid(),
+            'user_id' => $user->id,
+            'device_id' => $device->device_id,
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($user)
+            ->deleteJson(route('api.e2ee.devices.destroy', ['deviceId' => $device->device_id]), ['password' => 'password'])
+            ->assertOk();
+
+        $this->assertDatabaseMissing('personal_access_tokens', ['device_id' => $device->device_id]);
+        $this->assertDatabaseHas('personal_access_tokens', ['device_id' => $otherDevice->device_id]);
+        $this->assertDatabaseMissing('mls_welcome_messages', ['recipient_device_id' => $device->device_id]);
+        $this->assertDatabaseMissing('mls_join_requests', ['device_id' => $device->device_id]);
+
+        Event::assertDispatched(DeviceRevoked::class, fn (DeviceRevoked $event) => $event->userId === $user->id
+            && $event->deviceId === $device->device_id);
+    }
+
+    public function test_bind_stamps_the_token_and_last_seen(): void
+    {
+        $user = User::factory()->create();
+        $device = $this->registerDevice($user);
+        $token = $user->createToken('desktop');
+
+        $this->withToken($token->plainTextToken)
+            ->postJson(route('api.e2ee.devices.bind'), ['device_id' => $device->device_id])
+            ->assertOk();
+
+        $this->assertDatabaseHas('personal_access_tokens', [
+            'id' => $token->accessToken->id,
+            'device_id' => $device->device_id,
+        ]);
+        $this->assertNotNull($device->fresh()->last_seen_at);
+    }
+
+    public function test_bind_rejects_a_device_the_user_does_not_own(): void
+    {
+        $owner = User::factory()->create();
+        $device = $this->registerDevice($owner);
+        $attacker = User::factory()->create();
+
+        $this->actingAs($attacker)
+            ->postJson(route('api.e2ee.devices.bind'), ['device_id' => $device->device_id])
+            ->assertNotFound();
+    }
+
+    public function test_index_returns_platform_and_current_flag(): void
+    {
+        $user = User::factory()->create();
+        $device = $this->registerDevice($user);
+        $device->update(['platform' => 'linux']);
+        $token = $user->createToken('desktop');
+        $token->accessToken->forceFill(['device_id' => $device->device_id])->save();
+
+        $this->withToken($token->plainTextToken)
+            ->getJson(route('api.e2ee.devices.index'))
+            ->assertOk()
+            ->assertJsonPath('data.0.platform', 'linux')
+            ->assertJsonPath('data.0.is_current', true);
+    }
+
+    public function test_reregistering_a_revoked_device_reactivates_it(): void
+    {
+        $user = User::factory()->create();
+        $this->registerIdentity($user);
+        $device = $this->registerDevice($user, null, false); // revoked
+
+        $this->actingAs($user)
+            ->postJson(route('api.e2ee.devices.register'), [
+                'device_id' => $device->device_id,
+                'device_name' => 'Restored Desktop',
+                'platform' => 'linux',
+            ])
+            ->assertCreated();
+
+        $this->assertDatabaseHas('user_devices', [
+            'device_id' => $device->device_id,
+            'is_active' => true,
+            'device_name' => 'Restored Desktop',
+            'platform' => 'linux',
+        ]);
     }
 
     public function test_revoking_an_unknown_device_returns_404(): void
@@ -112,7 +251,7 @@ class DeviceTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->deleteJson(route('api.e2ee.devices.destroy', ['deviceId' => $this->uuid()]))
+            ->deleteJson(route('api.e2ee.devices.destroy', ['deviceId' => $this->uuid()]), ['password' => 'password'])
             ->assertNotFound();
     }
 
@@ -136,7 +275,7 @@ class DeviceTest extends TestCase
         $attacker = User::factory()->create();
 
         $this->actingAs($attacker)
-            ->deleteJson(route('api.e2ee.devices.destroy', ['deviceId' => $device->device_id]))
+            ->deleteJson(route('api.e2ee.devices.destroy', ['deviceId' => $device->device_id]), ['password' => 'password'])
             ->assertNotFound();
 
         $this->assertDatabaseHas('user_devices', ['device_id' => $device->device_id, 'is_active' => true]);

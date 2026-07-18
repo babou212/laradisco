@@ -4,7 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $user_id
+ * @property string $device_id
+ * @property string|null $device_name
+ * @property string|null $platform
+ * @property string|null $device_identity_key
+ * @property string|null $identity_signature
+ * @property Carbon|null $last_seen_at
+ * @property bool $is_active
+ */
 class UserDevice extends Model
 {
     /**
@@ -24,6 +36,7 @@ class UserDevice extends Model
         'user_id',
         'device_id',
         'device_name',
+        'platform',
         'device_identity_key',
         'identity_signature',
         'last_seen_at',

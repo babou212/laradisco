@@ -19,6 +19,7 @@ class RegisterDeviceRequest extends FormRequest
         return [
             'device_id' => ['required', 'string', 'uuid'],
             'device_name' => ['nullable', 'string', 'max:255'],
+            'platform' => ['nullable', 'string', 'max:32'],
             'device_identity_key' => ['nullable', 'string'],
             'identity_signature' => ['nullable', 'string'],
             'key_packages' => ['sometimes', 'array', 'max:100'],

@@ -24,6 +24,7 @@ Route::middleware('throttle:20,1')->group(function () {
 });
 Route::middleware('throttle:30,1')->group(function () {
     Route::get('devices', [DeviceController::class, 'index'])->name('devices.index');
+    Route::post('devices/bind', [DeviceController::class, 'bind'])->name('devices.bind');
     Route::delete('devices/{deviceId}', [DeviceController::class, 'destroy'])->name('devices.destroy');
     Route::put('devices/{deviceId}/name', [DeviceController::class, 'updateName'])->name('devices.updateName');
 });
@@ -62,6 +63,7 @@ Route::middleware('throttle:60,1')->group(function () {
     Route::post('mls/groups/{groupId}/claim', [MlsGroupController::class, 'claim'])->name('mls.groups.claim');
     Route::post('mls/groups/{groupId}/join-request', [MlsJoinController::class, 'requestJoin'])->name('mls.groups.joinRequest');
     Route::post('mls/groups/{groupId}/join-request/fulfill', [MlsJoinController::class, 'fulfill'])->name('mls.groups.joinRequest.fulfill');
+    Route::get('mls/groups/{groupId}/join-requests', [MlsJoinController::class, 'pending'])->name('mls.groups.joinRequests.pending');
     Route::post('mls/groups/{groupId}/welcome', [MlsWelcomeController::class, 'submit'])->name('mls.groups.welcome.submit');
 });
 

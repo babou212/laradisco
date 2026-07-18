@@ -8,11 +8,13 @@ use App\Events\MlsJoinRequested;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\E2EE\FulfillJoinRequest;
 use App\Http\Requests\Api\E2EE\RequestJoinRequest;
+use App\Models\DirectMessageGroup;
 use App\Models\MlsGroup;
 use App\Models\MlsJoinRequest;
 use App\Models\UserDevice;
 use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class MlsJoinController extends Controller
 {
@@ -64,7 +66,7 @@ class MlsJoinController extends Controller
 
         try {
             broadcast(new MlsJoinRequested(
-                creatorUserId: (int) $existing->creator_user_id,
+                recipientUserIds: $this->groupParticipantIds($groupId, (int) $existing->creator_user_id),
                 groupId: $groupId,
                 requesterUserId: $user->id,
                 requesterDeviceId: $deviceId,
@@ -81,7 +83,27 @@ class MlsJoinController extends Controller
     }
 
     /**
-     * Mark a join request as fulfilled.
+     * List pending join requests for a group, so member devices can heal
+     * requesters that missed the broadcast (e.g. the member was offline).
+     */
+    public function pending(Request $request, string $groupId): JsonResponse
+    {
+        $authError = $this->authorizeGroupAccess($request->user(), $groupId);
+        if ($authError) {
+            return $authError;
+        }
+
+        $requests = MlsJoinRequest::where('group_id', $groupId)
+            ->where('status', 'pending')
+            ->get(['group_id', 'user_id', 'device_id']);
+
+        return $this->successResponse($requests);
+    }
+
+    /**
+     * Mark a join request as fulfilled. Any authorized group member may
+     * fulfill — healing a wedged device must not depend on the group creator
+     * being online.
      */
     public function fulfill(FulfillJoinRequest $request, string $groupId): JsonResponse
     {
@@ -91,11 +113,6 @@ class MlsJoinController extends Controller
         $authError = $this->authorizeGroupAccess($user, $groupId);
         if ($authError) {
             return $authError;
-        }
-
-        $group = MlsGroup::where('group_id', $groupId)->first();
-        if (! $group || (int) $group->creator_user_id !== (int) $user->id) {
-            return $this->forbiddenResponse('Only the group creator can fulfill join requests.');
         }
 
         $updated = MlsJoinRequest::where('group_id', $groupId)
@@ -108,5 +125,25 @@ class MlsJoinController extends Controller
         }
 
         return $this->successResponse(['group_id' => $groupId], 'Join request fulfilled.');
+    }
+
+    /**
+     * User ids that should hear about a join request: all DM participants, or
+     * the creator as a fallback for other group kinds.
+     *
+     * @return list<int>
+     */
+    private function groupParticipantIds(string $groupId, int $creatorUserId): array
+    {
+        if (preg_match('/^dm:(\d+)$/', $groupId, $m)) {
+            $dmGroup = DirectMessageGroup::find((int) $m[1]);
+            if ($dmGroup) {
+                return $dmGroup->participants()->pluck('users.id')
+                    ->map(fn ($id) => (int) $id)
+                    ->all();
+            }
+        }
+
+        return [$creatorUserId];
     }
 }

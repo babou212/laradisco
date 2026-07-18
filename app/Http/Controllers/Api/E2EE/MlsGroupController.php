@@ -21,6 +21,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class MlsGroupController extends Controller
 {
@@ -102,11 +103,11 @@ class MlsGroupController extends Controller
         }
 
         try {
-            MlsGroup::create([
+            DB::transaction(fn () => MlsGroup::create([
                 'group_id' => $groupId,
                 'creator_user_id' => $user->id,
                 'creator_device_id' => $deviceId,
-            ]);
+            ]));
         } catch (UniqueConstraintViolationException) {
             $existing = MlsGroup::where('group_id', $groupId)->first();
 
